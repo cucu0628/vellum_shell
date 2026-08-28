@@ -12,8 +12,10 @@ if [[ ! -r $source_file ]]; then
 fi
 
 [[ -r $source_file ]] || exit 0
-[[ -r "$fastfetch_dir/config.template.jsonc" ]] || exit 0
-[[ -r "$fastfetch_dir/vellum.template.svg" ]] || exit 0
+mkdir -p "$fastfetch_dir"
+logo_template="$fastfetch_dir/vellum.template.svg"
+[[ -r $logo_template ]] || logo_template="$base/assets/vellum-logo.svg"
+[[ -r $logo_template ]] || exit 0
 
 background="#1e1e2e"
 foreground="#cdd6f4"
@@ -46,6 +48,7 @@ render_template() {
     -e "s|@FOREGROUND@|$foreground|g" \
     -e "s|@ACCENT@|$accent|g" \
     -e "s|@MUTED@|$muted|g" \
+    -e "s|#e8ddc7|$foreground|g" \
     "$1"
 }
 
@@ -60,8 +63,10 @@ update_text_file() {
   fi
 }
 
-update_text_file "$fastfetch_dir/config.template.jsonc" "$fastfetch_dir/config.jsonc"
-update_text_file "$fastfetch_dir/vellum.template.svg" "$fastfetch_dir/vellum.svg"
+if [[ -r "$fastfetch_dir/config.template.jsonc" ]]; then
+  update_text_file "$fastfetch_dir/config.template.jsonc" "$fastfetch_dir/config.jsonc"
+fi
+update_text_file "$logo_template" "$fastfetch_dir/vellum.svg"
 
 if command -v magick >/dev/null 2>&1; then
   tmp_png=$(mktemp "$fastfetch_dir/.vellum.XXXXXX.png")

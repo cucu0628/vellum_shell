@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-bind_file="${HYPR_BINDINGS_FILE:-$HOME/.config/hypr/dms/binds.lua}"
+bind_file="${HYPR_BINDINGS_FILE:-$HOME/.config/hypr/bindings.lua}"
+
+if command -v hyprctl >/dev/null 2>&1 && runtime_binds=$(hyprctl binds -j 2>/dev/null); then
+    printf '%s\n' "$runtime_binds"
+    exit 0
+fi
 
 if [[ ! -r "$bind_file" ]]; then
-    exec hyprctl binds -j
+    exit 0
 fi
 
 direction_name() {

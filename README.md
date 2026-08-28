@@ -6,9 +6,8 @@ multi-monitor top bar, application launcher, notification center, media
 dashboard, system controls, appearance management, and a separate Wayland
 session lock.
 
-The project is built for a personal Arch Linux and Hyprland environment. The
-core shell is modular, but some helper actions deliberately assume Arch tools,
-Kitty, and a custom Hyprland Lua setup.
+The project targets Arch Linux or CachyOS with Hyprland 0.55 or newer. It uses
+Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
 
 ## Preview
 
@@ -75,9 +74,9 @@ require the corresponding command:
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
 | Removable devices | `util-linux`, `udisks2`, `xdg-utils` |
 
-The package helpers are Arch-specific. The generated Hyprland colors and a few
-system actions use `hl.config(...)` and `hl.dsp.*`, which belong to the author's
-custom Lua-based Hyprland configuration rather than stock Hyprland.
+The package helpers are Arch-specific. Hyprland integration uses the native
+Lua API introduced in Hyprland 0.55 (`hl.config(...)`, `hl.bind(...)`, and
+`hl.dsp.*`).
 
 ## Installation
 
@@ -88,40 +87,33 @@ git clone https://git.asked.hu/asked/qs.git \
   "$HOME/.config/quickshell/vellum_shell"
 ```
 
-Install every package used by the shell and its bundled integrations on Arch
-Linux or CachyOS. The script skips packages that are already installed and uses
-`paru` or `yay` for the two AUR dependencies:
+Run the complete setup. It installs dependencies, creates state directories,
+sets up PAM and external themes, enables required services, and installs the
+Hyprland Lua modules under `~/.config/hypr/`:
 
 ```bash
 cd "$HOME/.config/quickshell/vellum_shell"
-./install.sh
+./setup.sh
 ```
 
-Make sure the helper scripts are executable:
+To install and activate the bundled SDDM theme as well:
 
 ```bash
-chmod +x "$HOME/.config/quickshell/vellum_shell/scripts/"*
+./setup.sh --with-sddm
 ```
 
-Set an existing wallpaper path before the first launch:
+Use `./setup.sh --with-zen` to modify an existing Zen Browser profile and add
+the generated Vellum chrome theme. It is opt-in because it changes `user.js`.
+
+The setup preserves a valid existing wallpaper selection. If none exists, put
+an image in the wallpaper directory; the shell selects the first image:
 
 ```bash
-printf '%s\n' "$HOME/Pictures/wallpapers/your-wallpaper.png" \
-  > "$HOME/.config/quickshell/vellum_shell/current-wallpaper"
+cp your-wallpaper.png "$HOME/Pictures/wallpapers/"
 ```
 
-Start the shell:
-
-```bash
-quickshell --path "$HOME/.config/quickshell/vellum_shell/shell.qml" --daemonize
-```
-
-For Hyprland autostart, add the same command to your session configuration, for
-example:
-
-```ini
-exec-once = quickshell --path ~/.config/quickshell/vellum_shell/shell.qml --daemonize
-```
+The setup installs `~/.config/hypr/autostart.lua`. It starts the shell
+immediately in a running Hyprland session and automatically on later sessions.
 
 Restart an already running instance with:
 
@@ -129,9 +121,8 @@ Restart an already running instance with:
 ~/.config/quickshell/vellum_shell/scripts/theme-refresh
 ```
 
-The package installer does not enable system services or configure session
-startup, PAM, SDDM, and external applications; those remain explicit system
-configuration steps.
+`install.sh` remains available as a package-only installer. `setup.sh` is the
+recommended entry point for a fresh system.
 
 ## Usage
 
@@ -161,17 +152,15 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `about` | `toggle`, `open`, `close` |
 | `screenshot` | `capture`, `window`, `workspace`, `region` |
 
-Example Hyprland bindings:
+The setup installs these bindings in `~/.config/hypr/bindings.lua` using the
+native Hyprland Lua API:
 
-```ini
-$vellum = quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call
-
-bind = SUPER, SPACE, exec, $vellum launcher toggle
-bind = SUPER, V, exec, $vellum clipboard toggle
-bind = SUPER, N, exec, $vellum notifications toggle
-bind = SUPER, P, exec, $vellum menu toggle
-bind = , PRINT, exec, $vellum screenshot capture
-bind = SHIFT, PRINT, exec, $vellum screenshot region
+```lua
+local shell = [[quickshell ipc --path "$HOME/.config/quickshell/vellum_shell/shell.qml" call]]
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd(shell .. " launcher toggle"))
+hl.bind("SUPER + V", hl.dsp.exec_cmd(shell .. " clipboard toggle"))
+hl.bind("SUPER + N", hl.dsp.exec_cmd(shell .. " notifications toggle"))
+hl.bind("SUPER + P", hl.dsp.exec_cmd(shell .. " menu toggle"))
 ```
 
 ### Lock screen
@@ -191,9 +180,8 @@ through the shell menu or directly:
 ~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor set HDMI-A-1
 ```
 
-Authentication uses the PAM service named `hyprlock`. A working
-`/etc/pam.d/hyprlock` configuration is therefore required before relying on the
-lock screen.
+Authentication uses the dedicated PAM service named `vellum-shell`. The setup
+installs `/etc/pam.d/vellum-shell`; no external lock-screen package is used.
 
 ### Login screen (SDDM)
 
@@ -290,10 +278,11 @@ Theme scripts generate:
 
 - `kitty-theme.conf` for Kitty.
 - `gtk-theme.css` for GTK 3 and GTK 4.
-- `~/.config/hypr/colors.lua` for the custom Hyprland Lua configuration.
-- `zen-theme.css` for Zen Browser chrome.
+- `~/.config/hypr/colors.lua` for Hyprland's native Lua configuration.
+- `vellum-theme.css` in the active Zen Browser profile, imported by `userChrome.css`.
 - A `btop` theme in the user's btop configuration.
-- A Fastfetch configuration and matching Vellum logo in the user's Fastfetch configuration.
+- A matching Vellum logo, plus a Fastfetch configuration when a local
+  `config.template.jsonc` is present.
 
 These files are generated, not automatically imported by every application.
 Add the relevant include or import to each application's configuration.

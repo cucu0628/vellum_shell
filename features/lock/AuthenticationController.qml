@@ -36,7 +36,7 @@ QtObject {
     }
 
     property PamContext pam: PamContext {
-        config: "hyprlock"
+        config: "vellum-shell"
         user: Quickshell.env("USER")
 
         onPamMessage: {

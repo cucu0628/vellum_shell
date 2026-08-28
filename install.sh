@@ -19,11 +19,13 @@ repo_packages=(
   bluez-utils
   blueman
   btop
+  brightnessctl
   cava
   cliphist
   coreutils
   curl
   desktop-file-utils
+  dolphin
   fastfetch
   findutils
   fzf
@@ -33,6 +35,7 @@ repo_packages=(
   grep
   grim
   hyprland
+  hyprlauncher
   imagemagick
   inetutils
   iproute2
@@ -49,9 +52,11 @@ repo_packages=(
   pavucontrol
   pipewire
   pipewire-pulse
+  playerctl
   polkit
   power-profiles-daemon
   procps-ng
+  python
   qt6ct
   quickshell
   satty
@@ -62,9 +67,11 @@ repo_packages=(
   ttf-nerd-fonts-symbols-mono
   udisks2
   util-linux
+  upower
   wireplumber
   wl-clipboard
   xdg-desktop-portal-gtk
+  xdg-desktop-portal-hyprland
   xdg-user-dirs
   xdg-utils
   xorg-xrandr
@@ -102,4 +109,4 @@ printf 'AUR-csomagok ellenőrzése és telepítése...\n'
 "$aur_helper" -S --needed "${aur_packages[@]}"
 
 printf '\nMinden Vellum Shell-függőség telepítve van.\n'
-printf 'A NetworkManager és Bluetooth szolgáltatásokat szükség esetén külön engedélyezd.\n'
+printf 'A teljes rendszerkonfigurációhoz futtasd a setup.sh scriptet.\n'
