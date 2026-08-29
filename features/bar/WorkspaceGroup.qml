@@ -33,7 +33,7 @@ Row {
 
         SharedUi.ShellLogo {
             anchors.centerIn: parent
-            size: 16
+            size: 14
             color: menuMouse.containsMouse || root.menuOpen ? root.theme.accent : root.theme.foreground
             Behavior on color { ColorAnimation { duration: 120 } }
         }

@@ -1,9 +1,9 @@
 import QtQuick
-import Quickshell.Io
 
 Item {
     id: controller
 
+    required property var backend
     property var theme: null
     property var wallpaperController: null
     property bool opened: false
@@ -43,60 +43,50 @@ Item {
         loadGeneration++
         themeItems = []
         wallpaperItems = []
-        themeLoader.generation = loadGeneration
-        wallpaperLoader.generation = loadGeneration
-        themeLoader.command = ["sh", "-c", "sh \"$HOME/.config/quickshell/vellum_shell/scripts/theme-list\""]
-        wallpaperLoader.command = ["sh", "-c", "base=\"$HOME/.config/quickshell/vellum_shell\"; bgdir=\"$HOME/Pictures/wallpapers\"; current_bg=\"\"; [ -r \"$base/current-wallpaper\" ] && current_bg=$(cat \"$base/current-wallpaper\"); [ -d \"$bgdir\" ] || exit 0; find \"$bgdir\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \\) 2>/dev/null | sort | while IFS= read -r path; do name=$(basename \"$path\"); clean=${name%.*}; clean=${clean#vellum-}; title=$(printf '%s\\n' \"$clean\" | tr '_-' ' ' | awk '{for (i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}'); marker=''; [ \"$path\" = \"$current_bg\" ] && marker='current'; printf '%s|%s|%s\\n' \"$title\" \"$path\" \"$marker\"; done"]
-        themeLoader.running = true
-        wallpaperLoader.running = true
+
+        var generation = loadGeneration
+        backend.call("theme", "list", {}, (result, error) => {
+            if (generation !== controller.loadGeneration || !controller.opened) return
+            if (error) {
+                console.warn("Appearance: a temak nem olvashatoak:", error.message)
+                return
+            }
+            controller.applyThemes(result || [])
+        })
+        backend.call("theme", "wallpapers", {}, (result, error) => {
+            if (generation !== controller.loadGeneration || !controller.opened) return
+            if (error) {
+                console.warn("Appearance: a hatterkepek nem olvashatoak:", error.message)
+                return
+            }
+            controller.applyWallpapers(result || [])
+        })
     }
 
     function releaseResources() {
+        // A generacio leptetese ervenyteleniti a meg uton levo valaszokat.
         loadGeneration++
-        themeLoader.running = false
-        wallpaperLoader.running = false
         themeItems = []
         wallpaperItems = []
     }
 
-    function parseThemes(output) {
-        var lines = (output || "").trim().split("\n")
-        var parsed = []
+    function applyThemes(items) {
         var currentIndex = 0
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i].trim() === "") continue
-            var parts = lines[i].split("|")
-            parsed.push({
-                name: parts[0] || "",
-                slug: parts[1] || "",
-                meta: parts[2] || "",
-                background: parts[3] || "#1e1e2e",
-                foreground: parts[4] || "#cdd6f4",
-                accent: parts[5] || "#89b4fa",
-                surface: parts[6] || "#181825",
-                muted: parts[7] || "#9399b2",
-                kind: parts[8] || "static",
-                iconTheme: parts[9] || "Yaru-dark"
-            })
-            if ((parts[2] || "") === "current") currentIndex = parsed.length - 1
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].current) currentIndex = i
         }
         selectedThemeIndex = currentIndex
-        themeItems = parsed
+        themeItems = items
         themeScrollRequested()
     }
 
-    function parseWallpapers(output) {
-        var lines = (output || "").trim().split("\n")
-        var parsed = []
+    function applyWallpapers(items) {
         var currentIndex = 0
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i].trim() === "") continue
-            var parts = lines[i].split("|")
-            parsed.push({ name: parts[0] || "", path: parts[1] || "", meta: parts[2] || "" })
-            if ((parts[2] || "") === "current") currentIndex = parsed.length - 1
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].current) currentIndex = i
         }
         selectedWallpaperIndex = currentIndex
-        wallpaperItems = parsed
+        wallpaperItems = items
         wallpaperScrollRequested()
     }
 
@@ -104,10 +94,6 @@ Item {
         if (!path) return ""
         if (path.startsWith("file:")) return path
         return path.startsWith("/") ? "file://" + path : ""
-    }
-
-    function shellQuote(value) {
-        return "'" + value.replace(/'/g, "'\\''") + "'"
     }
 
     function setSection(section) {
@@ -141,33 +127,32 @@ Item {
         applying = true
         sceneApplied = false
 
-        // Dynamic colours do not exist until Matugen has processed the selected
-        // wallpaper. Avoid briefly applying the palette from the previous image.
+        // A dinamikus paletta csak azutan letezik, hogy a backend feldolgozta a
+        // kivalasztott kepet -- addig ne villantsuk fel az elozo kep szineit.
         if (theme && selectedTheme.kind !== "dynamic") {
-            theme.background = selectedTheme.background
-            theme.foreground = selectedTheme.foreground
-            theme.accent = selectedTheme.accent
-            theme.surface = selectedTheme.surface
-            theme.muted = selectedTheme.muted
+            theme.setPreview({
+                BACKGROUND: selectedTheme.background,
+                FOREGROUND: selectedTheme.foreground,
+                ACCENT: selectedTheme.accent,
+                SURFACE: selectedTheme.surface,
+                LIGHT_FOREGROUND: selectedTheme.muted
+            })
         }
         if (wallpaperController) wallpaperController.setCurrentWallpaper(selectedWallpaper.path)
 
-        var command = "base=\"$HOME/.config/quickshell/vellum_shell\"; slug=" + shellQuote(selectedTheme.slug)
-            + "; path=" + shellQuote(selectedWallpaper.path)
-            + "; printf '%s\\n' \"$slug\" > \"$base/current-theme\""
-            + "; printf '%s\\n' \"$path\" > \"$base/current-wallpaper\""
-            + "; [ \"$slug\" = dynamic-matugen ] && sh \"$base/scripts/matugen-theme\" \"$path\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/kitty-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/gtk-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/icon-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/hyprland-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/zen-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/btop-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/fastfetch-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/sddm-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/theme-read\""
-        applyProcess.command = ["sh", "-c", command]
-        applyProcess.running = true
+        // Ami korabban kilenc lancolt bash script volt, az most egy hivas.
+        backend.call("theme", "apply", {
+            slug: selectedTheme.slug,
+            wallpaper: selectedWallpaper.path
+        }, (result, error) => {
+            controller.applying = false
+            controller.sceneApplied = true
+            if (error) {
+                console.warn("Appearance: a tema nem alkalmazhato:", error.message)
+                if (controller.theme) controller.theme.setPreview({})
+            }
+            closeTimer.restart()
+        })
     }
 
     function handleKey(event) {
@@ -194,40 +179,4 @@ Item {
 
     Timer { id: closeTimer; interval: 520; onTriggered: controller.opened = false }
 
-    Process {
-        id: themeLoader
-        property int generation: 0
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (themeLoader.generation === controller.loadGeneration && controller.opened)
-                    controller.parseThemes(this.text || "")
-            }
-        }
-    }
-    Process {
-        id: wallpaperLoader
-        property int generation: 0
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (wallpaperLoader.generation === controller.loadGeneration && controller.opened)
-                    controller.parseWallpapers(this.text || "")
-            }
-        }
-    }
-    Process {
-        id: applyProcess
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var palette = (this.text || "").trim()
-                if (palette !== "" && controller.theme && controller.theme.updateColors)
-                    controller.theme.updateColors(palette)
-            }
-        }
-        onExited: {
-            controller.applying = false
-            controller.sceneApplied = true
-            if (controller.wallpaperController) controller.wallpaperController.loadThemeColors()
-            closeTimer.restart()
-        }
-    }
 }

@@ -2,8 +2,10 @@ current-weather-location
 kitty-theme.conf
 lockscreen-monitor
 zen-theme.css
+zen-content-theme.css
 current-wallpaper
 current-theme
 gtk-theme.css
 sddm/vellum-ink/Xsetup
 push-both.sh
+backend/target/

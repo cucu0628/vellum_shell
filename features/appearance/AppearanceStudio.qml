@@ -7,6 +7,7 @@ import "../../ui" as SharedUi
 PanelWindow {
     id: studio
 
+    property alias backend: appearanceController.backend
     property alias theme: appearanceController.theme
     property alias wallpaperController: appearanceController.wallpaperController
     property alias opened: appearanceController.opened
@@ -34,10 +35,7 @@ PanelWindow {
 
     function loadItems() { appearanceController.loadItems() }
     function releaseResources() { appearanceController.releaseResources() }
-    function parseThemes(output) { appearanceController.parseThemes(output) }
-    function parseWallpapers(output) { appearanceController.parseWallpapers(output) }
     function imageSource(path) { return appearanceController.imageSource(path) }
-    function shellQuote(value) { return appearanceController.shellQuote(value) }
     function setSection(section) { appearanceController.setSection(section) }
     function moveSelection(delta) { appearanceController.moveSelection(delta) }
     function selectDynamicTheme() { appearanceController.selectDynamicTheme() }

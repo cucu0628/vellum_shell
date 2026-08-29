@@ -213,9 +213,18 @@ vellum_shell/
 
 ### `core/`
 
-- Hyprland, PipeWire, MPRIS, fájlrendszer és külső parancsok állapotát kezeli.
+- Hyprland, PipeWire, MPRIS és a Rust backend állapotát kezeli.
 - Nem ismeri a popupok vizuális felépítését.
 - Szűk property és függvény API-t ad a feature-öknek.
+- A `core/Backend.qml` az egyetlen pont, ami a backend sockethez beszél; a többi
+  controller csak a `topics` térképre köt rá.
+
+### `backend/`
+
+- Rust daemon: téma-motor és rendszerállapot, Unix socketen JSON-lines protokollal.
+- Egy fájl egy képesség a `src/modules/` alatt, plusz egy sor a registryben.
+- Nem ismeri a QML-t: a topicok és metódusok neve a szerződés, amit a `describe`
+  művelet ad ki.
 
 ### `ui/`
 
@@ -253,6 +262,11 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - `LockShell.qml` megmarad kompatibilitási belépési pontként; a fő shell a lockscreent IPC-n aktiválja.
 - A feature popupokat a `shell.qml` közvetlen, névterezett importokkal példányosítja; nincs szükség gyökér wrapper fájlokra.
 - Az IPC targetek neve és metódusai kompatibilisek maradnak: `menu`, `launcher`, `clipboard`, `style`, `power`, `lock`, `notifications`, `audio`, `about`.
+- A backend socketje (`$XDG_RUNTIME_DIR/vellum-shell.sock`), a protokoll `v: 1`
+  verziója, valamint a topicok és metódusok nevei kompatibilisek maradnak: ezekre
+  épül a QML kliens, a CLI és egy későbbi settings app is.
+- A `themes/<slug>/theme.conf` kulcsai kompatibilisek maradnak; a generátorok
+  kimenetét golden teszt védi a korábbi bash scriptek rögzített kimenetével.
 
 ## Migráció állapota
 
@@ -274,8 +288,16 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - A felesleges gyökér popup wrapperek megszűntek; a `shell.qml` közvetlenül importálja a feature-típusokat.
 - Lock theme, power, PAM controller, háttér, card és password field szétválasztása.
 - Lockscreen újratervezés csendes tus stílusban: ensō háttér, pecsét, óra és shoji nyitó/záró animáció.
+- Rust backend: protokoll, hub, lazy topicok és a `core/Backend.qml` kliens
+  automatikus újracsatlakozással.
+- Téma-motor: paletta, színmatek és a nyolc generátor egy helyen, natív Material
+  You-val (a `matugen` és `jq` függőség megszűnt). A kimenetet golden teszt védi.
+- Állapot modulok: `network`, `vpn`, `removable`, `privacy`, `sysstats`, `weather`.
+- A backend systemd user service-ként indul bejelentkezéskor; a futó példány
+  jelenti a git revízióját (`vellum ping`).
 
 ### Következő
 
-- README használati és IPC dokumentáció bővítése.
 - Integrációs teszt külön vagy nested Wayland sessionben.
+- A kiváltott bash scriptek eltávolítása (lásd a README Backend szakaszát).
+- `ai-usage-claude` / `ai-usage-codex` portolása, ha megéri.

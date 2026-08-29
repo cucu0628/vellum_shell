@@ -1,25 +1,35 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 
 Item {
     id: controller
 
     required property string shellDir
+    required property var backend
     property var screens: []
-    // Empty until load() resolves a real file, so the wallpaper windows never
-    // try to open a path that may not exist.
+    // Empty until the backend reports a real file, so the wallpaper windows
+    // never try to open a path that may not exist.
     property string currentWallpaper: ""
 
     width: 0
     height: 0
     visible: false
 
-    function load() {
-        loader.command = ["sh", "-c", "base=\"$HOME/.config/quickshell/vellum_shell\"; bgdir=\"$HOME/Pictures/wallpapers\"; path=\"\"; [ -r \"$base/current-wallpaper\" ] && path=$(cat \"$base/current-wallpaper\"); [ -r \"$path\" ] || path=$(find \"$bgdir\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \\) 2>/dev/null | sort | head -n 1); [ -r \"$path\" ] || path=\"\"; printf '%s' \"$path\""]
-        loader.running = true
-    }
+    // A backend `theme` topicja hordozza az aktiv hatterkepet is, igy nem kell
+    // kulon lekerdezni: temavaltaskor magatol frissul.
+    readonly property string reportedWallpaper: backend && backend.topics.theme && backend.topics.theme.wallpaper
+        ? backend.topics.theme.wallpaper
+        : ""
+
+    onReportedWallpaperChanged: setCurrentWallpaper(reportedWallpaper)
+
+    Component.onCompleted: if (backend) backend.subscribe("theme")
+
+    // A feliratkozas magatol hozza a valtozasokat; ez csak azert maradt meg,
+    // hogy a korabbi hivasi pontok ne torjenek el. Ujra-feliratkozni nem
+    // szabad: a szamlalo novekedne parositott leiratkozas nelkul.
+    function load() {}
 
     function setCurrentWallpaper(path) {
         if (path && path !== "") currentWallpaper = path
@@ -29,11 +39,6 @@ Item {
         if (!path || path === "") return ""
         if (path.startsWith("file:")) return path
         return "file://" + path
-    }
-
-    Process {
-        id: loader
-        stdout: StdioCollector { onStreamFinished: controller.setCurrentWallpaper((this.text || "").trim()) }
     }
 
 

@@ -1,0 +1,2 @@
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+systemctl --user restart xdg-desktop-portal-gtk.service xdg-desktop-portal.service

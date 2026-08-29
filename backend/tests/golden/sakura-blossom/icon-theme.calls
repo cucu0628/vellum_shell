@@ -1,0 +1,2 @@
+gsettings set org.gnome.desktop.interface icon-theme Yaru-magenta-dark
+kwriteconfig6 --file kdeglobals --group Icons --key Theme --notify Yaru-magenta-dark

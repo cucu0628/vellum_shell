@@ -1,0 +1,25 @@
+[Unit]
+Description=Vellum Shell backend (tema motor es allapot daemon)
+Documentation=file:%h/.config/quickshell/vellum_shell/README.md
+# A shell akkor is elindul, ha ez a szolgaltatas nem fut -- a QML kliens
+# ujraprobalkozik, amig meg nem talalja a socketet. Ezert nincs Before= a
+# quickshell fele: a fuggoseg egyiranyu es puha.
+
+# Ha a socketet mar fogja valaki (pl. egy kezzel inditott peldany), a daemon
+# kilep. E nelkul a korlat nelkul az on-failure ujrainditas forro hurokba
+# kerulne; igy oteperces ablakban ot probalkozas utan megall.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/vellum daemon
+Restart=on-failure
+RestartSec=2s
+# A daemon egyszalu es esemenyvezerelt; ez a keret boven eleg neki (merve ~7 MB),
+# es hatarok koze szoritja, ha valaha elszallna.
+MemoryMax=128M
+Environment=VELLUM_LOG=info
+
+[Install]
+WantedBy=default.target

@@ -60,6 +60,16 @@ sudo install -Dm644 "$source_dir/pam/vellum-shell" /etc/pam.d/vellum-shell
 
 chmod +x "$source_dir/install.sh" "$source_dir/setup.sh" "$source_dir/scripts/"*
 
+# A Rust backend. Ha nincs cargo, a shell ettol meg elindul: a QML kliens
+# degradaltan mukodik es a hatterben ujraprobalkozik.
+backend_installed=false
+if command -v cargo >/dev/null 2>&1; then
+  "$source_dir/scripts/backend-install"
+  backend_installed=true
+else
+  printf 'Figyelmeztetes: nincs cargo, a Rust backend kimarad. Telepitsd a rust csomagot, majd futtasd ujra.\n' >&2
+fi
+
 xdg-user-dirs-update >/dev/null 2>&1 || true
 mkdir -p \
   "$HOME/.config/hypr" \
@@ -80,7 +90,7 @@ mkdir -p \
 
 current_theme=""
 [[ -r "$target_dir/current-theme" ]] && current_theme=$(<"$target_dir/current-theme")
-if [[ ! -d "$target_dir/themes/$current_theme" ]]; then
+if [[ -z $current_theme || ! -d "$target_dir/themes/$current_theme" ]]; then
   printf '%s\n' japanese-ink > "$target_dir/current-theme"
 fi
 
@@ -144,11 +154,20 @@ for gtk_version in 3.0 4.0; do
   fi
 done
 
-for theme_script in kitty-theme gtk-theme icon-theme hyprland-theme btop-theme fastfetch-theme sddm-theme; do
-  bash "$target_dir/scripts/$theme_script"
-done
-if [[ $theme_zen == true ]]; then
-  bash "$target_dir/scripts/zen-theme"
+current_theme=$(<"$target_dir/current-theme")
+if [[ $backend_installed == true ]]; then
+  # Egy hivas az osszes generatort lefuttatja. Ha a daemon mar fut, o vegzi el
+  # (es azonnal ertesiti a shellt); ha nem, a binaris helyben futtatja le.
+  zen_flag=(--no-zen)
+  [[ $theme_zen == true ]] && zen_flag=()
+  "$HOME/.local/bin/vellum" theme apply "$current_theme" "${zen_flag[@]}" >/dev/null
+else
+  for theme_script in kitty-theme gtk-theme icon-theme hyprland-theme btop-theme fastfetch-theme sddm-theme; do
+    bash "$target_dir/scripts/$theme_script"
+  done
+  if [[ $theme_zen == true ]]; then
+    bash "$target_dir/scripts/zen-theme"
+  fi
 fi
 
 btop_config="$HOME/.config/btop/btop.conf"
@@ -162,6 +181,7 @@ fc-cache -f >/dev/null 2>&1 || true
 sudo systemctl enable --now NetworkManager.service bluetooth.service
 systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.service || \
   printf 'Figyelmeztetes: a PipeWire felhasznaloi szolgaltatasokat a kovetkezo bejelentkezes inditja el.\n' >&2
+
 
 if [[ $install_sddm == true ]]; then
   sudo "$target_dir/scripts/sddm-install" --default --layout

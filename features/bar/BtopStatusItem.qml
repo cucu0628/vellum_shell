@@ -9,11 +9,11 @@ Item {
     height: parent.height
     Text {
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: -2
+        anchors.verticalCenterOffset: -1
         text: "󰍛"
         color: mouse.containsMouse ? root.theme.accent : root.theme.foreground
         font.family: "Symbols Nerd Font Mono"
-        font.pixelSize: 24
+        font.pixelSize: 14
         Behavior on color { ColorAnimation { duration: 120 } }
     }
     Rectangle {

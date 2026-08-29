@@ -1,46 +1,69 @@
 import QtQuick
-import Quickshell.Io
 
+// Az aktiv paletta. Az ertekek a Rust backend `theme` topicjabol jonnek; a
+// korabbi Process + kezi szovegparse eltunt.
+//
+// A hat kozzetett property neve valtozatlan: 42 QML fajl epul rajuk.
 Item {
     id: store
 
-    property string background: "#1e1e2e"
-    property string foreground: "#cdd6f4"
-    property string accent: "#89b4fa"
-    property string surface: "#181825"
-    property string muted: "#bac2de"
-    property string outline: "#9399b2"
+    required property var backend
+
+    // A teljes paletta, mind a ~29 kulccsal. Korabban a ThemeStore csak hatot
+    // ismert fel -- ami ezen kivul esett, elveszett.
+    readonly property var colors: backend && backend.topics.theme && backend.topics.theme.colors
+        ? backend.topics.theme.colors
+        : ({})
+
+    readonly property string slug: backend && backend.topics.theme && backend.topics.theme.slug
+        ? backend.topics.theme.slug
+        : ""
+
+    // Azonnali elonezet temavaltaskor: a backend valaszara nem varunk, hogy a
+    // felulet ne villanjon. A backend valasza felulirja.
+    property var preview: ({})
+
+    // FIGYELEM: a lekepezes szandekosan "kereszt". A MUTED kulcs az `outline`
+    // propertybe megy, a LIGHT_FOREGROUND pedig a `muted`-be -- pontosan igy
+    // tette a korabbi parse is, es a felulet erre epul.
+    // Egyetlen osszevont terkep, amire a szinek epulnek. Fuggveny-hivas helyett
+    // azert property, mert a fuggvenybol a QML nem latja a fuggosegeket, es a
+    // preview torlese binding-hurkot okozott.
+    readonly property var effective: {
+        var merged = {}
+        for (var key in colors) merged[key] = colors[key]
+        for (var override in preview) merged[override] = preview[override]
+        return merged
+    }
+
+    readonly property string background: effective.BACKGROUND || "#1e1e2e"
+    readonly property string foreground: effective.FOREGROUND || "#cdd6f4"
+    readonly property string accent: effective.ACCENT || "#89b4fa"
+    readonly property string surface: effective.SURFACE || "#181825"
+    readonly property string muted: effective.LIGHT_FOREGROUND || "#bac2de"
+    readonly property string outline: effective.MUTED || "#9399b2"
 
     width: 0
     height: 0
     visible: false
 
-    function updateColors(text) {
-        var lines = text.split("\n")
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].trim()
-            if (line === "" || line.startsWith("#")) continue
-            if (line.startsWith("env = BACKGROUND,")) background = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("env = FOREGROUND,")) foreground = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("env = BORDER_FOREGROUND,")) accent = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("BACKGROUND=")) background = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("FOREGROUND=")) foreground = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("ACCENT=")) accent = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("BORDER_FOREGROUND=")) accent = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("SURFACE=")) surface = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("MUTED=")) outline = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("LIGHT_FOREGROUND=")) muted = line.split("=")[1].replace("##", "#")
-        }
+    // A valaszto hivja, amig a backend dolgozik. A kulcsok a theme.conf
+    // kulcsai, nem a property nevek.
+    function setPreview(values) {
+        preview = values || ({})
     }
 
     function load() {
-        loader.command = ["sh", "-c", "sh \"$HOME/.config/quickshell/vellum_shell/scripts/theme-read\""]
-        loader.running = true
+        if (!backend) return
+        backend.call("theme", "read", {}, (result, error) => {
+            if (error) console.warn("ThemeStore: a paletta nem olvashato:", error.message)
+        })
     }
 
-    Process {
-        id: loader
-        stdout: StdioCollector { onStreamFinished: store.updateColors(this.text || "") }
-    }
+    Component.onCompleted: if (backend) backend.subscribe("theme")
 
+    // Amint a backend kikuldi az uj palettat, az elonezet feleslegesse valik.
+    // A felteteles ertekadas fontos: felteteles nelkul minden szinvaltozas uj
+    // objektumot rendelne a preview-hoz, ami ujra kivaltana az ertekelest.
+    onColorsChanged: if (Object.keys(preview).length > 0) preview = ({})
 }

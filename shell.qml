@@ -47,13 +47,22 @@ ShellRoot {
     readonly property var monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     readonly property var dayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+    // A Rust backend kliense. Legelol jon letre, hogy a tobbi controller mar
+    // atvehesse. Ha a daemon nem fut, a shell degradaltan, de mukodik.
+    Core.Backend {
+        id: backend
+    }
+    readonly property var shellBackend: backend
+
     Core.ThemeStore {
         id: theme
+        backend: shellRoot.shellBackend
     }
     readonly property var shellTheme: theme
 
     Core.WallpaperController {
         id: wallpaperStore
+        backend: shellRoot.shellBackend
         shellDir: shellRoot.shellDir
         screens: shellRoot.uniqueScreens
     }
@@ -69,11 +78,12 @@ ShellRoot {
 
     Core.VpnController {
         id: vpnController
-        networkController: networkStatusController
+        backend: shellRoot.shellBackend
     }
 
     Core.NetworkStatusController {
         id: networkStatusController
+        backend: shellRoot.shellBackend
     }
 
     Core.BluetoothStatusController {
@@ -86,11 +96,12 @@ ShellRoot {
 
     Core.PrivacyController {
         id: privacyController
-        shellDir: shellRoot.shellDir
+        backend: shellRoot.shellBackend
     }
 
     Core.RemovableDeviceController {
         id: removableDeviceController
+        backend: shellRoot.shellBackend
         onDeviceAdded: popupCoordinator.setRemovableOpen(true, shellRoot.focusedScreen())
     }
 
@@ -216,6 +227,7 @@ ShellRoot {
         id: themeSwitcher
         popupComponent: Component {
             AppearanceFeature.AppearanceStudio {
+                backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 wallpaperController: shellRoot
                 mode: themeSwitcher.mode
@@ -439,6 +451,7 @@ ShellRoot {
         property string selectedPlayerDbusName: ""
         popupComponent: Component {
             MediaFeature.MediaPopup {
+                backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 screen: mediaPopup.screen
                 currentTab: mediaPopup.currentTab

@@ -34,11 +34,11 @@ Item {
             height: root.barHeight
             Text {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -2
+                anchors.verticalCenterOffset: -1
                 text: Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio.muted ? "" : ""
                 color: mouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
                 font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 28
+                font.pixelSize: 16
                 Behavior on color { ColorAnimation { duration: 120 } }
             }
         }

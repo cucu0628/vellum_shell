@@ -46,10 +46,13 @@ do not remain open at the same time.
 - A Wayland session running Hyprland.
 - Quickshell with Hyprland, PipeWire, MPRIS, notifications, system tray, PAM,
   Polkit, UPower, and Wayland support.
-- PipeWire and NetworkManager.
+- PipeWire, NetworkManager, and udisks2.
+- Rust (`cargo`) to build the backend. The shell starts without it, but with no
+  theming and no system state.
 - A Nerd Font for the shell icons, preferably `Symbols Nerd Font Mono`.
-- Standard command-line tools such as `bash`, `curl`, `jq`, `ip`, `nmcli`, and
-  `hyprctl`.
+- Standard command-line tools such as `bash` and `hyprctl`. The backend talks to
+  NetworkManager and udisks2 over D-Bus, so `nmcli`, `ip`, `lsblk`, `udisksctl`,
+  `curl`, `jq`, and `matugen` are no longer needed.
 
 ### Feature dependencies
 
@@ -297,7 +300,12 @@ vellum_shell/
 ├── core/                  Platform and shared state controllers
 ├── features/              Self-contained shell features and surfaces
 ├── ui/                    Reusable feature-independent QML components
-├── scripts/               External system and theme helpers
+├── backend/               Rust backend: theme engine and state daemon
+│   ├── src/modules/       One file per capability (theme, network, vpn, ...)
+│   ├── templates/         Theme output templates, editable without rebuilding
+│   └── tests/             Golden comparison against the previous bash output
+├── systemd/               User service that starts the backend at login
+├── scripts/               Interactive helpers and installers
 ├── sddm/                  SDDM greeter theme matching the lock screen
 ├── themes/                Declarative color palettes
 └── assets/                Static visual assets
@@ -308,9 +316,45 @@ The intended dependency direction is:
 ```text
 shell.qml -> app, core, features
 features  -> core, ui
-core      -> Quickshell and system services
+core      -> Quickshell, and the backend through core/Backend.qml
 ui        -> QtQuick
 ```
+
+## Backend
+
+System state and theming live in a Rust daemon rather than in shell scripts and
+per-tick `Process` calls. It listens on `$XDG_RUNTIME_DIR/vellum-shell.sock` and
+speaks newline-delimited JSON.
+
+The shell keeps working when the daemon is down: `core/Backend.qml` falls back to
+built-in defaults and reconnects with backoff, so nothing blocks or crashes.
+
+```bash
+scripts/backend-install        # build, install, and enable the user service
+vellum ping                    # which binary and git revision is running
+vellum describe                # every topic and method the daemon offers
+vellum theme apply rose-pine   # works with or without the daemon running
+vellum watch network vpn       # live state on stdout
+```
+
+`describe` is the contract: clients discover what exists instead of hardcoding
+it, which is what makes a separate settings app possible later.
+
+Topics are lazy. A module's loop only runs while something is subscribed, so an
+idle daemon costs no CPU and about 7 MB of memory.
+
+| Topic | Source | Replaces |
+| --- | --- | --- |
+| `theme` | `themes/*/theme.conf`, native Material You | 9 chained bash scripts, `matugen`, `jq` |
+| `network` | NetworkManager D-Bus | `nmcli` and `ip -4 -j` polling |
+| `vpn` | NetworkManager D-Bus, `protonvpn` for details | `protonvpn status` on every tick |
+| `removable` | udisks2 D-Bus | `lsblk --json` every 2.5 s, `udisksctl` |
+| `privacy` | `/proc` scan for `/dev/video*` handles | resident `camera-usage` bash loop |
+| `sysstats` | `/proc`, `statvfs` | `df -P /` |
+| `weather` | Open-Meteo | three `curl` calls per panel open |
+
+PipeWire, UPower, Bluetooth, MPRIS, notifications, the system tray, and PAM stay
+in QML: Quickshell already exposes them as event-driven C++ services.
 
 See [`layout.md`](layout.md) for the detailed architecture and migration notes.
 

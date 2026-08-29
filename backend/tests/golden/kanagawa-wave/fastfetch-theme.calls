@@ -1,0 +1,1 @@
+magick -background none /tmp/vellum-golden-68uPwe/home/.config/fastfetch/vellum.svg -trim +repage -resize 768x768 -strip /tmp/vellum-golden-68uPwe/home/.config/fastfetch/.vellum.NjYhkH.png

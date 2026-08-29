@@ -14,12 +14,12 @@ Item {
 
     Text {
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: -2
+        anchors.verticalCenterOffset: -1
         text: !root.available || !root.enabled ? "󰂲" : (root.connected ? "󰂱" : "󰂯")
         color: mouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
         opacity: root.available && root.enabled ? 1 : 0.55
         font.family: "Symbols Nerd Font Mono"
-        font.pixelSize: 18
+        font.pixelSize: 14
         Behavior on color { ColorAnimation { duration: 120 } }
         Behavior on opacity { NumberAnimation { duration: 120 } }
     }

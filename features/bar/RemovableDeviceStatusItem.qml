@@ -23,7 +23,7 @@ Item {
             color: mouse.containsMouse || root.popupOpen || root.mountedCount > 0
                 ? root.theme.accent : root.theme.foreground
             font.family: "Symbols Nerd Font Mono"
-            font.pixelSize: 17
+            font.pixelSize: 15
             Behavior on color { ColorAnimation { duration: 120 } }
         }
 

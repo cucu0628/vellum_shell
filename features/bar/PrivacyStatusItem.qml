@@ -47,11 +47,11 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -2
+                anchors.verticalCenterOffset: -1
                 text: "󰍬"
                 color: root.theme.accent
                 font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 22
+                font.pixelSize: 14
                 opacity: root.highlighted ? 1 : pulse.value
             }
         }
@@ -63,11 +63,11 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: -2
+                anchors.verticalCenterOffset: -1
                 text: "󰄀"
                 color: root.theme.accent
                 font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 22
+                font.pixelSize: 14
                 opacity: root.highlighted ? 1 : pulse.value
             }
         }

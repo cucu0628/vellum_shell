@@ -10,6 +10,7 @@ PanelWindow {
     id: mediaPopup
 
     property var theme: null
+    property var backend: null
     property bool opened: false
     property int barHeight: 26
     property var activePlayer: null
@@ -95,11 +96,13 @@ PanelWindow {
 
     WeatherUi.WeatherController {
         id: weatherController
+        backend: mediaPopup.backend
         active: mediaPopup.opened && mediaPopup.currentTab === 2
     }
 
     MediaUi.SystemStatsController {
         id: statsController
+        backend: mediaPopup.backend
         active: mediaPopup.opened && mediaPopup.currentTab === 0
     }
 

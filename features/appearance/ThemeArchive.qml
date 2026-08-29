@@ -229,7 +229,7 @@ Item {
                             anchors.rightMargin: 9
                             anchors.verticalCenter: parent.verticalCenter
                             width: 54
-                            text: modelData.meta === "current" ? "CURRENT" : (modelData.kind === "dynamic" ? "DYNAMIC" : "")
+                            text: modelData.current ? "CURRENT" : (modelData.kind === "dynamic" ? "DYNAMIC" : "")
                             color: modelData.accent
                             font.pixelSize: 8
                             font.bold: true

@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Lefordítja a Vellum backendet, telepiti, es beallitja, hogy bejelentkezeskor
+# maga induljon. Ismetelheto: minden futas a repo aktualis allapotabol epit es
+# ujrainditja a szolgaltatast.
+#
+#   scripts/backend-install
+#
+# A shell ettol fuggetlenul mukodik: ha a daemon nem fut, a QML kliens
+# degradaltan indul es a hatterben ujraprobalkozik.
+set -euo pipefail
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+binary="$HOME/.local/bin/vellum"
+unit_name=vellum-shelld.service
+unit="$HOME/.config/systemd/user/$unit_name"
+
+if ! command -v cargo >/dev/null 2>&1; then
+  printf 'Hiba: nincs cargo. Telepitsd a rust csomagot, majd futtasd ujra.\n' >&2
+  exit 1
+fi
+
+printf 'Forditas...\n'
+cargo build --release --manifest-path "$repo/backend/Cargo.toml"
+
+# A szolgaltatast a telepites ELOTT allitjuk le: kulonben a futo peldany
+# fogja a socketet, es az ujonnan indulo nem tudna rakotni.
+if systemctl --user is-active --quiet "$unit_name" 2>/dev/null; then
+  printf 'A futo szolgaltatas leallitasa...\n'
+  systemctl --user stop "$unit_name"
+fi
+
+# Kezzel inditott peldany is fokhatja a socketet (pl. fejlesztes kozben).
+socket="${XDG_RUNTIME_DIR:-/tmp}/vellum-shell.sock"
+if [[ -S $socket ]] && "$binary" --socket "$socket" ping >/dev/null 2>&1; then
+  printf 'Figyelmeztetes: egy masik vellum peldany meg fut es fogja a socketet.\n' >&2
+  printf 'Allitsd le (pkill -x vellum), majd futtasd ujra.\n' >&2
+  exit 1
+fi
+
+install -Dm755 "$repo/backend/target/release/vellum" "$binary"
+install -Dm644 "$repo/systemd/$unit_name" "$unit"
+
+systemctl --user daemon-reload
+systemctl --user enable --now "$unit_name"
+
+# Megvarjuk, hogy tenyleg feljojjon, mielott sikert jelentenenk.
+for _ in $(seq 1 20); do
+  if "$binary" ping >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
+
+if ! status=$("$binary" ping 2>/dev/null); then
+  printf 'Hiba: a szolgaltatas elindult, de nem valaszol. Reszletek:\n' >&2
+  systemctl --user status "$unit_name" --no-pager --lines=20 >&2 || true
+  exit 1
+fi
+
+revision=$(printf '%s' "$status" | sed -n 's/.*"revision": "\([^"]*\)".*/\1/p')
+printf '\nA Vellum backend fut es bejelentkezeskor automatikusan indul.\n'
+printf '  binaris: %s\n' "$binary"
+printf '  revizio: %s\n' "${revision:-ismeretlen}"
+
+if [[ $revision == *-dirty ]]; then
+  printf '\nA "-dirty" azt jelenti, hogy a forditas nem commitolt valtozasokat is tartalmaz.\n'
+fi
+
+if [[ :$PATH: != *:"$HOME/.local/bin":* ]]; then
+  printf '\nMegjegyzes: a %s nincs a PATH-ban, ezert a `vellum` parancs csak\n' "$HOME/.local/bin"
+  printf 'teljes utvonallal hivhato. A szolgaltatas ettol fuggetlenul mukodik.\n'
+fi
