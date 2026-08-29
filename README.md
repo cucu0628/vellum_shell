@@ -68,7 +68,7 @@ require the corresponding command:
 | Audio visualization | `cava` (optional) |
 | Battery status | UPower daemon (optional) |
 | AI usage panel | `codex` and/or `claude` CLI with an active subscription login |
-| Weather | `curl` and internet access to Open-Meteo |
+| Weather | Internet access to Open-Meteo (the backend does the request) |
 | Screenshot capture | `grim`, `slurp`, `wayfreeze`, `magick`, `hyprctl`, `jq` |
 | Screenshot extras | `satty`, `wl-copy`, `notify-send`, `xdg-user-dir` |
 | Interactive utility scripts | `fzf`, Kitty |
@@ -274,10 +274,11 @@ MUTED="#727169"
 Included palettes are Catppuccin Mocha, Dynamic Matugen, Gruvbox Material,
 Japanese Ink, Kanagawa Wave, Rose Pine, Sakura Blossom, and Tokyo Night.
 
-Dynamic mode uses `matugen` and `jq` when available. It falls back to a fixed
-palette if color generation fails.
+Dynamic mode derives a Material You palette from the wallpaper inside the
+backend, so no external tool is involved. A wallpaper with no usable hue keeps a
+neutral palette instead of being given an invented colour.
 
-Theme scripts generate:
+The backend generates:
 
 - `kitty-theme.conf` for Kitty.
 - `gtk-theme.css` for GTK 3 and GTK 4.
@@ -286,6 +287,10 @@ Theme scripts generate:
 - A `btop` theme in the user's btop configuration.
 - A matching Vellum logo, plus a Fastfetch configuration when a local
   `config.template.jsonc` is present.
+
+The output formats live in `backend/templates/`, so they can be adjusted without
+rebuilding. A missing template falls back to the version compiled into the
+binary, which means theming cannot break by editing one.
 
 These files are generated, not automatically imported by every application.
 Add the relevant include or import to each application's configuration.

@@ -60,15 +60,14 @@ sudo install -Dm644 "$source_dir/pam/vellum-shell" /etc/pam.d/vellum-shell
 
 chmod +x "$source_dir/install.sh" "$source_dir/setup.sh" "$source_dir/scripts/"*
 
-# A Rust backend. Ha nincs cargo, a shell ettol meg elindul: a QML kliens
-# degradaltan mukodik es a hatterben ujraprobalkozik.
-backend_installed=false
-if command -v cargo >/dev/null 2>&1; then
-  "$source_dir/scripts/backend-install"
-  backend_installed=true
-else
-  printf 'Figyelmeztetes: nincs cargo, a Rust backend kimarad. Telepitsd a rust csomagot, majd futtasd ujra.\n' >&2
+# A backend nem opcionalis: a temazas es a rendszerallapot mar csak benne
+# letezik. A shell nelkule is elindul, de alapertelmezett szinekkel es ures
+# allapottal -- ezert a setup itt megall, nem hagy felkesz telepitest.
+if ! command -v cargo >/dev/null 2>&1; then
+  printf 'Hiba: nincs cargo. A backend nelkul nincs temazas. Telepitsd: sudo pacman -S rust\n' >&2
+  exit 1
 fi
+"$source_dir/scripts/backend-install"
 
 xdg-user-dirs-update >/dev/null 2>&1 || true
 mkdir -p \
@@ -154,21 +153,12 @@ for gtk_version in 3.0 4.0; do
   fi
 done
 
+# Egy hivas az osszes generatort lefuttatja. Ha a daemon mar fut, o vegzi el
+# (es azonnal ertesiti a shellt); ha nem, a binaris helyben futtatja le.
 current_theme=$(<"$target_dir/current-theme")
-if [[ $backend_installed == true ]]; then
-  # Egy hivas az osszes generatort lefuttatja. Ha a daemon mar fut, o vegzi el
-  # (es azonnal ertesiti a shellt); ha nem, a binaris helyben futtatja le.
-  zen_flag=(--no-zen)
-  [[ $theme_zen == true ]] && zen_flag=()
-  "$HOME/.local/bin/vellum" theme apply "$current_theme" "${zen_flag[@]}" >/dev/null
-else
-  for theme_script in kitty-theme gtk-theme icon-theme hyprland-theme btop-theme fastfetch-theme sddm-theme; do
-    bash "$target_dir/scripts/$theme_script"
-  done
-  if [[ $theme_zen == true ]]; then
-    bash "$target_dir/scripts/zen-theme"
-  fi
-fi
+zen_flag=(--no-zen)
+[[ $theme_zen == true ]] && zen_flag=()
+"$HOME/.local/bin/vellum" theme apply "$current_theme" "${zen_flag[@]}" >/dev/null
 
 btop_config="$HOME/.config/btop/btop.conf"
 if [[ -r $btop_config ]] && grep -Eq '^[[:space:]]*color_theme[[:space:]]*=' "$btop_config"; then

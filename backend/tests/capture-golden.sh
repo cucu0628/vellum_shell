@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Rogziti a jelenlegi bash tema-generatorok kimenetet minden temara, hogy a
-# Rust implementacio byte-ra osszehasonlithato legyen veluk.
+# Rogziti a bash tema-generatorok kimenetet minden temara, hogy a Rust
+# implementacio byte-ra osszehasonlithato legyen veluk.
+#
+# TORTENETI: a generatorok azota torlodtek, ezert ez a script csak olyan
+# commiton fut le, ahol a scripts/*-theme meg letezik (a torles elotti allapot:
+# `git stash` nelkul `git checkout <commit> -- scripts/`). A rogzitett baseline
+# a backend/tests/golden/ alatt van, es a golden.rs teszt azt hasznalja.
 #
 # Egy homokozo HOME-ban fut, gsettings/systemctl/magick shimekkel, igy nem
 # nyul az eles konfiguraciohoz. Futtatas:
