@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "." as LockUi
+import "../../core" as Core
 
 ShellRoot {
     id: root
@@ -20,6 +21,12 @@ ShellRoot {
     property bool closing: false
     property bool lockOnStartup: false
     property bool quitAfterUnlock: false
+
+    // A fo shell atadja a sajat backendjet. Az onallo LockShell.qml nem tud
+    // atadni semmit, ezert ilyenkor sajat klienst epitunk -- de csak akkor, hogy
+    // a beagyazott esetben ne nyiljon feleslegesen masodik socket.
+    property var backend: null
+    readonly property var effectiveBackend: backend ? backend : ownBackend.item
     // A zárolt ciklus egyetlen igazságforrása: ez hajtja a WlSessionLockot és az ütemezőket is.
     property bool sessionActive: false
     property int revealStep: 0
@@ -46,10 +53,6 @@ ShellRoot {
 
     function two(value) {
         return value < 10 ? "0" + value : "" + value
-    }
-
-    function updateColors(text) {
-        themeController.updateColors(text)
     }
 
     function loadThemeColors() {
@@ -102,8 +105,17 @@ ShellRoot {
         if (lockOnStartup) lock()
     }
 
+    Loader {
+        id: ownBackend
+        active: !root.backend
+        sourceComponent: Component {
+            Core.Backend {}
+        }
+    }
+
     LockUi.LockThemeController {
         id: themeController
+        backend: root.effectiveBackend
     }
 
     LockUi.PowerStatusController {

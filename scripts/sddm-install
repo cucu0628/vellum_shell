@@ -30,9 +30,18 @@ for arg in "$@"; do
   esac
 done
 
-# A paletta mindig az aktualis Vellum Shell temabol keszul. Az elrendezes csak a
-# felhasznalokent futo agban generalodik, mert hyprctl kell hozza.
-sh "$base/scripts/sddm-theme" || true
+# A paletta mindig az aktualis Vellum Shell temabol keszul. A generatorok a
+# backendbe koltoztek, ezert azt kerjuk meg ra; a --no-zen azert kell, hogy egy
+# greeter-telepites ne nyuljon a bongeszo profiljahoz.
+#
+# Ha a backend nincs telepitve, a repoban levo theme.conf-ot masoljuk tovabb --
+# az minden temavaltaskor frissul, tehat legfeljebb elavult, de nem hianyzik.
+vellum="$HOME/.local/bin/vellum"
+if [[ -x $vellum && -r "$base/current-theme" ]]; then
+  "$vellum" theme apply "$(<"$base/current-theme")" --no-zen >/dev/null 2>&1 || true
+else
+  printf 'figyelmeztetes: a Vellum backend nem elerheto, a meglevo paletta kerul telepitesre\n' >&2
+fi
 ((set_layout)) && sh "$base/scripts/sddm-layout" >/dev/null 2>&1 || true
 
 if ((preview)); then

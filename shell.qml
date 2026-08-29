@@ -321,6 +321,7 @@ ShellRoot {
 
     LockFeature.LockRoot {
         id: lockRoot
+        backend: shellRoot.shellBackend
     }
 
     NotificationFeature.NotificationsHost {
