@@ -34,7 +34,7 @@ vellum_shell/
 │
 ├── ui/                               # Feature-független vizuális elemek
 │   ├── SearchField.qml               # Közös keresőmező
-│   ├── ShellLogo.qml                 # Shell embléma (torii), témaszínt vesz fel
+│   ├── ShellLogo.qml                 # Shell embléma (ensō), témaszínt vesz fel
 │   ├── CalendarGrid.qml              # Közös 6x7 naptárrács
 │   ├── DashPanel.qml                 # Dashboard panelkeret fejléccel és elválasztóval
 │   ├── DashTile.qml                  # Dashboard adatcsempe (érték, ikon, felirat)

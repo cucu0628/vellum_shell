@@ -21,29 +21,67 @@ Item {
     readonly property string themeName: config.themeName || ""
 
     // Tobb kijelzo eseten csak egy kepernyore kerul a bejelentkezo kartya.
-    // Elsodlegesen a theme.conf inputScreen erteke dont (ugyanaz a monitor, mint
-    // a shell lockscreenjenel), mert a Wayland greeter "primary" kepernyoje a
-    // compositor kimenet-sorrendjebol jon, nem a felhasznalo valasztasabol.
+    // A valasztott monitor a shell lockscreenjevel egyezik, mert a greeter sajat
+    // "primary" kepernyoje a kimenet-sorrendbol jon, nem a felhasznalo dontesebol.
+    //
+    // FONTOS: a connector nevere NEM lehet epiteni. Ez a greeter sajat X
+    // szervere alatt fut, ami mas neveket ad ugyanarra a kijelzore, mint a
+    // Wayland munkamenet (amdgpu alatt pl. HDMI-A-1 helyett HDMI-A-0, DP-2
+    // helyett DisplayPort-1 -- meg az indexeles is eltolodik). Ezert elsodlegesen
+    // az EDID sorozatszamra parositunk: az mindket oldalon ugyanaz.
     readonly property string screenName: Screen.name || ""
+    readonly property string screenSerial: Screen.serialNumber || ""
+    readonly property string screenModel: Screen.model || ""
+
     readonly property string configuredScreen: config.inputScreen || ""
-    readonly property bool configuredScreenPresent: configuredScreen !== ""
-        && screenNames.indexOf(configuredScreen) >= 0
+    readonly property string configuredSerial: config.inputScreenSerial || ""
+    readonly property string configuredModel: config.inputScreenModel || ""
+
+    // Csak akkor tamaszkodunk egy azonositora, ha az tenyleg megtalalhato a
+    // kepernyok kozott -- kulonben sehol nem jelenne meg a kartya.
+    //
+    // A sorozatszam a legpontosabb, de a Qt nem minden platformon tolti ki
+    // (Waylanden merve ures volt, X11 alatt a RANDR EDID-bol jonnie kellene),
+    // ezert a modell a gyakorlati tartalek.
+    readonly property bool serialUsable: configuredSerial !== ""
+        && screenSerials.indexOf(configuredSerial) >= 0
+    // A modell csak akkor donthet, ha egyedi: ket azonos tipusu monitornal nem
+    // kulonboztetne meg oket, olyankor inkabb tovabblepunk a nevre.
+    readonly property bool modelUsable: !serialUsable && configuredModel !== ""
+        && countOf(screenModels, configuredModel) === 1
+    readonly property bool nameUsable: !serialUsable && !modelUsable
+        && configuredScreen !== "" && screenNames.indexOf(configuredScreen) >= 0
+
     readonly property bool fallbackPrimary: (typeof primaryScreen === "undefined") ? true : primaryScreen
     // A kartya kepernyoje kizarolag a beallitastol fugg. (Ablakaktivitasra nem
     // lehet epiteni: layer-shell/offscreen alatt egyik greeter ablak sem jelzi
     // magat aktivnak, olyankor sehol nem jelenne meg a kartya.) A billentyuzet
     // fokusz esetleges elcsuszasat az InkAmbient rejtett beviteli mezoje fogja el.
-    readonly property bool isPrimary: configuredScreenPresent
-        ? screenName === configuredScreen
-        : fallbackPrimary
+    readonly property bool isPrimary: serialUsable
+        ? screenSerial === configuredSerial
+        : (modelUsable
+            ? screenModel === configuredModel
+            : (nameUsable ? screenName === configuredScreen : fallbackPrimary))
 
     // Az SDDM screenModel-je ablakonkent csak a sajat kepernyot tartalmazza,
     // ezert a teljes listat a QGuiApplication-tol kerjuk el.
-    readonly property var screenNames: {
-        var names = []
+    readonly property var screenNames: collect(function (s) { return s.name })
+    readonly property var screenSerials: collect(function (s) { return s.serialNumber })
+    readonly property var screenModels: collect(function (s) { return s.model })
+
+    function collect(pick) {
+        var values = []
         var screens = Qt.application.screens
-        for (var i = 0; i < screens.length; i++) names.push(screens[i].name)
-        return names
+        for (var i = 0; i < screens.length; i++) values.push(pick(screens[i]) || "")
+        return values
+    }
+
+    function countOf(values, wanted) {
+        var count = 0
+        for (var i = 0; i < values.length; i++) {
+            if (values[i] === wanted) count++
+        }
+        return count
     }
 
     // --- allapot ---

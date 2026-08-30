@@ -5,6 +5,7 @@
 //! rogzitett golden baseline-javal.
 
 pub mod dbus;
+pub mod edid;
 pub mod ipc;
 pub mod module;
 pub mod nm;

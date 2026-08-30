@@ -118,15 +118,22 @@ fn generators_match_bash_baseline() {
     assert!(!slugs.is_empty(), "nincs egyetlen tema sem");
 
     // Az egyes generatorok kimenete, a golden fajl nevehez rendelve.
+    //
+    // Az sddm SZANDEKOSAN hianyzik: a kimenete azota bovult az EDID alapu
+    // monitor-azonositassal, mert a greeter X szervere mas connector-neveket
+    // hasznal, mint a Wayland munkamenet. A formatumat a sddm.rs egysegtesztje
+    // rogziti; a szinek lekepezese valtozatlan.
+    //
+    // A fastfetch is hianyzik: az csak az assets/vellum-logo.svg-t szinezi at,
+    // es maga az SVG azota ujratervezodott, igy a rogzitett baseline mar nem a
+    // jelenlegi forrasrol szol. A transzformaciot a fastfetch.rs tesztje fedi.
     let outputs: &[(&str, &str)] = &[
         ("kitty-theme", "kitty-theme.conf"),
         ("gtk-theme", "gtk-theme.css"),
         ("zen-theme", "zen-theme.css"),
         ("zen-content-theme", "zen-content-theme.css"),
-        ("sddm-theme", "sddm/vellum-ink/theme.conf"),
         ("hyprland-theme", "@CONFIG@/hypr/colors.lua"),
         ("btop-theme", "@CONFIG@/btop/themes/vellum.theme"),
-        ("fastfetch-theme", "@CONFIG@/fastfetch/vellum.svg"),
     ];
 
     let mut mismatches = Vec::new();

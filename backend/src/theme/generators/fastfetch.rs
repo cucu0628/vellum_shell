@@ -30,14 +30,7 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     let accent = palette.color(&["ACCENT", "BORDER_FOREGROUND"], "#89b4fa");
     let muted = palette.color(&["MUTED"], "#9399b2");
 
-    let recolor = |text: &str| {
-        text.replace("@BACKGROUND@", &background)
-            .replace("@FOREGROUND@", &foreground)
-            .replace("@ACCENT@", &accent)
-            .replace("@MUTED@", &muted)
-            // A logo alap kitoltese szo szerint szerepel az SVG-ben.
-            .replace("#e8ddc7", &foreground)
-    };
+    let recolor = |text: &str| recolor_markers(text, &background, &foreground, &accent, &muted);
 
     let config_template = fastfetch_dir.join("config.template.jsonc");
     if config_template.is_file() {
@@ -57,6 +50,26 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     Ok(Some((svg_output, changed)))
 }
 
+/// A `@KULCS@` markerek es a logo beegetett alapszinenek csereje.
+///
+/// Kulon fuggveny, hogy egysegteszttel rogzitheto legyen: a bemenete (az
+/// `assets/vellum-logo.svg`) idokozben valtozhat, ezert a golden osszevetes
+/// helyett a transzformaciot ellenorizzuk.
+fn recolor_markers(
+    text: &str,
+    background: &str,
+    foreground: &str,
+    accent: &str,
+    muted: &str,
+) -> String {
+    text.replace("@BACKGROUND@", background)
+        .replace("@FOREGROUND@", foreground)
+        .replace("@ACCENT@", accent)
+        .replace("@MUTED@", muted)
+        // A logo alap kitoltese szo szerint szerepel az SVG-ben.
+        .replace("#e8ddc7", foreground)
+}
+
 fn rasterize(svg: &std::path::Path, png: &std::path::Path) {
     let _ = Command::new("magick")
         .arg("-background")
@@ -67,4 +80,29 @@ fn rasterize(svg: &std::path::Path, png: &std::path::Path) {
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replaces_every_marker_and_the_baked_in_fill() {
+        let source = r##"<svg fill="#e8ddc7"><rect fill="@ACCENT@"/><g a="@BACKGROUND@" b="@MUTED@" c="@FOREGROUND@"/></svg>"##;
+        let output = recolor_markers(source, "#111111", "#222222", "#333333", "#444444");
+
+        assert!(output.contains(r##"fill="#222222""##), "{output}");
+        assert!(output.contains(r##"fill="#333333""##), "{output}");
+        assert!(output.contains(r##"a="#111111""##), "{output}");
+        assert!(output.contains(r##"b="#444444""##), "{output}");
+        assert!(output.contains(r##"c="#222222""##), "{output}");
+        assert!(!output.contains('@'), "maradt feloldatlan marker: {output}");
+        assert!(!output.contains("#e8ddc7"), "maradt beegetett szin: {output}");
+    }
+
+    #[test]
+    fn text_without_markers_is_unchanged() {
+        let source = "<svg><rect fill=\"#abcdef\"/></svg>";
+        assert_eq!(recolor_markers(source, "#1", "#2", "#3", "#4"), source);
+    }
 }
