@@ -26,24 +26,15 @@ fn vars(palette: &Palette) -> Vars {
     // akcentusbol keverjuk ki -- igy a szemantikus szinek is kovetik a temat.
     let graph_text = color::mix(&muted, &foreground, 70);
     let selection = palette.color_opt(&["SELECTION"]).unwrap_or_else(|| accent.clone());
-    let cyan = palette
-        .color_opt(&["CYAN"])
-        .unwrap_or_else(|| color::mix(&accent, &foreground, 75));
-    let green = palette
-        .color_opt(&["GREEN"])
-        .unwrap_or_else(|| color::mix("#a6e3a1", &accent, 70));
-    let yellow = palette
-        .color_opt(&["YELLOW"])
-        .unwrap_or_else(|| color::mix("#f9e2af", &accent, 70));
-    let orange = palette
-        .color_opt(&["ORANGE"])
-        .unwrap_or_else(|| color::mix("#fab387", &accent, 70));
-    let red = palette
-        .color_opt(&["RED"])
-        .unwrap_or_else(|| color::mix("#f38ba8", &accent, 70));
-    let magenta = palette
-        .color_opt(&["MAGENTA"])
-        .unwrap_or_else(|| color::mix("#cba6f7", &accent, 70));
+    let cyan = palette.color_opt(&["CYAN"]).unwrap_or_else(|| color::mix(&accent, &foreground, 75));
+    let green = palette.color_opt(&["GREEN"]).unwrap_or_else(|| color::mix("#a6e3a1", &accent, 70));
+    let yellow =
+        palette.color_opt(&["YELLOW"]).unwrap_or_else(|| color::mix("#f9e2af", &accent, 70));
+    let orange =
+        palette.color_opt(&["ORANGE"]).unwrap_or_else(|| color::mix("#fab387", &accent, 70));
+    let red = palette.color_opt(&["RED"]).unwrap_or_else(|| color::mix("#f38ba8", &accent, 70));
+    let magenta =
+        palette.color_opt(&["MAGENTA"]).unwrap_or_else(|| color::mix("#cba6f7", &accent, 70));
 
     let mut vars = Vars::new();
     vars.insert("BACKGROUND".into(), background);

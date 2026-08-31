@@ -33,9 +33,7 @@ pub struct Outcome {
 impl Outcome {
     fn ok(generator: &'static str, written: Option<(PathBuf, bool)>) -> Self {
         match written {
-            Some((path, changed)) => {
-                Self { generator, path: Some(path), changed, error: None }
-            }
+            Some((path, changed)) => Self { generator, path: Some(path), changed, error: None },
             None => Self { generator, path: None, changed: false, error: None },
         }
     }
@@ -69,10 +67,7 @@ pub fn run_all(palette: &Palette, include_zen: bool) -> Vec<Outcome> {
     outcomes
 }
 
-fn run(
-    name: &'static str,
-    generate: impl FnOnce() -> Result<Option<(PathBuf, bool)>>,
-) -> Outcome {
+fn run(name: &'static str, generate: impl FnOnce() -> Result<Option<(PathBuf, bool)>>) -> Outcome {
     match generate() {
         Ok(written) => Outcome::ok(name, written),
         Err(err) => {

@@ -40,7 +40,9 @@ fn edid_path(connector: &str) -> Option<PathBuf> {
     let entries = std::fs::read_dir("/sys/class/drm").ok()?;
     for entry in entries.flatten() {
         let name = entry.file_name();
-        let name = name.to_str()?;
+        // Egy nem-UTF8 bejegyzes csak ot magat ejtse ki, ne allitsa meg a
+        // tobbi connector vizsgalatat.
+        let Some(name) = name.to_str() else { continue };
         // A bejegyzesek "card<N>-<connector>" alakuak.
         let Some((_, suffix)) = name.split_once('-') else {
             continue;
@@ -64,10 +66,8 @@ pub fn parse(edid: &[u8]) -> Option<MonitorIdentity> {
     // A gyartokod harom 5 bites betu egy big-endian 16 bites szoban.
     let packed = u16::from_be_bytes([edid[8], edid[9]]);
     let letter = |shift: u16| (((packed >> shift) & 0x1f) as u8 + b'@') as char;
-    let manufacturer: String = [letter(10), letter(5), letter(0)]
-        .into_iter()
-        .filter(|c| c.is_ascii_uppercase())
-        .collect();
+    let manufacturer: String =
+        [letter(10), letter(5), letter(0)].into_iter().filter(|c| c.is_ascii_uppercase()).collect();
 
     let mut identity = MonitorIdentity { manufacturer, ..Default::default() };
 

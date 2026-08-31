@@ -6,6 +6,8 @@ Rectangle {
     property var result: null
     property int resultIndex: -1
     property bool selected: false
+    // Igaz, amig ez a sor a masodik Enterre var (kikapcsolas, ujrainditas).
+    property bool pendingConfirm: false
     property bool hoverSelectionEnabled: true
     property string title: ""
     property string subtitle: ""
@@ -128,8 +130,9 @@ Rectangle {
             width: 80
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight
-            text: resultRow.selected ? "ENTER  ↵" : "OPEN  ↗"
-            color: resultRow.selected ? resultRow.accentColor : resultRow.mutedColor
+            text: resultRow.pendingConfirm ? "AGAIN  ↵" : (resultRow.selected ? "ENTER  ↵" : "OPEN  ↗")
+            color: resultRow.selected || resultRow.pendingConfirm ? resultRow.accentColor : resultRow.mutedColor
+            font.bold: resultRow.pendingConfirm
             font.family: "monospace"
             font.pixelSize: 8
         }

@@ -30,10 +30,7 @@ impl Palette {
             let Some((key, value)) = trimmed.split_once('=') else {
                 continue;
             };
-            entries.push((
-                key.chars().filter(|c| !c.is_whitespace()).collect(),
-                value.to_string(),
-            ));
+            entries.push((key.chars().filter(|c| !c.is_whitespace()).collect(), value.to_string()));
         }
         Self { entries }
     }
@@ -119,10 +116,7 @@ pub struct ThemeSummary {
 }
 
 fn strip_all_whitespace_and_quotes(value: &str) -> String {
-    value
-        .chars()
-        .filter(|c| !c.is_whitespace() && *c != '"')
-        .collect()
+    value.chars().filter(|c| !c.is_whitespace() && *c != '"').collect()
 }
 
 #[cfg(test)]

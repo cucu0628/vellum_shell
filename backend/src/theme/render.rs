@@ -65,12 +65,8 @@ pub fn write_if_changed(path: &Path, contents: &str) -> Result<bool> {
             .with_context(|| format!("nem hozhato letre a mappa: {}", parent.display()))?;
     }
 
-    let tmp = path.with_extension(format!(
-        "vellum-tmp-{}",
-        std::process::id()
-    ));
-    std::fs::write(&tmp, contents)
-        .with_context(|| format!("nem irhato: {}", tmp.display()))?;
+    let tmp = path.with_extension(format!("vellum-tmp-{}", std::process::id()));
+    std::fs::write(&tmp, contents).with_context(|| format!("nem irhato: {}", tmp.display()))?;
     std::fs::rename(&tmp, path)
         .with_context(|| format!("nem nevezheto at ide: {}", path.display()))?;
     Ok(true)

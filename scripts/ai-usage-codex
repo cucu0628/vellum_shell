@@ -5,14 +5,19 @@ import argparse
 import datetime as dt
 import json
 import os
-import select
+import queue
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from pathlib import Path
 
 CACHE_SECONDS = 30
+
+
+class CodexUsageError(Exception):
+  """A safe, user-facing Codex usage error."""
 
 
 def cache_path():
@@ -50,31 +55,50 @@ def runtime_env():
   return env
 
 
-def rpc(proc, request_id, method, params=None, timeout=8):
-  proc.stdin.write(json.dumps({"id": request_id, "method": method, "params": params or {}}) + "\n")
-  proc.stdin.flush()
-  deadline = time.time() + timeout
-  while time.time() < deadline:
-    ready, _, _ = select.select([proc.stdout], [], [], 0.25)
-    if not ready:
-      continue
-    line = proc.stdout.readline()
-    if not line:
-      break
+def collect_output(stream, messages):
+  try:
+    for line in stream:
+      messages.put(line)
+  finally:
+    messages.put(None)
+
+
+def rpc(proc, messages, request_id, method, params=None, timeout=8):
+  try:
+    proc.stdin.write(json.dumps({"id": request_id, "method": method, "params": params or {}}) + "\n")
+    proc.stdin.flush()
+  except (BrokenPipeError, OSError) as error:
+    raise CodexUsageError("Codex app server stopped unexpectedly") from error
+
+  deadline = time.monotonic() + timeout
+  while True:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+      raise CodexUsageError("Codex app server timed out")
+    try:
+      line = messages.get(timeout=remaining)
+    except queue.Empty as error:
+      raise CodexUsageError("Codex app server timed out") from error
+    if line is None:
+      raise CodexUsageError("Codex app server stopped unexpectedly")
     try:
       message = json.loads(line)
     except Exception:
       continue
     if message.get("id") == request_id:
+      if message.get("error"):
+        detail = message["error"].get("message") if isinstance(message["error"], dict) else str(message["error"])
+        raise CodexUsageError("Codex app server error: " + str(detail or "unknown error")[:160])
       return message
-  raise TimeoutError(method)
 
 
 def limit_window(window):
   if not isinstance(window, dict) or window.get("usedPercent") is None:
     return None
   minutes = int(window.get("windowDurationMins") or 0)
-  if minutes == 10080:
+  if minutes == 300:
+    label = "Session (5-hour)"
+  elif minutes == 10080:
     label = "Weekly (7-day)"
   elif minutes and minutes % 60 == 0:
     label = str(minutes // 60) + "h window"
@@ -90,13 +114,22 @@ def fetch():
   codex = shutil.which("codex", path=env["PATH"])
   if not codex:
     return {"id": "codex", "name": "Codex", "plan": "", "ready": False, "status": "codex not found in PATH", "limits": []}
-  proc = subprocess.Popen([codex, "-s", "read-only", "-a", "untrusted", "app-server"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env)
+  proc = subprocess.Popen([codex, "app-server"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, env=env)
+  messages = queue.Queue()
+  reader = threading.Thread(target=collect_output, args=(proc.stdout, messages), daemon=True)
+  reader.start()
   try:
-    rpc(proc, 1, "initialize", {"clientInfo": {"name": "vellum-shell-ai-usage", "version": "1"}})
+    rpc(proc, messages, 1, "initialize", {"clientInfo": {"name": "vellum_shell_ai_usage", "title": "Vellum Shell AI Usage", "version": "1"}})
     proc.stdin.write(json.dumps({"method": "initialized", "params": {}}) + "\n")
     proc.stdin.flush()
-    account = (rpc(proc, 2, "account/read", timeout=4).get("result") or {}).get("account") or {}
-    limits = (rpc(proc, 3, "account/rateLimits/read", timeout=4).get("result") or {}).get("rateLimits") or {}
+    account = (rpc(proc, messages, 2, "account/read", {"refreshToken": False}, timeout=4).get("result") or {}).get("account") or {}
+    if not account:
+      return {"id": "codex", "name": "Codex", "plan": "", "ready": False, "status": "Run `codex login`", "limits": []}
+    response = rpc(proc, messages, 3, "account/rateLimits/read", timeout=8).get("result") or {}
+    limits = response.get("rateLimits") or {}
+    if not limits:
+      by_id = response.get("rateLimitsByLimitId") or {}
+      limits = by_id.get("codex") or next(iter(by_id.values()), {})
     plan = limits.get("planType") or account.get("planType") or account.get("type") or ""
     windows = [entry for entry in (limit_window(limits.get("primary")), limit_window(limits.get("secondary"))) if entry]
     return {"id": "codex", "name": "Codex", "plan": str(plan), "ready": bool(windows), "status": "" if windows else "No Codex limits returned", "limits": windows, "updatedAt": dt.datetime.now(dt.timezone.utc).isoformat()}
@@ -122,9 +155,12 @@ def main():
     result = fetch()
     if result["ready"]:
       write_cache(result)
+  except CodexUsageError as error:
+    result = cached or {"id": "codex", "name": "Codex", "plan": "", "ready": False, "limits": []}
+    result["status"] = str(error)
   except Exception:
     result = cached or {"id": "codex", "name": "Codex", "plan": "", "ready": False, "limits": []}
-    result["status"] = "Codex limits unavailable; run `codex login`"
+    result["status"] = "Codex limits unavailable"
   print(json.dumps(result, separators=(",", ":")))
 
 

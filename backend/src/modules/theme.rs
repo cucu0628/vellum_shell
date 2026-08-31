@@ -52,9 +52,18 @@ impl Module for Theme {
                     .param("slug", "string", true, "A tema mappajanak neve.")
                     .param("wallpaper", "string", false, "A hatterkep teljes utvonala.")
                     .param("zen", "bool", false, "Patchelje-e a Zen Browser profilt is."),
-                MethodDescription::new("setWallpaper", "Csak a hatterkep valtoztatasa.")
-                    .param("path", "string", true, "A hatterkep teljes utvonala."),
+                MethodDescription::new("setWallpaper", "Csak a hatterkep valtoztatasa.").param(
+                    "path",
+                    "string",
+                    true,
+                    "A hatterkep teljes utvonala.",
+                ),
                 MethodDescription::new("wallpapers", "A valaszthato hatterkepek listaja."),
+                MethodDescription::new(
+                    "preview",
+                    "A hatterkepbol szarmaztatott paletta, alkalmazas nelkul.",
+                )
+                .param("wallpaper", "string", true, "A hatterkep teljes utvonala."),
             ],
         }
     }
@@ -67,12 +76,7 @@ impl Module for Theme {
         Ok(())
     }
 
-    async fn call(
-        self: Arc<Self>,
-        method: &str,
-        params: Value,
-        sink: &StateSink,
-    ) -> Result<Value> {
+    async fn call(self: Arc<Self>, method: &str, params: Value, sink: &StateSink) -> Result<Value> {
         match method {
             "list" => Ok(json!(theme::list())),
 
@@ -111,6 +115,23 @@ impl Module for Theme {
             }
 
             "wallpapers" => Ok(json!(theme::wallpapers())),
+
+            // Csak olvas: a valaszto ezzel mutatja meg a dinamikus palettat,
+            // mielott barmit is kiirnank a lemezre.
+            "preview" => {
+                let wallpaper = params
+                    .get("wallpaper")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'wallpaper'"))?
+                    .to_string();
+
+                // A kvantalas nagy kepeknel szazezer pixelt olvas: blokkolo szal.
+                let palette =
+                    tokio::task::spawn_blocking(move || theme::preview_dynamic(&wallpaper))
+                        .await??;
+
+                Ok(json!({ "colors": palette.to_json() }))
+            }
 
             other => Err(ModuleError::UnknownMethod(other.to_string()).into()),
         }

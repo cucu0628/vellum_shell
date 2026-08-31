@@ -119,8 +119,9 @@ async fn read_state(
         }
 
         // Vezetekes kapcsolat elonyt elvez a vezetek nelkulivel szemben.
-        let better = best
-            .is_none_or(|current| kind == "ethernet" && current.physical_kind() != Some("ethernet"));
+        let better = best.is_none_or(|current| {
+            kind == "ethernet" && current.physical_kind() != Some("ethernet")
+        });
         if better {
             best = Some(link);
         }

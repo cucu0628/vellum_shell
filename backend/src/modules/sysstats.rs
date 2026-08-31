@@ -48,8 +48,14 @@ impl Module for SysStats {
         let mut disk_checked = Instant::now();
 
         // Az elso CPU-minta meg nem ad hasznalati szazalekot: kell hozza ket
-        // pont. Ezert azonnal kikuldunk egy kezdo allapotot, majd tickelunk.
+        // pont. Ezert a CPU nullaval indul, de a RAM es a lemez mar most valos
+        // -- igy a feliratkozonak nincs egy masodperces ures ablaka.
         cpu.sample();
+        sink.push(json!({
+            "cpuUsage": 0,
+            "ramUsage": ram_usage_percent(),
+            "diskUsage": disk_usage,
+        }));
 
         loop {
             tokio::time::sleep(TICK).await;
@@ -114,12 +120,7 @@ fn ram_usage_percent() -> u32 {
     };
 
     let value_of = |key: &str| -> Option<u64> {
-        text.lines()
-            .find(|line| line.starts_with(key))?
-            .split_whitespace()
-            .nth(1)?
-            .parse()
-            .ok()
+        text.lines().find(|line| line.starts_with(key))?.split_whitespace().nth(1)?.parse().ok()
     };
 
     match (value_of("MemTotal:"), value_of("MemAvailable:")) {
@@ -133,12 +134,12 @@ fn ram_usage_percent() -> u32 {
 /// A gyoker fajlrendszer telitettsege. A `df` helyett `statvfs`, ugyanazzal a
 /// szamitassal, amit a `df` hasznal (a rootnak fenntartott blokkok nelkul).
 fn disk_usage_percent() -> u32 {
-    let mut stat: libc_statvfs = unsafe { std::mem::zeroed() };
+    let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
     let path = c"/";
 
     // SAFETY: a `path` ervenyes, NUL-lal lezart C string, a `stat` pedig egy
     // megfeleloen meretezett, irhato buffer.
-    if unsafe { statvfs(path.as_ptr(), &mut stat) } != 0 {
+    if unsafe { libc::statvfs(path.as_ptr(), &mut stat) } != 0 {
         return 0;
     }
 
@@ -147,29 +148,7 @@ fn disk_usage_percent() -> u32 {
     if usable == 0 {
         return 0;
     }
-    ((total * 100 + usable - 1) / usable).min(100) as u32
-}
-
-// A statvfs az egyetlen libc hivas, amiert nem eri meg behuzni a teljes cratet.
-#[repr(C)]
-#[allow(non_camel_case_types)]
-struct libc_statvfs {
-    f_bsize: u64,
-    f_frsize: u64,
-    f_blocks: u64,
-    f_bfree: u64,
-    f_bavail: u64,
-    f_files: u64,
-    f_ffree: u64,
-    f_favail: u64,
-    f_fsid: u64,
-    f_flag: u64,
-    f_namemax: u64,
-    f_spare: [i32; 6],
-}
-
-unsafe extern "C" {
-    fn statvfs(path: *const std::ffi::c_char, buf: *mut libc_statvfs) -> i32;
+    (total * 100).div_ceil(usable).min(100) as u32
 }
 
 #[cfg(test)]

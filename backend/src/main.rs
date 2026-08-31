@@ -8,13 +8,13 @@
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use serde_json::{Value, json};
+use std::path::PathBuf;
 use vellum_shell_backend::ipc;
 use vellum_shell_backend::ipc::client::Client;
 use vellum_shell_backend::ipc::hub::Hub;
 use vellum_shell_backend::modules;
 use vellum_shell_backend::theme;
-use serde_json::{Value, json};
-use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(name = "vellum", version, about = "Vellum Shell backend")]
@@ -85,6 +85,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let socket = cli.socket.unwrap_or_else(ipc::socket_path);
 
+    keep_large_buffers_off_the_heap();
+
     // Egyszalu futtato: a munka I/O-kotott, nincs szukseg tobb szalra. Ez tartja
     // alacsonyan a memoria- es CPU-lenyomatot.
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
@@ -106,13 +108,31 @@ fn main() -> Result<()> {
             }
             Command::Watch { topics } => Client::connect(&socket).await?.watch(&topics).await,
             Command::Ping => {
-                let data = Client::connect(&socket).await?.call("health", "ping", Value::Null).await?;
+                let data =
+                    Client::connect(&socket).await?.call("health", "ping", Value::Null).await?;
                 println!("{}", serde_json::to_string_pretty(&data)?);
                 Ok(())
             }
             Command::Theme(command) => run_theme(&socket, command).await,
         }
     })
+}
+
+/// A hatterkep-kvantalas egy-egy keptol fuggoen tobb tiz MB-ot foglal, majd
+/// azonnal el is engedi. A glibc viszont menet kozben megemeli az `mmap`
+/// kuszobot, ezert ezek a nagy blokkok a heapen kotnek ki, es a felszabaditas
+/// utan sem kerulnek vissza az OS-hez: a daemon RSS-e beragad a csucsertekre
+/// (merve: 19 MB -> 78 MB harom elonezet utan).
+///
+/// A kuszob rogzitesevel a nagy foglalasok vegig `mmap`-pal mennek, es
+/// `free`-kor tenylegesen visszakerulnek. A daemon tobbi foglalasa jóval a
+/// kuszob alatt van, azokat ez nem erinti.
+fn keep_large_buffers_off_the_heap() {
+    // SAFETY: `mallopt` a folyamat allokatorat allitja; a hivas szalbiztos, es
+    // itt meg egyetlen munkaszal sem indult el.
+    unsafe {
+        libc::mallopt(libc::M_MMAP_THRESHOLD, 1024 * 1024);
+    }
 }
 
 /// Eloszor a daemont probaljuk: ha fut, o vegzi el a munkat es azonnal ki is
@@ -140,9 +160,7 @@ async fn run_theme(socket: &std::path::Path, command: ThemeCommand) -> Result<()
             (
                 "apply",
                 params,
-                Box::new(move || {
-                    Ok(json!(theme::apply(&slug, wallpaper.as_deref(), !no_zen)?))
-                }),
+                Box::new(move || Ok(json!(theme::apply(&slug, wallpaper.as_deref(), !no_zen)?))),
             )
         }
     };

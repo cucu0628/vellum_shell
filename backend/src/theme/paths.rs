@@ -48,6 +48,26 @@ pub fn config_dir() -> PathBuf {
     }
 }
 
+pub fn hypr_dir() -> PathBuf {
+    config_dir().join("hypr")
+}
+
+/// A settings app perzisztalt beallitasai. Ez az igazsag forrasa; a Lua
+/// modulok ebbol generalodnak.
+pub fn hypr_settings_file() -> PathBuf {
+    hypr_dir().join("vellum-settings.json")
+}
+
+/// Generalt monitor-modul. A `hyprland.lua` require-listajanak a vegen ul.
+pub fn hypr_display_module() -> PathBuf {
+    hypr_dir().join("vellum_display.lua")
+}
+
+/// Generalt kompozitor-opcio modul.
+pub fn hypr_tuning_module() -> PathBuf {
+    hypr_dir().join("vellum_tuning.lua")
+}
+
 /// Egy soros allapotfajl olvasasa (`current-theme` es tarsai).
 pub fn read_line_file(path: &std::path::Path) -> Option<String> {
     let text = std::fs::read_to_string(path).ok()?;

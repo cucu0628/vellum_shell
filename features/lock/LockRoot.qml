@@ -55,10 +55,6 @@ ShellRoot {
         return value < 10 ? "0" + value : "" + value
     }
 
-    function loadThemeColors() {
-        themeController.loadThemeColors()
-    }
-
     function refreshPowerStatus() {
         powerController.refreshPowerStatus()
     }
@@ -94,7 +90,6 @@ ShellRoot {
     function lock() {
         if (sessionActive || closing) return
         resetCycleState()
-        loadThemeColors()
         refreshPowerStatus()
         settingsController.load()
         sessionActive = true

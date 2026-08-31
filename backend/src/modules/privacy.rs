@@ -132,7 +132,7 @@ fn has_video_device() -> bool {
     let Ok(entries) = std::fs::read_dir("/dev") else {
         return false;
     };
-    entries.flatten().any(|entry| {
-        entry.file_name().to_str().is_some_and(|name| name.starts_with("video"))
-    })
+    entries
+        .flatten()
+        .any(|entry| entry.file_name().to_str().is_some_and(|name| name.starts_with("video")))
 }

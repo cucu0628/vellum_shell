@@ -31,7 +31,7 @@ PanelWindow {
 
     readonly property var adapter: statusController ? statusController.adapter : null
     readonly property bool adapterAvailable: statusController ? statusController.available : false
-    readonly property bool adapterEnabled: statusController ? statusController.enabled : false
+    readonly property bool adapterEnabled: statusController ? statusController.adapterEnabled : false
     readonly property bool discovering: statusController ? statusController.discovering : false
     readonly property var primaryDevice: statusController ? statusController.primaryDevice : null
 

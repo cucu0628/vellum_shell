@@ -28,8 +28,4 @@ QtObject {
     // helyettunk megtenne. A szamlalt feliratkozas miatt a beagyazott esetben
     // ez nem jelent masodik kerest a daemon fele.
     Component.onCompleted: if (backend) backend.subscribe("theme")
-
-    // A feliratkozas magatol hozza a palettat; ez csak azert maradt meg, hogy a
-    // `lock()` korabbi hivasa ne torjon el.
-    function loadThemeColors() {}
 }

@@ -53,13 +53,8 @@ Item {
         preview = values || ({})
     }
 
-    function load() {
-        if (!backend) return
-        backend.call("theme", "read", {}, (result, error) => {
-            if (error) console.warn("ThemeStore: a paletta nem olvashato:", error.message)
-        })
-    }
-
+    // Nincs kulon `theme/read` hivas: a feliratkozas maga kikuldi a snapshotot
+    // (vagy a modul `run`-ja tolja ki azonnal), tehat az mindig megerkezik.
     Component.onCompleted: if (backend) backend.subscribe("theme")
 
     // Amint a backend kikuldi az uj palettat, az elonezet feleslegesse valik.

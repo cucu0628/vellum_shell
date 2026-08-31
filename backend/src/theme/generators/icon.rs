@@ -92,11 +92,7 @@ fn is_installed(name: &str) -> bool {
 }
 
 fn run_quiet(program: &str, args: &[&str]) {
-    let _ = Command::new(program)
-        .args(args)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status();
+    let _ = Command::new(program).args(args).stdout(Stdio::null()).stderr(Stdio::null()).status();
 }
 
 #[cfg(test)]

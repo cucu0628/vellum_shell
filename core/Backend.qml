@@ -113,10 +113,16 @@ Item {
             socket.write(JSON.stringify({ v: 1, op: "subscribe", topics: activeTopics }) + "\n")
         }
 
+        // A sorban allo feliratkozasokat NEM jatsszuk ujra: a fenti osszevont
+        // subscribe mar lefedi oket a `_refcounts` alapjan. Ujrakuldve a daemon
+        // topiconkent ketszer szamolna feliratkozot, de bontaskor csak egyszer
+        // engedne el -- a lazy hurok orokre futna.
         var queued = _queue
         _queue = []
         for (var i = 0; i < queued.length; i++) {
-            socket.write(JSON.stringify(queued[i]) + "\n")
+            var message = queued[i]
+            if (message.op === "subscribe" || message.op === "unsubscribe") continue
+            socket.write(JSON.stringify(message) + "\n")
         }
         socket.flush()
     }

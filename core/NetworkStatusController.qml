@@ -28,8 +28,4 @@ Item {
     visible: false
 
     Component.onCompleted: if (backend) backend.subscribe("network")
-
-    // A backend magatol ertesit a valtozasrol; ez csak azert maradt meg, hogy a
-    // korabbi hivasi pontok ne torjenek el.
-    function refresh() {}
 }

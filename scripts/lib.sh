@@ -11,9 +11,21 @@ has() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# A repo helye. A VELLUM_SHELL_DIR nyer -- ugyanaz a szabaly, mint a backend
+# `theme::paths::shell_dir()`-jeben --, kulonben ennek a fajlnak a szulomappaja.
+# Igy a scriptek akkor is jo helyre mutatnak, ha a repo nem a kanonikus uton van.
+vellum_shell_dir() {
+  if [[ -n ${VELLUM_SHELL_DIR:-} ]]; then
+    printf '%s\n' "$VELLUM_SHELL_DIR"
+  else
+    (cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+  fi
+}
+
 fzf_theme_args() {
   local title=${1:-"Select entries"}
-  local theme_file="$HOME/.config/quickshell/vellum_shell/kitty-theme.conf"
+  local theme_file
+  theme_file="$(vellum_shell_dir)/kitty-theme.conf"
   local background="#1e1e2e"
   local foreground="#cdd6f4"
   local surface="#313244"

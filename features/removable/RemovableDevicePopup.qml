@@ -32,7 +32,6 @@ PanelWindow {
     onOpenedChanged: {
         if (opened && deviceController) {
             deviceController.errorMessage = ""
-            deviceController.refresh()
         }
     }
 

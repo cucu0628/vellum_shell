@@ -32,18 +32,22 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
 
     let recolor = |text: &str| recolor_markers(text, &background, &foreground, &accent, &muted);
 
+    let mut changed = false;
+
     let config_template = fastfetch_dir.join("config.template.jsonc");
     if config_template.is_file() {
         let rendered = recolor(&std::fs::read_to_string(&config_template)?);
-        write_if_changed(&fastfetch_dir.join("config.jsonc"), &rendered)?;
+        changed |= write_if_changed(&fastfetch_dir.join("config.jsonc"), &rendered)?;
     }
 
     let svg_output = fastfetch_dir.join("vellum.svg");
     let rendered = recolor(&std::fs::read_to_string(&logo_template)?);
-    let changed = write_if_changed(&svg_output, &rendered)?;
+    // A PNG-t csak a logo valtozasa erinti, a config-e nem.
+    let svg_changed = write_if_changed(&svg_output, &rendered)?;
+    changed |= svg_changed;
 
     // A PNG csak akkor kell, ha van ImageMagick; a fastfetch enelkul is elmegy.
-    if changed && crate::theme::side_effects_enabled() {
+    if svg_changed && crate::theme::side_effects_enabled() {
         rasterize(&svg_output, &fastfetch_dir.join("vellum.png"));
     }
 

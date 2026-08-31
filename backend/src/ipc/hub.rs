@@ -111,9 +111,7 @@ impl Hub {
         let name = module.name();
 
         let mut runtimes = self.runtimes.lock().await;
-        let entry = runtimes
-            .entry(name)
-            .or_insert(TopicRuntime { subscribers: 0, task: None });
+        let entry = runtimes.entry(name).or_insert(TopicRuntime { subscribers: 0, task: None });
         entry.subscribers += 1;
 
         if entry.subscribers == 1 && entry.task.is_none() {
@@ -122,12 +120,22 @@ impl Hub {
             tracing::debug!(topic = name, "streamelo hurok indul");
             entry.task = Some(tokio::spawn(async move {
                 if let Err(err) = module.run(sink).await {
-                    tracing::error!(topic = name, error = format!("{err:#}"), "modul hurok hibaval allt le");
+                    tracing::error!(
+                        topic = name,
+                        error = format!("{err:#}"),
+                        "modul hurok hibaval allt le"
+                    );
                 }
             }));
         }
 
         Ok(())
+    }
+
+    /// Hany elo feliratkozoja van a topicnak. A szerver oldali szamlalas
+    /// helyesseget ez teszi ellenorizhetove.
+    pub async fn subscriber_count(&self, topic: &str) -> usize {
+        self.runtimes.lock().await.get(topic).map_or(0, |entry| entry.subscribers)
     }
 
     /// Leiratkozas: az utolso feliratkozo utan leallitja a streamelo hurkot.

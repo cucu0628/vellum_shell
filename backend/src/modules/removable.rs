@@ -34,7 +34,10 @@ trait Filesystem {
     fn unmount(&self, options: HashMap<&str, &zbus::zvariant::Value<'_>>) -> zbus::Result<()>;
 }
 
-#[zbus::proxy(interface = "org.freedesktop.UDisks2.Drive", default_service = "org.freedesktop.UDisks2")]
+#[zbus::proxy(
+    interface = "org.freedesktop.UDisks2.Drive",
+    default_service = "org.freedesktop.UDisks2"
+)]
 trait DriveControl {
     fn power_off(&self, options: HashMap<&str, &zbus::zvariant::Value<'_>>) -> zbus::Result<()>;
 }
@@ -74,12 +77,24 @@ impl Module for Removable {
             summary: "Csatlakoztatott cserelheto adathordozok.",
             streams: true,
             methods: vec![
-                MethodDescription::new("mount", "Kotet csatolasa.")
-                    .param("path", "string", true, "A blokkeszkoz utvonala, pl. /dev/sdb1."),
-                MethodDescription::new("unmount", "Kotet lecsatolasa.")
-                    .param("path", "string", true, "A blokkeszkoz utvonala."),
-                MethodDescription::new("powerOff", "A meghajto biztonsagos eltavolitasa.")
-                    .param("path", "string", true, "A blokkeszkoz utvonala."),
+                MethodDescription::new("mount", "Kotet csatolasa.").param(
+                    "path",
+                    "string",
+                    true,
+                    "A blokkeszkoz utvonala, pl. /dev/sdb1.",
+                ),
+                MethodDescription::new("unmount", "Kotet lecsatolasa.").param(
+                    "path",
+                    "string",
+                    true,
+                    "A blokkeszkoz utvonala.",
+                ),
+                MethodDescription::new("powerOff", "A meghajto biztonsagos eltavolitasa.").param(
+                    "path",
+                    "string",
+                    true,
+                    "A blokkeszkoz utvonala.",
+                ),
             ],
         }
     }
@@ -123,12 +138,7 @@ impl Module for Removable {
         }
     }
 
-    async fn call(
-        self: Arc<Self>,
-        method: &str,
-        params: Value,
-        sink: &StateSink,
-    ) -> Result<Value> {
+    async fn call(self: Arc<Self>, method: &str, params: Value, sink: &StateSink) -> Result<Value> {
         let path = params
             .get("path")
             .and_then(Value::as_str)
@@ -307,11 +317,7 @@ fn object_path_of(value: &OwnedValue) -> Option<OwnedObjectPath> {
 }
 
 fn string_of(value: &OwnedValue) -> String {
-    value
-        .try_clone()
-        .ok()
-        .and_then(|value| String::try_from(value).ok())
-        .unwrap_or_default()
+    value.try_clone().ok().and_then(|value| String::try_from(value).ok()).unwrap_or_default()
 }
 
 fn bool_of(value: &OwnedValue) -> bool {

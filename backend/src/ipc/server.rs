@@ -16,16 +16,9 @@ use tokio::sync::{Mutex, mpsc};
 pub fn socket_path() -> PathBuf {
     match std::env::var_os("XDG_RUNTIME_DIR") {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir).join("vellum-shell.sock"),
-        _ => PathBuf::from(format!("/tmp/vellum-shell-{}.sock", unsafe { libc_getuid() })),
+        // SAFETY: a getuid() nem nyul megosztott allapothoz es sosem bukik.
+        _ => PathBuf::from(format!("/tmp/vellum-shell-{}.sock", unsafe { libc::getuid() })),
     }
-}
-
-// A getuid() az egyetlen dolog, amiert nem eri meg behuzni a libc cratet.
-unsafe fn libc_getuid() -> u32 {
-    unsafe extern "C" {
-        fn getuid() -> u32;
-    }
-    unsafe { getuid() }
 }
 
 /// Elindul a socketen. Ha maradt egy arva socket-fajl egy korabbi futasbol,
@@ -33,15 +26,11 @@ unsafe fn libc_getuid() -> u32 {
 pub async fn listen(hub: Arc<Hub>, path: &Path) -> Result<()> {
     if path.exists() {
         match UnixStream::connect(path).await {
-            Ok(_) => anyhow::bail!(
-                "mar fut egy peldany ezen a socketen: {}",
-                path.display()
-            ),
+            Ok(_) => anyhow::bail!("mar fut egy peldany ezen a socketen: {}", path.display()),
             Err(_) => {
                 tracing::warn!(socket = %path.display(), "arva socket eltavolitasa");
-                std::fs::remove_file(path).with_context(|| {
-                    format!("arva socket nem torolheto: {}", path.display())
-                })?;
+                std::fs::remove_file(path)
+                    .with_context(|| format!("arva socket nem torolheto: {}", path.display()))?;
             }
         }
     }
@@ -185,11 +174,17 @@ async fn handle_line(
         "subscribe" => {
             let mut failed = Vec::new();
             for topic in &request.topics {
-                if let Err(err) = hub.acquire(topic).await {
-                    failed.push(format!("{err:#}"));
-                    continue;
+                // Egy kapcsolaton belul topiconkent csak egyszer szamolunk
+                // feliratkozot. A takaritas topiconkent egyetlen release-t kuld
+                // (a `subscriptions` halmaz), tehat egy masodik acquire orokre
+                // fenntartana a lazy hurkot -- akkor is, ha a kliens mar elment.
+                if !subscriptions.lock().await.contains(topic) {
+                    if let Err(err) = hub.acquire(topic).await {
+                        failed.push(format!("{err:#}"));
+                        continue;
+                    }
+                    subscriptions.lock().await.insert(topic.clone());
                 }
-                subscriptions.lock().await.insert(topic.clone());
                 // Azonnali snapshot, ha van mar. Ha meg nincs, a modul run()-ja
                 // fogja kitolni, es az eventen keresztul erkezik meg.
                 if let Some(data) = hub.snapshot(topic).await {
@@ -253,5 +248,104 @@ async fn handle_line(
             );
             let _ = out_tx.send(Outgoing::Reply(reply).to_line());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::module::{Module, ModuleDescription, StateSink};
+
+    /// Streamelo modul, ami sosem all le maga -- igy a feliratkozo-szamlalas a
+    /// megfigyelheto viselkedes.
+    struct Dummy;
+
+    #[async_trait::async_trait]
+    impl Module for Dummy {
+        fn name(&self) -> &'static str {
+            "dummy"
+        }
+
+        fn describe(&self) -> ModuleDescription {
+            ModuleDescription {
+                topic: "dummy",
+                summary: "teszt modul",
+                streams: true,
+                methods: Vec::new(),
+            }
+        }
+
+        async fn run(self: Arc<Self>, sink: StateSink) -> Result<()> {
+            sink.push(json!({ "ok": true }));
+            std::future::pending::<()>().await;
+            Ok(())
+        }
+    }
+
+    async fn serve_lines(hub: &Arc<Hub>, lines: &str) {
+        let (client, server) = UnixStream::pair().unwrap();
+        let served = {
+            let hub = Arc::clone(hub);
+            tokio::spawn(async move { serve_client(hub, server).await })
+        };
+
+        let (read_half, mut write_half) = client.into_split();
+        write_half.write_all(lines.as_bytes()).await.unwrap();
+        // A bontas EOF-ot ad: az olvaso hurok a mar bufferelt sorokat meg
+        // feldolgozza, majd lefuttatja a takaritast.
+        drop(write_half);
+        drop(read_half);
+        served.await.unwrap().unwrap();
+    }
+
+    /// Ugyanarra a topicra ketszer feliratkozva a kapcsolat bontasa utan sem
+    /// maradhat elo feliratkozo. A takaritas topiconkent egyetlen release-t
+    /// kuld, ezert egy masodik acquire orokre futni hagyna a lazy hurkot.
+    #[tokio::test]
+    async fn duplicate_subscribe_is_counted_once() {
+        let hub = Hub::new(vec![Arc::new(Dummy) as Arc<dyn Module>]);
+
+        serve_lines(
+            &hub,
+            "{\"v\":1,\"op\":\"subscribe\",\"topics\":[\"dummy\"]}\n\
+             {\"v\":1,\"op\":\"subscribe\",\"topics\":[\"dummy\"]}\n",
+        )
+        .await;
+
+        assert_eq!(
+            hub.subscriber_count("dummy").await,
+            0,
+            "a dupla feliratkozas utan feliratkozo maradt a topicon"
+        );
+    }
+
+    /// Ket kulon kapcsolat viszont ket kulon feliratkozo: az elso bontasa nem
+    /// veheti el a masodiktol a streamet.
+    #[tokio::test]
+    async fn separate_connections_are_counted_separately() {
+        let hub = Hub::new(vec![Arc::new(Dummy) as Arc<dyn Module>]);
+        let line = "{\"v\":1,\"op\":\"subscribe\",\"topics\":[\"dummy\"]}\n";
+
+        serve_lines(&hub, line).await;
+        assert_eq!(hub.subscriber_count("dummy").await, 0);
+
+        serve_lines(&hub, line).await;
+        assert_eq!(hub.subscriber_count("dummy").await, 0);
+    }
+
+    /// Az explicit leiratkozas ugyanugy egyetlen release, es a bontas utana
+    /// nem vonhat le megegyszer.
+    #[tokio::test]
+    async fn unsubscribe_then_disconnect_does_not_underflow() {
+        let hub = Hub::new(vec![Arc::new(Dummy) as Arc<dyn Module>]);
+
+        serve_lines(
+            &hub,
+            "{\"v\":1,\"op\":\"subscribe\",\"topics\":[\"dummy\"]}\n\
+             {\"v\":1,\"op\":\"unsubscribe\",\"topics\":[\"dummy\"]}\n",
+        )
+        .await;
+
+        assert_eq!(hub.subscriber_count("dummy").await, 0);
     }
 }

@@ -1,0 +1,8 @@
+# A fa stilusa: egy sorban marad minden, ami belefer szaz karakterbe. A rustfmt
+# alapertelmezett heurisztikai a fuggvenyhivasokat es a struct literalokat jocskan
+# a sorhatar elott tordelik; a "Max" ezt kikapcsolja, es pont azt a kepet adja,
+# ami a kodban amugy is all.
+#
+# Csak stabil opciok, hogy a `cargo fmt` nightly toolchain nelkul is lefusson.
+max_width = 100
+use_small_heuristics = "Max"

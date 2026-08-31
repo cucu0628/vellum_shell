@@ -35,7 +35,6 @@ repo_packages=(
   grep
   grim
   hyprland
-  hyprlauncher
   imagemagick
   inetutils
   iproute2
@@ -44,7 +43,6 @@ repo_packages=(
   kitty
   libnotify
   libqalculate
-  matugen
   network-manager-applet
   networkmanager
   noto-fonts-emoji

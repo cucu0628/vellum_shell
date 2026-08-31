@@ -158,8 +158,9 @@ fn generators_match_bash_baseline() {
         sandbox.reset_outputs();
         std::fs::write(sandbox.shell_dir.join("current-theme"), format!("{slug}\n")).unwrap();
 
-        let palette = Palette::load(&sandbox.shell_dir.join("themes").join(slug).join("theme.conf"))
-            .unwrap_or_else(|err| panic!("{slug}: a paletta nem olvashato: {err:#}"));
+        let palette =
+            Palette::load(&sandbox.shell_dir.join("themes").join(slug).join("theme.conf"))
+                .unwrap_or_else(|err| panic!("{slug}: a paletta nem olvashato: {err:#}"));
 
         generators::run_all(&palette, true);
 
@@ -194,9 +195,7 @@ fn generators_match_bash_baseline() {
             compared += 1;
             let actual = generators::icon::resolve(&palette);
             if expected != actual {
-                mismatches.push(format!(
-                    "{slug}/icon-theme: vart {expected}, kapott {actual}"
-                ));
+                mismatches.push(format!("{slug}/icon-theme: vart {expected}, kapott {actual}"));
             }
         }
     }
@@ -220,9 +219,5 @@ fn first_difference(expected: &str, actual: &str) -> String {
             return format!("  {}. sor:\n    vart:   {want}\n    kapott: {got}", index + 1);
         }
     }
-    format!(
-        "  sorok szama: vart {}, kapott {}",
-        expected.lines().count(),
-        actual.lines().count()
-    )
+    format!("  sorok szama: vart {}, kapott {}", expected.lines().count(), actual.lines().count())
 }

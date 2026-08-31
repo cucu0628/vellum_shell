@@ -46,9 +46,6 @@ Item {
 
     Component.onCompleted: if (backend) backend.subscribe("vpn")
 
-    // A backend magatol ertesit; ez csak a korabbi hivasi pontok kedveert van.
-    function refresh() {}
-
     function refreshDetails(force) {
         if (!cliAvailable || checking) return
         checking = true

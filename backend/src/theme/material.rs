@@ -41,12 +41,26 @@ const SAMPLE_BOUND: u32 = 4000;
 /// Az erteke lenyegtelen -- csak arra kell, hogy felismerjuk az esetet.
 const NEUTRAL_SENTINEL: Argb = Argb { alpha: 255, red: 0x80, green: 0x80, blue: 0x80 };
 
+/// A kepbol szarmaztatott theme.conf tartalma. A `generate` es a `palette_for`
+/// is ezt hasznalja, igy a ketto sosem terhet el egymastol.
+fn render_conf(wallpaper: &Path) -> Result<String> {
+    let scheme = scheme_for(wallpaper)?;
+    let vars = vars_from_scheme(&scheme);
+
+    Ok(render(&load_template("dynamic-theme.conf.tmpl", BUILTIN), &vars))
+}
+
+/// A hatterkepbol szarmaztatott paletta, lemezre iras nelkul. A valaszto
+/// elonezete ezt hasznalja: bongeszes kozben nem szabad felulirni a temat, amit
+/// a felhasznalo esetleg megsem valaszt.
+pub fn palette_for(wallpaper: &Path) -> Result<Palette> {
+    Ok(Palette::parse(&render_conf(wallpaper)?))
+}
+
 /// Legeneralja a dinamikus temat a hatterkepbol, es kiirja a
 /// `themes/dynamic-matugen/theme.conf`-ot.
 pub fn generate(wallpaper: &Path) -> Result<Palette> {
-    let scheme = scheme_for(wallpaper)?;
-    let vars = vars_from_scheme(&scheme);
-    let contents = render(&load_template("dynamic-theme.conf.tmpl", BUILTIN), &vars);
+    let contents = render_conf(wallpaper)?;
 
     let output = paths::theme_conf(DYNAMIC_SLUG);
     write_if_changed(&output, &contents)?;

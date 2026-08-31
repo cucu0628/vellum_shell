@@ -8,6 +8,6 @@ pub mod dbus;
 pub mod edid;
 pub mod ipc;
 pub mod module;
-pub mod nm;
 pub mod modules;
+pub mod nm;
 pub mod theme;

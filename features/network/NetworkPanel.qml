@@ -50,9 +50,6 @@ Item {
     }
 
     function refresh() {
-        if (statusController)
-            statusController.refresh();
-
         queryRadio();
         scanNetworks();
     }

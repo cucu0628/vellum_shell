@@ -19,6 +19,7 @@ async-trait = "0.1"
 clap = { version = "4", features = ["derive"] }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
+libc = "0.2"
 material-colors = { version = "0.4.2", features = ["image"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
 serde = { version = "1", features = ["derive"] }

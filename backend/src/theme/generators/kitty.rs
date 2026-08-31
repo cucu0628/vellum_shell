@@ -28,9 +28,8 @@ fn vars(palette: &Palette) -> Vars {
         .color_opt(&["DARK_BACKGROUND"])
         .unwrap_or_else(|| color::mix(&surface, &background, 70));
     let dark_foreground = palette.color_opt(&["DARK_FOREGROUND"]).unwrap_or_else(|| muted.clone());
-    let bright_foreground = palette
-        .color_opt(&["BRIGHT_FOREGROUND"])
-        .unwrap_or_else(|| foreground.clone());
+    let bright_foreground =
+        palette.color_opt(&["BRIGHT_FOREGROUND"]).unwrap_or_else(|| foreground.clone());
     let blue = palette.color_opt(&["BLUE"]).unwrap_or_else(|| accent.clone());
 
     let mut vars = Vars::new();

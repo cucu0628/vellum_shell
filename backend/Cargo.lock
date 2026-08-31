@@ -2395,6 +2395,7 @@ dependencies = [
  "clap",
  "futures-util",
  "image",
+ "libc",
  "material-colors",
  "reqwest",
  "serde",

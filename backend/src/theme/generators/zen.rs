@@ -43,31 +43,21 @@ fn vars(palette: &Palette) -> Vars {
     let muted = palette.color(&["MUTED"], "#9399b2");
 
     let selection = palette.color_opt(&["SELECTION"]).unwrap_or_else(|| accent.clone());
-    let dark_background = palette
-        .color_opt(&["DARK_BACKGROUND"])
-        .unwrap_or_else(|| background.clone());
-    let lighter_background = palette
-        .color_opt(&["LIGHTER_BACKGROUND"])
-        .unwrap_or_else(|| surface.clone());
-    let red = palette
-        .color_opt(&["RED"])
-        .unwrap_or_else(|| color::mix("#ff5449", &foreground, 70));
-    let yellow = palette
-        .color_opt(&["YELLOW"])
-        .unwrap_or_else(|| color::mix(&foreground, &accent, 75));
-    let orange = palette
-        .color_opt(&["ORANGE"])
-        .unwrap_or_else(|| color::mix(&accent, &foreground, 85));
-    let green = palette
-        .color_opt(&["GREEN"])
-        .unwrap_or_else(|| color::mix(&muted, &foreground, 65));
+    let dark_background =
+        palette.color_opt(&["DARK_BACKGROUND"]).unwrap_or_else(|| background.clone());
+    let lighter_background =
+        palette.color_opt(&["LIGHTER_BACKGROUND"]).unwrap_or_else(|| surface.clone());
+    let red = palette.color_opt(&["RED"]).unwrap_or_else(|| color::mix("#ff5449", &foreground, 70));
+    let yellow =
+        palette.color_opt(&["YELLOW"]).unwrap_or_else(|| color::mix(&foreground, &accent, 75));
+    let orange =
+        palette.color_opt(&["ORANGE"]).unwrap_or_else(|| color::mix(&accent, &foreground, 85));
+    let green =
+        palette.color_opt(&["GREEN"]).unwrap_or_else(|| color::mix(&muted, &foreground, 65));
     let cyan = palette.color_opt(&["CYAN"]).unwrap_or_else(|| accent.clone());
-    let blue = palette
-        .color_opt(&["BLUE"])
-        .unwrap_or_else(|| color::mix(&accent, &foreground, 70));
-    let magenta = palette
-        .color_opt(&["MAGENTA"])
-        .unwrap_or_else(|| color::mix(&accent, &background, 35));
+    let blue = palette.color_opt(&["BLUE"]).unwrap_or_else(|| color::mix(&accent, &foreground, 70));
+    let magenta =
+        palette.color_opt(&["MAGENTA"]).unwrap_or_else(|| color::mix(&accent, &background, 35));
 
     let primary = color::mix(&accent, &background, 45);
     let url_color = color::mix(&muted, &foreground, 75);
@@ -110,11 +100,7 @@ fn install_into_profile(chrome_output: &Path, content_output: &Path) -> Result<(
     let chrome_dir = profile_dir.join("chrome");
     std::fs::create_dir_all(&chrome_dir)?;
 
-    upsert_import(
-        &chrome_dir.join("userChrome.css"),
-        chrome_output,
-        "/zen-theme.css\");",
-    )?;
+    upsert_import(&chrome_dir.join("userChrome.css"), chrome_output, "/zen-theme.css\");")?;
     upsert_import(
         &chrome_dir.join("userContent.css"),
         content_output,

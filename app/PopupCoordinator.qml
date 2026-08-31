@@ -1,7 +1,20 @@
 import QtQuick
 
+// A fedoreteg-popupok kolcsonos kizarasa egyetlen helyen.
+//
+// Korabban tiz `setXOpen()` fuggveny sorolta fel kezzel a tobbi tizenegy popup
+// zarasat. A masolatok szet is csusztak: a notifications nyitasa nyitva hagyta a
+// privacy panelt, a launcher/clipboard/appearance pedig a media popupot. Itt
+// egyetlen lista (`overlayNames`) a forras -- uj popup felvetele egy sor, es a
+// kizaras onmagatol teljes marad.
+//
+// A settings SZANDEKOSAN nincs a listaban: az igazi ablak, nem overlay, tehat
+// nem takarja el a shellt. Csak azt a ket feluletet zarja, amibol el szoktak
+// inditani.
 QtObject {
-    required property var menu
+    id: coordinator
+
+    required property var settings
     required property var launcher
     required property var clipboard
     required property var themeSwitcher
@@ -18,18 +31,90 @@ QtObject {
 
     signal calendarRefreshRequested()
 
-    function toggleCenterPopup(nextScreen) {
-        var openHere = mediaPopup.opened && nextScreen && mediaPopup.screen === nextScreen
-        calendarRefreshRequested()
-        audioPopup.opened = false
-        connectivityPopup.opened = false
-        bluetoothPopup.opened = false
-        removablePopup.opened = false
-        aiPopup.opened = false
-        notifications.menuOpened = false
-        privacyPopup.opened = false
-        if (nextScreen) mediaPopup.screen = nextScreen
-        mediaPopup.opened = !openHere
+    readonly property var overlayNames: [
+        "launcher",
+        "clipboard",
+        "themeSwitcher",
+        "media",
+        "audio",
+        "connectivity",
+        "bluetooth",
+        "removable",
+        "privacy",
+        "ai",
+        "about",
+        "notifications"
+    ]
+
+    function overlayItem(name) {
+        switch (name) {
+        case "launcher": return launcher
+        case "clipboard": return clipboard
+        case "themeSwitcher": return themeSwitcher
+        case "media": return mediaPopup
+        case "audio": return audioPopup
+        case "connectivity": return connectivityPopup
+        case "bluetooth": return bluetoothPopup
+        case "removable": return removablePopup
+        case "privacy": return privacyPopup
+        case "ai": return aiPopup
+        case "about": return aboutPopup
+        case "notifications": return notifications
+        }
+        return null
+    }
+
+    // A notifications sajat feluletet hasznal (`menuOpened` / `setMenuOpen`),
+    // ezert az allapotat mindig ezen a harom fuggvenyen keresztul erjuk el.
+    function isOverlayOpen(name) {
+        if (name === "notifications") return notifications.menuOpened === true
+        var item = overlayItem(name)
+        return !!item && item.opened === true
+    }
+
+    function overlayScreen(name) {
+        var item = overlayItem(name)
+        return item ? item.screen : null
+    }
+
+    function closeOverlays(except) {
+        for (var i = 0; i < overlayNames.length; i++) {
+            var name = overlayNames[i]
+            if (name === except) continue
+            if (name === "notifications") notifications.menuOpened = false
+            else overlayItem(name).opened = false
+        }
+    }
+
+    // Az egyetlen belepesi pont: nyitaskor bezarja az osszes tobbi fedoreteget,
+    // atallitja a kepernyot, majd nyit. Zaraskor csak a sajat allapotat allitja.
+    function setOverlayOpen(name, open, nextScreen) {
+        if (open) closeOverlays(name)
+
+        if (name === "notifications") {
+            notifications.setMenuOpen(open, nextScreen)
+            return
+        }
+
+        var item = overlayItem(name)
+        if (open && nextScreen) item.screen = nextScreen
+        item.opened = open
+    }
+
+    // Ugyanazon a kepernyon ujra kerve zar, masikon atkoltozik.
+    function toggleOverlay(name, nextScreen) {
+        var openHere = isOverlayOpen(name) && nextScreen && overlayScreen(name) === nextScreen
+        setOverlayOpen(name, !openHere, nextScreen)
+    }
+
+    // -- notifications -------------------------------------------------------
+
+    function setNotificationsOpen(open, nextScreen) {
+        setOverlayOpen("notifications", open, nextScreen)
+    }
+
+    function toggleNotifications(nextScreen) {
+        toggleOverlay("notifications", nextScreen)
     }
 
     function toggleNotificationsDnd() {
@@ -48,157 +133,83 @@ QtObject {
         notifications.setAllGroupsExpanded(expanded)
     }
 
-    function setNotificationsOpen(open, nextScreen) {
+    // -- settings ------------------------------------------------------------
+
+    function setSettingsOpen(open) {
         if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
             launcher.opened = false
             clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
         }
-        notifications.setMenuOpen(open, nextScreen)
+        settings.opened = open
     }
 
-    function setMenuOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) menu.screen = nextScreen
-        }
-        menu.opened = open
+    function toggleSettings() {
+        setSettingsOpen(!settings.opened)
     }
 
-    function setLauncherOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) launcher.screen = nextScreen
-        }
-        launcher.opened = open
+    // -- egyszeru fedoretegek ------------------------------------------------
+
+    function setLauncherOpen(open, nextScreen) { setOverlayOpen("launcher", open, nextScreen) }
+    function toggleLauncher(nextScreen) { toggleOverlay("launcher", nextScreen) }
+
+    function setClipboardOpen(open, nextScreen) { setOverlayOpen("clipboard", open, nextScreen) }
+    function toggleClipboard(nextScreen) { toggleOverlay("clipboard", nextScreen) }
+
+    function setAudioOpen(open, nextScreen) { setOverlayOpen("audio", open, nextScreen) }
+    function toggleAudio(nextScreen) { toggleOverlay("audio", nextScreen) }
+
+    // A billentyukombinacio nem tudja, melyik kepernyon all a panel; ilyenkor
+    // csak az allapotot valtjuk, a helyet nem.
+    function toggleAudioScreenAgnostic() {
+        setAudioOpen(!audioPopup.opened)
     }
 
-    function setClipboardOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            themeSwitcher.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) clipboard.screen = nextScreen
-        }
-        clipboard.opened = open
+    function setAboutOpen(open, nextScreen) { setOverlayOpen("about", open, nextScreen) }
+    function toggleAbout(nextScreen) { toggleOverlay("about", nextScreen) }
+
+    function setBluetoothOpen(open, nextScreen) { setOverlayOpen("bluetooth", open, nextScreen) }
+    function toggleBluetooth(nextScreen) { toggleOverlay("bluetooth", nextScreen) }
+
+    function setRemovableOpen(open, nextScreen) { setOverlayOpen("removable", open, nextScreen) }
+    function toggleRemovable(nextScreen) { toggleOverlay("removable", nextScreen) }
+
+    function setPrivacyOpen(open, nextScreen) { setOverlayOpen("privacy", open, nextScreen) }
+    function togglePrivacy(nextScreen) { toggleOverlay("privacy", nextScreen) }
+
+    function setAiOpen(open, nextScreen) { setOverlayOpen("ai", open, nextScreen) }
+    function toggleAi(nextScreen) { toggleOverlay("ai", nextScreen) }
+
+    // -- media ---------------------------------------------------------------
+
+    // A naptar a nyitas pillanataban ervenyes datumot mutassa, ne azt, amivel a
+    // shell elindult.
+    function toggleCenterPopup(nextScreen) {
+        calendarRefreshRequested()
+        toggleOverlay("media", nextScreen)
     }
+
+    // -- appearance ----------------------------------------------------------
 
     function setThemeSwitcherOpen(open, nextMode, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            themeSwitcher.mode = nextMode
-            if (nextScreen) themeSwitcher.screen = nextScreen
-        }
-        themeSwitcher.opened = open
+        if (open && nextMode) themeSwitcher.mode = nextMode
+        setOverlayOpen("themeSwitcher", open, nextScreen)
     }
 
-    function setAudioOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            aboutPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) audioPopup.screen = nextScreen
-        }
-        audioPopup.opened = open
+    function closeThemeSwitcher() {
+        setThemeSwitcherOpen(false, themeSwitcher.mode, themeSwitcher.screen)
     }
 
-    function setAboutOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) aboutPopup.screen = nextScreen
-        }
-        aboutPopup.opened = open
-    }
+    // -- halozat es VPN ------------------------------------------------------
 
-    // Wi-Fi and VPN live in one panel; `mode` only picks the tab it opens on.
+    // A Wi-Fi es a VPN egy panelben lakik; a `mode` csak azt valasztja ki,
+    // melyik fulon nyilik meg.
     function setConnectivityOpen(open, mode, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (mode) connectivityPopup.mode = mode
-            if (nextScreen) connectivityPopup.screen = nextScreen
-        }
-        connectivityPopup.opened = open
+        if (open && mode) connectivityPopup.mode = mode
+        setOverlayOpen("connectivity", open, nextScreen)
     }
 
-    // Asking for a tab the panel is not showing switches to it instead of
-    // closing the panel that just answered a different question.
+    // Egy nem mutatott fulet kerve atvaltunk ra, ahelyett hogy bezarnank a
+    // panelt, ami epp egy masik kerdesre valaszolt.
     function toggleConnectivity(mode, nextScreen) {
         var openHere = connectivityPopup.opened && nextScreen && connectivityPopup.screen === nextScreen
         if (openHere && mode && connectivityPopup.mode !== mode) {
@@ -208,144 +219,14 @@ QtObject {
         setConnectivityOpen(!openHere, mode, nextScreen)
     }
 
-    function setNetworkOpen(open, nextScreen) {
-        setConnectivityOpen(open, "network", nextScreen)
-    }
+    function setNetworkOpen(open, nextScreen) { setConnectivityOpen(open, "network", nextScreen) }
+    function toggleNetwork(nextScreen) { toggleConnectivity("network", nextScreen) }
 
-    function toggleMenu(nextScreen) {
-        setMenuOpen(!(menu.opened && nextScreen && menu.screen === nextScreen), nextScreen)
-    }
+    function setVpnOpen(open, nextScreen) { setConnectivityOpen(open, "vpn", nextScreen) }
+    function toggleVpn(nextScreen) { toggleConnectivity("vpn", nextScreen) }
 
-    function toggleLauncher(nextScreen) {
-        setLauncherOpen(!launcher.opened, nextScreen)
-    }
-
-    function toggleClipboard(nextScreen) {
-        setClipboardOpen(!(clipboard.opened && nextScreen && clipboard.screen === nextScreen), nextScreen)
-    }
-
-    function closeThemeSwitcher() {
-        setThemeSwitcherOpen(false, themeSwitcher.mode, themeSwitcher.screen)
-    }
-
-    function toggleNotifications(nextScreen) {
-        setNotificationsOpen(!(notifications.menuOpened && nextScreen && notifications.screen === nextScreen), nextScreen)
-    }
-
-    function toggleAudio(nextScreen) {
-        setAudioOpen(!(audioPopup.opened && nextScreen && audioPopup.screen === nextScreen), nextScreen)
-    }
-
-    function toggleAudioScreenAgnostic() {
-        setAudioOpen(!audioPopup.opened)
-    }
-
-    function toggleNetwork(nextScreen) {
-        toggleConnectivity("network", nextScreen)
-    }
-
-    function setBluetoothOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            connectivityPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            removablePopup.opened = false
-            if (nextScreen) bluetoothPopup.screen = nextScreen
-        }
-        bluetoothPopup.opened = open
-    }
-
-    function toggleBluetooth(nextScreen) {
-        setBluetoothOpen(!(bluetoothPopup.opened && nextScreen && bluetoothPopup.screen === nextScreen), nextScreen)
-    }
-
-    function setRemovableOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) removablePopup.screen = nextScreen
-        }
-        removablePopup.opened = open
-    }
-
-    function toggleRemovable(nextScreen) {
-        setRemovableOpen(!(removablePopup.opened && nextScreen && removablePopup.screen === nextScreen), nextScreen)
-    }
-
-    function setVpnOpen(open, nextScreen) {
-        setConnectivityOpen(open, "vpn", nextScreen)
-    }
-
-    function toggleVpn(nextScreen) {
-        toggleConnectivity("vpn", nextScreen)
-    }
-
-    function setPrivacyOpen(open, nextScreen) {
-        if (open) {
-            aiPopup.opened = false
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            notifications.menuOpened = false
-            if (nextScreen) privacyPopup.screen = nextScreen
-        }
-        privacyPopup.opened = open
-    }
-
-    function togglePrivacy(nextScreen) {
-        setPrivacyOpen(!(privacyPopup.opened && nextScreen && privacyPopup.screen === nextScreen), nextScreen)
-    }
-
-    function setAiOpen(open, nextScreen) {
-        if (open) {
-            menu.opened = false
-            launcher.opened = false
-            clipboard.opened = false
-            themeSwitcher.opened = false
-            mediaPopup.opened = false
-            audioPopup.opened = false
-            aboutPopup.opened = false
-            connectivityPopup.opened = false
-            bluetoothPopup.opened = false
-            removablePopup.opened = false
-            notifications.menuOpened = false
-            privacyPopup.opened = false
-            if (nextScreen) aiPopup.screen = nextScreen
-        }
-        aiPopup.opened = open
-    }
-
-    function toggleAi(nextScreen) {
-        setAiOpen(!(aiPopup.opened && nextScreen && aiPopup.screen === nextScreen), nextScreen)
-    }
-
-    // The panel is opened alongside the action so a keybinding still gives
-    // visible feedback while the CLI works.
+    // A panel a muvelettel egyutt nyilik, hogy egy billentyukombinacio is adjon
+    // lathato visszajelzest, amig a CLI dolgozik.
     function vpnQuickConnect(nextScreen) {
         setVpnOpen(true, nextScreen)
         vpnCli.connectFastest()
@@ -360,9 +241,4 @@ QtObject {
         setVpnOpen(false)
         vpnCli.openApp()
     }
-
-    function toggleAbout(nextScreen) {
-        setAboutOpen(!(aboutPopup.opened && nextScreen && aboutPopup.screen === nextScreen), nextScreen)
-    }
-
 }

@@ -4,7 +4,9 @@ Item {
     id: root
     required property var theme
     property bool available: false
-    property bool enabled: false
+    // Nem `enabled`: az elfedne a QQuickItem sajat propertyjet, amitol a
+    // gyerek MouseArea viselkedese a Bluetooth allapotatol fuggne.
+    property bool adapterEnabled: false
     property bool connected: false
     property bool popupOpen: false
     signal clicked()
@@ -15,9 +17,9 @@ Item {
     Text {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -1
-        text: !root.available || !root.enabled ? "󰂲" : (root.connected ? "󰂱" : "󰂯")
+        text: !root.available || !root.adapterEnabled ? "󰂲" : (root.connected ? "󰂱" : "󰂯")
         color: mouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
-        opacity: root.available && root.enabled ? 1 : 0.55
+        opacity: root.available && root.adapterEnabled ? 1 : 0.55
         font.family: "Symbols Nerd Font Mono"
         font.pixelSize: 14
         Behavior on color { ColorAnimation { duration: 120 } }

@@ -8,9 +8,9 @@ Row {
     required property var theme
     required property var visibleWorkspaceIds
     required property var occupiedWorkspaceIds
-    property bool menuOpen: false
+    property bool settingsOpen: false
 
-    signal menuClicked()
+    signal settingsClicked()
 
     height: parent.height
 
@@ -27,14 +27,14 @@ Row {
             anchors.bottom: parent.bottom
             height: 2
             color: root.theme.accent
-            opacity: menuMouse.containsMouse || root.menuOpen ? 1 : 0
+            opacity: menuMouse.containsMouse || root.settingsOpen ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
         }
 
         SharedUi.ShellLogo {
             anchors.centerIn: parent
             size: 14
-            color: menuMouse.containsMouse || root.menuOpen ? root.theme.accent : root.theme.foreground
+            color: menuMouse.containsMouse || root.settingsOpen ? root.theme.accent : root.theme.foreground
             Behavior on color { ColorAnimation { duration: 120 } }
         }
 
@@ -43,7 +43,7 @@ Row {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: root.menuClicked()
+            onClicked: root.settingsClicked()
         }
     }
 

@@ -40,9 +40,4 @@ Item {
     }
 
     Component.onDestruction: if (backend && active) backend.unsubscribe("weather")
-
-    // A backend maga frissit; ezek csak azert maradtak meg, hogy a korabbi
-    // hivasi pontok ne torjenek el.
-    function refresh() {}
-    function loadLocation() {}
 }

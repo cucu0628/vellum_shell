@@ -3,6 +3,13 @@ set -euo pipefail
 
 shell_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
+# A user manager a Hyprland elott indul, ezert a daemon elso peldanya meg nem
+# latja a kompozitor socketjet. Adjuk at a session valtozoit, majd inditsuk ujra
+# a backendet, mielott a shell kapcsolodni kezd hozza.
+systemctl --user import-environment \
+  DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+systemctl --user restart vellum-shelld.service
+
 # Wait for Hyprland to finish configuring outputs before creating surfaces.
 sleep 2
 

@@ -144,6 +144,16 @@ pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<A
     })
 }
 
+/// A hatterkepbol szarmaztatott paletta, allapotiras es generatorok nelkul.
+/// A valaszto ezzel nezi meg elore a dinamikus temat, mielott commitolna.
+pub fn preview_dynamic(wallpaper: &str) -> Result<Palette> {
+    let path = std::path::Path::new(wallpaper);
+    if !path.is_file() {
+        anyhow::bail!("a hatterkep nem letezik: {wallpaper}");
+    }
+    material::palette_for(path)
+}
+
 pub fn set_wallpaper(path: &str) -> Result<()> {
     if !std::path::Path::new(path).is_file() {
         anyhow::bail!("a hatterkep nem letezik: {path}");

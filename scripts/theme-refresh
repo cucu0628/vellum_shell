@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-shell_path="$HOME/.config/quickshell/vellum_shell/shell.qml"
+shell_dir=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
+shell_path="$shell_dir/shell.qml"
 quickshell kill --path "$shell_path" 2>/dev/null || true
 MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000' \
   quickshell --path "$shell_path" --daemonize

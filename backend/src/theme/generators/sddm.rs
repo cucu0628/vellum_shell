@@ -19,9 +19,17 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     let system_copy = PathBuf::from("/usr/share/sddm/themes/vellum-ink/theme.conf");
 
     let changed = write_if_writable(&repo_copy, &payload)?;
+
+    // A rendszerpeldany utvonala beegetett abszolut ut: sem a `VELLUM_SHELL_DIR`
+    // sandbox, sem a temp HOME nem tereli el. Enelkul a golden teszt minden
+    // futasa atirna az ELO greeter temajat arra a palettara, amelyik utolsonak
+    // fut le -- ezert kell ugyanaz a kapcsolo, mint a gsettings/systemctl agnak.
+    //
     // A rendszerpeldany hianya vagy irasvedettsege nem hiba: a greeter tema
     // egyszeruen nincs telepitve.
-    let _ = write_if_writable(&system_copy, &payload);
+    if crate::theme::side_effects_enabled() {
+        let _ = write_if_writable(&system_copy, &payload);
+    }
 
     Ok(Some((repo_copy, changed)))
 }

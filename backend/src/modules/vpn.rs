@@ -77,7 +77,12 @@ pub struct Vpn {
 
 impl Vpn {
     pub fn new() -> Self {
-        Self { cache: Mutex::new(Cache { state: VpnState { cli_available: true, ..Default::default() }, ..Default::default() }) }
+        Self {
+            cache: Mutex::new(Cache {
+                state: VpnState { cli_available: true, ..Default::default() },
+                ..Default::default()
+            }),
+        }
     }
 
     async fn publish(&self, sink: &StateSink) {
@@ -107,11 +112,22 @@ impl Module for Vpn {
             methods: vec![
                 MethodDescription::new("details", "A CLI reszletei (status). Gyorsitotarazva.")
                     .param("force", "bool", false, "Hagyja figyelmen kivul a gyorsitotarat."),
-                MethodDescription::new("config", "Beallitasok (kill switch, csomag).")
-                    .param("force", "bool", false, "Hagyja figyelmen kivul a gyorsitotarat."),
-                MethodDescription::new("countries", "Valaszthato orszagok. Csak fizetos csomagnal."),
-                MethodDescription::new("connect", "Csatlakozas.")
-                    .param("country", "string", false, "Orszagkod, pl. NL. Elhagyva a leggyorsabb."),
+                MethodDescription::new("config", "Beallitasok (kill switch, csomag).").param(
+                    "force",
+                    "bool",
+                    false,
+                    "Hagyja figyelmen kivul a gyorsitotarat.",
+                ),
+                MethodDescription::new(
+                    "countries",
+                    "Valaszthato orszagok. Csak fizetos csomagnal.",
+                ),
+                MethodDescription::new("connect", "Csatlakozas.").param(
+                    "country",
+                    "string",
+                    false,
+                    "Orszagkod, pl. NL. Elhagyva a leggyorsabb.",
+                ),
                 MethodDescription::new("disconnect", "Bontas."),
                 MethodDescription::new("openApp", "A Proton VPN alkalmazas inditasa."),
             ],
@@ -184,12 +200,7 @@ impl Module for Vpn {
         }
     }
 
-    async fn call(
-        self: Arc<Self>,
-        method: &str,
-        params: Value,
-        sink: &StateSink,
-    ) -> Result<Value> {
+    async fn call(self: Arc<Self>, method: &str, params: Value, sink: &StateSink) -> Result<Value> {
         let force = params.get("force").and_then(Value::as_bool).unwrap_or(false);
 
         match method {
@@ -336,9 +347,8 @@ impl Module for Vpn {
 }
 
 fn which(program: &str) -> bool {
-    std::env::var_os("PATH").is_some_and(|paths| {
-        std::env::split_paths(&paths).any(|dir| dir.join(program).is_file())
-    })
+    std::env::var_os("PATH")
+        .is_some_and(|paths| std::env::split_paths(&paths).any(|dir| dir.join(program).is_file()))
 }
 
 async fn run_cli(args: &[&str]) -> Result<String> {
@@ -493,10 +503,8 @@ fn parse_connected_to(line: &str) -> Option<(String, String)> {
 fn parse_public_ip(line: &str) -> Option<String> {
     let index = line.find("IP address is ")?;
     let rest = &line[index + "IP address is ".len()..];
-    let address: String = rest
-        .chars()
-        .take_while(|c| c.is_ascii_hexdigit() || *c == '.' || *c == ':')
-        .collect();
+    let address: String =
+        rest.chars().take_while(|c| c.is_ascii_hexdigit() || *c == '.' || *c == ':').collect();
     (!address.is_empty()).then(|| address.trim_end_matches('.').to_string())
 }
 
@@ -598,7 +606,7 @@ mod tests {
         assert_eq!(
             countries,
             vec![
-                Country { name: "Netherlands".into(), code: "NL" .into() },
+                Country { name: "Netherlands".into(), code: "NL".into() },
                 Country { name: "United States".into(), code: "US".into() },
             ]
         );
@@ -621,7 +629,10 @@ mod tests {
 
     #[test]
     fn action_error_prefers_explicit_error_line() {
-        assert_eq!(action_error("Error: something broke\nTry 'protonvpn --help'"), "something broke");
+        assert_eq!(
+            action_error("Error: something broke\nTry 'protonvpn --help'"),
+            "something broke"
+        );
     }
 
     #[test]
@@ -631,7 +642,8 @@ mod tests {
 
     #[test]
     fn python_noise_is_dropped() {
-        let lines = clean_output("eventlet monkey patching\n\nConnected to X in Y.\nwarnings.warn(...)");
+        let lines =
+            clean_output("eventlet monkey patching\n\nConnected to X in Y.\nwarnings.warn(...)");
         assert_eq!(lines, vec!["Connected to X in Y."]);
     }
 

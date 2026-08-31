@@ -48,8 +48,6 @@ Item {
 
     Component.onCompleted: if (backend) backend.subscribe("removable")
 
-    function refresh() {}
-
     function runAction(method, path) {
         if (busyPath !== "") return
         errorMessage = ""

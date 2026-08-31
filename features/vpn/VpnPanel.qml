@@ -51,7 +51,6 @@ Item {
             return ;
 
         controller.errorMessage = "";
-        controller.refresh();
         controller.refreshDetails(true);
         controller.refreshConfig(true);
     }

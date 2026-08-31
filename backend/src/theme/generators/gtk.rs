@@ -14,7 +14,9 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     let template = load_template("gtk-theme.css.tmpl", BUILTIN);
     let changed = write_if_changed(&output, &render(&template, &vars(palette)))?;
 
-    if crate::theme::side_effects_enabled() {
+    // A portal-ujrainditas draga, es a valaszto elo elonezete percenkent
+    // tobbszor is alkalmazhat temat. Valtozatlan CSS-nel nincs mit frissiteni.
+    if changed && crate::theme::side_effects_enabled() {
         let _ = Command::new("gsettings")
             .args(["set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"])
             .stdout(Stdio::null())
@@ -46,12 +48,10 @@ fn vars(palette: &Palette) -> Vars {
     let muted = palette.color(&["MUTED"], "#9399b2");
 
     let selection = palette.color_opt(&["SELECTION"]).unwrap_or_else(|| accent.clone());
-    let dark_background = palette
-        .color_opt(&["DARK_BACKGROUND"])
-        .unwrap_or_else(|| background.clone());
-    let lighter_background = palette
-        .color_opt(&["LIGHTER_BACKGROUND"])
-        .unwrap_or_else(|| surface.clone());
+    let dark_background =
+        palette.color_opt(&["DARK_BACKGROUND"]).unwrap_or_else(|| background.clone());
+    let lighter_background =
+        palette.color_opt(&["LIGHTER_BACKGROUND"]).unwrap_or_else(|| surface.clone());
     let red = palette.color(&["RED"], "#ff5449");
 
     // A destruktiv/hiba szinek megtartjak a voros arnyalatot, de kovetik a temat.
@@ -59,11 +59,8 @@ fn vars(palette: &Palette) -> Vars {
     let error_foreground = color::mix("#690005", &background, 70);
 
     // Vilagos akcentuson sotet, sotet akcentuson vilagos felirat.
-    let accent_foreground = if color::luminance(&accent) >= 145 {
-        background.clone()
-    } else {
-        foreground.clone()
-    };
+    let accent_foreground =
+        if color::luminance(&accent) >= 145 { background.clone() } else { foreground.clone() };
 
     let mut vars = Vars::new();
     vars.insert("BACKGROUND".into(), background);
