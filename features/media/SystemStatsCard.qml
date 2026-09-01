@@ -13,6 +13,7 @@ SharedUi.DashPanel {
     title: "SYSTEM"
     kanji: ""
     trailing: "LIVE"
+    editorial: true
 
     Row {
         anchors.fill: parent

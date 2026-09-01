@@ -46,7 +46,8 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         theme: page.theme
-        title: "Keybindings"
+        title: "Shortcut index"
+        description: "Filter the bindings currently reported by Hyprland"
     }
 
     SharedUi.SearchField {

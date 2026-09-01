@@ -237,15 +237,27 @@ Item {
         }
     }
 
-    Column {
-        anchors.fill: parent
-        spacing: 0
+    Flickable {
+        id: settingsFlickable
 
-        SettingsSection {
-            width: parent.width
-            theme: page.theme
-            title: "Arrangement"
-        }
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: column.height
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+
+        Column {
+            id: column
+
+            width: settingsFlickable.width
+            spacing: 0
+
+            SettingsSection {
+                width: parent.width
+                theme: page.theme
+                title: "Display arrangement"
+                description: "Place active outputs in the shared workspace"
+            }
 
         Text {
             width: parent.width
@@ -312,11 +324,12 @@ Item {
             }
         }
 
-        SettingsSection {
-            width: parent.width
-            theme: page.theme
-            title: page.monitor ? page.monitor.name : "Display"
-        }
+            SettingsSection {
+                width: parent.width
+                theme: page.theme
+                title: page.monitor ? page.monitor.name : "Display"
+                description: "Mode and output-specific rendering controls"
+            }
 
         Text {
             width: parent.width
@@ -328,7 +341,7 @@ Item {
             bottomPadding: 6
         }
 
-        SharedUi.SettingRow {
+            SharedUi.SettingRow {
             theme: page.theme
             enabled: page.monitor !== null
             label: "Resolution and refresh rate"
@@ -451,8 +464,9 @@ Item {
                 })
             }
 
-        }
+            }
 
+        }
     }
 
     // A megerosito sav. Modalis szandekkal ul a tartalom felett, de nem blokkolja

@@ -262,6 +262,8 @@ Item {
 
         var notification = currentNotification
         var entryId = currentEntryId
+        var entry = historyEntry(entryId)
+        if (!entry || !entry.defaultAction) return
         clearCurrentToast()
         activateHistoryEntry(entryId, notification)
         showNextToast()
@@ -344,7 +346,8 @@ Item {
                 break
             }
         }
-        invokeEntryAction(entryId, selectedEntry ? selectedEntry.defaultAction : null, fallbackNotification)
+        if (!selectedEntry || !selectedEntry.defaultAction) return
+        invokeEntryAction(entryId, selectedEntry.defaultAction, fallbackNotification)
     }
 
     function handleNotificationClosed(entryId) {

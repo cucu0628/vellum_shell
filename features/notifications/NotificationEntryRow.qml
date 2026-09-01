@@ -37,7 +37,9 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: row.entry && row.entry.defaultAction ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: row.activated()
+        onClicked: {
+            if (row.entry && row.entry.defaultAction) row.activated()
+        }
     }
 
     Row {

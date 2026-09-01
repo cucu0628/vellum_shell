@@ -1,9 +1,8 @@
 import QtQuick
 
 // A launcher muveletei: minden, amit be lehet gepelni, de nem egy .desktop
-// alkalmazas. Ez valtotta ki a korabbi menu palettat -- a beallitas-jellegu
-// pontok a settings appba kerultek, ide csak az egy kattintassal elsulo
-// muveletek jottek at.
+// alkalmazas. Ez valtotta ki a korabbi menu palettat; a keresheto, azonnal
+// indithato muveletek vannak itt, koztuk az interaktiv telepitok is.
 //
 // Mezok:
 //   name      a megjelenitett nev, egyben az elsodleges keresokulcs
@@ -11,8 +10,8 @@ import QtQuick
 //   icon      nerd font glif
 //   subtitle  egysoros magyarazat
 //   command   `sh -c`-vel futtatva
-    //   confirm   igaz eseten ket Enter kell (visszafordithatatlan muveletek)
-    //   delay     bezaras utan indul, hogy maga a launcher ne keruljon a kepre
+//   confirm   igaz eseten ket Enter kell (visszafordithatatlan muveletek)
+//   delay     bezaras utan indul, hogy maga a launcher ne keruljon a kepre
 QtObject {
     readonly property string shellPath: "~/.config/quickshell/vellum_shell/shell.qml"
     readonly property string scriptsPath: "~/.config/quickshell/vellum_shell/scripts"
@@ -21,10 +20,14 @@ QtObject {
         return "quickshell ipc --path " + shellPath + " call " + target + " " + method;
     }
 
+    function terminalScript(script) {
+        return scriptsPath + "/floating-terminal " + scriptsPath + "/" + script;
+    }
+
     readonly property var items: [{
         "name": "settings",
         "terms": ["preferences", "control", "config", "display", "monitor", "hyprland"],
-        "icon": "",
+        "icon": "󰒓",
         "subtitle": "Open Vellum Settings",
         "command": ipc("settings", "toggle")
     }, {
@@ -36,19 +39,19 @@ QtObject {
     }, {
         "name": "palette",
         "terms": ["theme", "colors", "colours"],
-        "icon": "",
+        "icon": "󰏘",
         "subtitle": "Pick a colour theme",
         "command": ipc("style", "theme")
     }, {
         "name": "clipboard",
         "terms": ["history", "paste", "copy"],
-        "icon": "",
+        "icon": "󰅌",
         "subtitle": "Open clipboard history",
         "command": ipc("clipboard", "toggle")
     }, {
         "name": "audio",
         "terms": ["sound", "volume", "output", "mixer"],
-        "icon": "",
+        "icon": "󰕾",
         "subtitle": "Open audio devices",
         "command": ipc("audio", "toggle")
     }, {
@@ -73,13 +76,13 @@ QtObject {
     }, {
         "name": "terminal",
         "terms": ["term", "shell", "kitty"],
-        "icon": "",
+        "icon": "",
         "subtitle": "Open terminal",
         "command": "kitty"
     }, {
         "name": "files",
         "terms": ["file", "folder", "nautilus", "home"],
-        "icon": "",
+        "icon": "󰉋",
         "subtitle": "Open home folder",
         "command": "xdg-open $HOME"
     }, {
@@ -89,21 +92,70 @@ QtObject {
         "subtitle": "Open default browser",
         "command": "xdg-open https://www.google.com"
     }, {
+        "name": "install package",
+        "terms": ["pacman", "official", "repository", "software", "add"],
+        "icon": "󰏔",
+        "subtitle": "Search and install from the official repositories",
+        "command": terminalScript("pkg-install"),
+        "delay": true
+    }, {
+        "name": "install AUR package",
+        "terms": ["yay", "arch user repository", "software", "add"],
+        "icon": "󰣇",
+        "subtitle": "Search and install from the Arch User Repository",
+        "command": terminalScript("aur-install"),
+        "delay": true
+    }, {
+        "name": "install web app",
+        "terms": ["website", "browser", "wrapper", "software", "add"],
+        "icon": "󰖟",
+        "subtitle": "Wrap a website as a desktop application",
+        "command": terminalScript("webapp-install"),
+        "delay": true
+    }, {
+        "name": "install terminal app",
+        "terms": ["tui", "cli", "curated", "software", "add"],
+        "icon": "",
+        "subtitle": "Install a curated terminal tool",
+        "command": terminalScript("tui-install"),
+        "delay": true
+    }, {
+        "name": "remove package",
+        "terms": ["pacman", "aur", "uninstall", "software", "delete"],
+        "icon": "󰆴",
+        "subtitle": "Remove an installed repository or AUR package",
+        "command": terminalScript("pkg-remove"),
+        "delay": true
+    }, {
+        "name": "remove web app",
+        "terms": ["website", "wrapper", "uninstall", "delete"],
+        "icon": "󰅖",
+        "subtitle": "Remove a web app wrapper",
+        "command": terminalScript("webapp-remove"),
+        "delay": true
+    }, {
+        "name": "remove terminal app",
+        "terms": ["tui", "cli", "uninstall", "delete"],
+        "icon": "󰆍",
+        "subtitle": "Remove a curated terminal tool",
+        "command": terminalScript("tui-remove"),
+        "delay": true
+    }, {
         "name": "refresh shell",
         "terms": ["reload", "restart", "vellum"],
-        "icon": "",
+        "icon": "󰑐",
         "subtitle": "Reload Vellum Shell",
         "command": scriptsPath + "/theme-refresh"
     }, {
         "name": "about",
         "terms": ["system", "info", "version"],
-        "icon": "",
+        "icon": "󰋼",
         "subtitle": "System information",
         "command": ipc("about", "toggle")
     }, {
         "name": "lock",
         "terms": ["lockscreen", "screensaver"],
-        "icon": "",
+        "icon": "󰌾",
         "subtitle": "Lock the session",
         "command": ipc("lock", "lock")
     }, {

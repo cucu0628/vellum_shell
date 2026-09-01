@@ -22,10 +22,12 @@ Rectangle {
     Rectangle {
         anchors.left: parent.left
         anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 2
+        anchors.leftMargin: 10
+        anchors.topMargin: 9
+        width: 14
+        height: 2
         color: tile.accent
-        opacity: 0.5
+        opacity: 0.75
     }
 
     Column {
@@ -36,7 +38,8 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: tile.heading
             color: tile.foreground
-            font.pixelSize: 10
+            font.family: "serif"
+            font.pixelSize: 11
             font.weight: Font.DemiBold
             visible: tile.heading !== ""
         }
@@ -53,8 +56,9 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: tile.value
             color: tile.foreground
-            font.pixelSize: 16
-            font.weight: Font.DemiBold
+            font.family: "serif"
+            font.pixelSize: 17
+            font.weight: Font.Medium
             visible: tile.value !== ""
         }
 

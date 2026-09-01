@@ -81,7 +81,7 @@ PanelWindow {
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             activateSelected();
             event.accepted = true;
-        } else if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
+        } else if (event.key === Qt.Key_Delete) {
             deleteSelected();
             event.accepted = true;
         }
@@ -137,12 +137,12 @@ PanelWindow {
 
         anchors.centerIn: parent
         enabled: opened
-        width: Math.min(840, clipboardWindow.width - 32)
-        height: Math.min(500, clipboardWindow.height - 40)
+        width: Math.min(760, clipboardWindow.width - 32)
+        height: Math.min(520, clipboardWindow.height - 40)
         opacity: opened ? 1 : 0
-        scale: opened ? 1 : 0.96
+        scale: opened ? 1 : 0.985
         transform: Translate {
-            y: clipboardWindow.opened ? 0 : 12
+            y: clipboardWindow.opened ? 0 : 18
 
             Behavior on y {
                 NumberAnimation {
@@ -152,13 +152,9 @@ PanelWindow {
             }
         }
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            radius: 0
-            clip: true
+            theme: clipboardWindow.theme
 
             MouseArea {
                 anchors.fill: parent
@@ -169,60 +165,17 @@ PanelWindow {
 
             Column {
                 anchors.fill: parent
-                anchors.margins: 22
-                spacing: 8
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                anchors.topMargin: 20
+                anchors.bottomMargin: 16
+                spacing: 10
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
-
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        color: panelAccent
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰅌"
-                            color: panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-
-                    }
-
-                    Column {
-                        width: parent.width - 166
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-
-                        Text {
-                            text: "CLIPBOARD"
-                            color: panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 3
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "Clipboard history"
-                            color: mutedFg
-                            font.pixelSize: 9
-                        }
-
-                    }
-
-                    Text {
-                        width: 110
-                        anchors.verticalCenter: parent.verticalCenter
-                        horizontalAlignment: Text.AlignRight
-                        text: "DEL  REMOVE    ENTER  PASTE"
-                        color: mutedFg
-                        font.family: "monospace"
-                        font.pixelSize: 8
-                    }
+                    theme: clipboardWindow.theme
+                    title: "Clipboard"
+                    subtitle: visibleItems.length + (visibleItems.length === 1 ? " history item" : " history items")
 
                 }
 
@@ -230,7 +183,7 @@ PanelWindow {
                     id: searchInput
 
                     width: parent.width
-                    height: 48
+                    height: 52
                     foreground: clipboardWindow.panelFg
                     accent: clipboardWindow.panelAccent
                     muted: clipboardWindow.mutedFg
@@ -247,17 +200,42 @@ PanelWindow {
                     }
                 }
 
+                Item {
+                    width: parent.width
+                    height: 18
+
+                    Text {
+                        anchors.left: parent.left
+                        height: parent.height
+                        text: "HISTORY  ·  " + visibleItems.length
+                        color: panelAccent
+                        verticalAlignment: Text.AlignVCenter
+                        font.pixelSize: 8
+                        font.bold: true
+                        font.letterSpacing: 1.8
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        height: parent.height
+                        text: "↑↓  SELECT     ENTER  PASTE     DEL  REMOVE"
+                        color: mutedFg
+                        verticalAlignment: Text.AlignVCenter
+                        font.family: "monospace"
+                        font.pixelSize: 8
+                    }
+                }
+
                 Rectangle {
                     width: parent.width
                     height: 1
                     color: mutedFg
-                    opacity: 0.35
+                    opacity: 0.2
                 }
 
-                Row {
+                Item {
                     width: parent.width
-                    height: parent.height - 109
-                    spacing: 0
+                    height: parent.height - 163
 
                     Item {
                         id: listPane
@@ -268,9 +246,9 @@ PanelWindow {
                         Text {
                             visible: visibleItems.length === 0
                             anchors.centerIn: parent
-                            text: "NO CLIPBOARD MATCHES"
+                            text: query === "" ? "Clipboard history is empty" : "No clipboard matches"
                             color: mutedFg
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                         }
 
                         ListView {
@@ -309,6 +287,30 @@ PanelWindow {
                                 }
                             }
 
+                        }
+
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            width: 2
+                            color: mutedFg
+                            opacity: resultsList.interactive ? 0.16 : 0
+                        }
+
+                        Rectangle {
+                            anchors.right: parent.right
+                            width: 2
+                            height: resultsList.contentHeight > 0
+                                ? Math.max(24, parent.height * resultsList.visibleArea.heightRatio)
+                                : 0
+                            y: resultsList.visibleArea.yPosition * parent.height
+                            color: panelAccent
+                            opacity: resultsList.interactive ? 0.9 : 0
+
+                            Behavior on y {
+                                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                            }
                         }
 
                     }

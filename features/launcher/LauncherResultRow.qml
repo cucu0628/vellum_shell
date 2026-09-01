@@ -20,6 +20,15 @@ Rectangle {
     property color selectionColor: "#1b1613"
     readonly property bool isApp: result && result.type === "app"
     readonly property bool isEmoji: result && result.type === "emoji"
+    readonly property string kindLabel: {
+        if (!result) return ""
+        if (result.type === "app") return "APP"
+        if (result.type === "action") return "ACTION"
+        if (result.type === "project") return "PROJECT"
+        if (result.type === "calc") return "RESULT"
+        if (result.type === "emoji") return "EMOJI"
+        return result.type ? result.type.toString().toUpperCase() : ""
+    }
 
     signal hoverRequested(int index)
     signal activationRequested(int index)
@@ -32,7 +41,7 @@ Rectangle {
     scale: 1
 
     Rectangle {
-        width: 3
+        width: 2
         height: parent.height
         anchors.left: parent.left
         color: resultRow.accentColor
@@ -50,22 +59,13 @@ Rectangle {
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: 14
+        anchors.leftMargin: 12
         anchors.rightMargin: 12
-        spacing: 11
-
-        Text {
-            width: 24
-            anchors.verticalCenter: parent.verticalCenter
-            text: (resultRow.resultIndex + 1).toString().padStart(2, "0")
-            color: resultRow.mutedColor
-            font.family: "monospace"
-            font.pixelSize: 8
-        }
+        spacing: 12
 
         Item {
-            width: 28
-            height: 28
+            width: 30
+            height: 30
             anchors.verticalCenter: parent.verticalCenter
 
             Image {
@@ -102,7 +102,7 @@ Rectangle {
         }
 
         Column {
-            width: parent.width - 176
+            width: parent.width - 140
             spacing: 2
             anchors.verticalCenter: parent.verticalCenter
 
@@ -127,14 +127,16 @@ Rectangle {
         }
 
         Text {
-            width: 80
+            width: 86
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight
-            text: resultRow.pendingConfirm ? "AGAIN  ↵" : (resultRow.selected ? "ENTER  ↵" : "OPEN  ↗")
+            text: resultRow.pendingConfirm ? "AGAIN  ↵" : (resultRow.selected ? "OPEN  ↵" : resultRow.kindLabel)
             color: resultRow.selected || resultRow.pendingConfirm ? resultRow.accentColor : resultRow.mutedColor
             font.bold: resultRow.pendingConfirm
             font.family: "monospace"
             font.pixelSize: 8
+            font.letterSpacing: resultRow.selected ? 0 : 1.2
+            opacity: resultRow.selected || resultRow.pendingConfirm ? 1 : 0.65
         }
 
     }

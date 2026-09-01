@@ -38,7 +38,9 @@ Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
 - Multi-monitor Wayland lock screen with PAM authentication.
 - Settings application in a real resizable window, with Hyprland display
   arrangement, tiling and decoration, input devices, desktop preferences,
-  searchable keybindings, and package install/removal.
+  and searchable keybindings.
+- Searchable Launcher actions for guided package, AUR, web app, and terminal
+  app installation and removal.
 
 Popups are loaded on demand and coordinated so that overlapping shell surfaces
 do not remain open at the same time.

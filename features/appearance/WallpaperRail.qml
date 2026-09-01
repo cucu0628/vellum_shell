@@ -94,10 +94,10 @@ Item {
                 color: rail.bg
                 Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
                 border.color: frame.current
-                    ? rail.accent
+                    ? Qt.rgba(1, 1, 1, 0.2)
                     : (wallpaperMouse.containsMouse ? rail.mutedFg : Qt.rgba(1, 1, 1, 0.06))
                 border.width: 1
-                opacity: frame.current ? 1 : (wallpaperMouse.containsMouse ? 0.85 : 0.55)
+                opacity: frame.current ? 1 : (wallpaperMouse.containsMouse ? 0.88 : 0.68)
                 clip: true
 
                 Behavior on anchors.topMargin { NumberAnimation { duration: 170; easing.type: Easing.OutQuart } }
@@ -138,15 +138,16 @@ Item {
                     text: frame.modelData.name
                     color: frame.current ? rail.accent : rail.fg
                     font.pixelSize: 9
-                    font.bold: true
+                    font.family: frame.current ? "serif" : "sans-serif"
+                    font.bold: frame.current
                     elide: Text.ElideRight
                 }
 
                 Rectangle {
                     anchors.left: parent.left
-                    anchors.top: parent.top
+                    anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    width: 2
+                    height: 2
                     color: rail.accent
                     visible: frame.current
                 }

@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import "../../ui" as SharedUi
 
 // Wi-Fi half of the connectivity panel. It only talks to nmcli while `active`,
 // so the tab that is not on screen costs nothing.
@@ -17,7 +18,7 @@ Item {
     property string selectedSsid: ""
     property string errorMessage: ""
     property var networks: []
-    readonly property int preferredHeight: Math.min(538, 248 + Math.min(networks.length, 5) * 56 + (selectedSsid !== "" ? 88 : 0))
+    readonly property int preferredHeight: Math.min(554, 264 + Math.min(networks.length, 5) * 56 + (selectedSsid !== "" ? 88 : 0))
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
@@ -206,58 +207,18 @@ Item {
         anchors.fill: parent
         spacing: 12
 
-        Row {
+        SharedUi.PopupHeader {
             width: parent.width
-            height: 36
-            spacing: 10
+            theme: networkPanel.theme
+            title: "Network"
+            subtitle: statusController && statusController.connected
+                ? "Connected  ·  " + (statusController.connectionType === "ethernet" ? "Ethernet" : statusController.connectionName)
+                : "Offline"
+            trailingWidth: 67
 
             Rectangle {
-                width: 36
-                height: 36
-                color: panelAccent
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰤨"
-                    color: panelBg
-                    font.family: "Symbols Nerd Font Mono"
-                    font.pixelSize: 20
-                    font.weight: Font.DemiBold
-                }
-
-            }
-
-            Column {
-                width: parent.width - 123
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1
-
-                Text {
-                    width: parent.width
-                    text: "NETWORK CONTROL"
-                    color: panelFg
-                    font.pixelSize: 12
-                    font.letterSpacing: 3
-                    font.bold: true
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    width: parent.width
-                    text: statusController && statusController.connected
-                        ? "Connected  ·  " + (statusController.connectionType === "ethernet" ? "Ethernet" : statusController.connectionName)
-                        : "Offline"
-                    color: mutedFg
-                    font.pixelSize: 9
-                    elide: Text.ElideRight
-                }
-
-            }
-
-            Rectangle {
-                width: 67
-                height: 30
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.fill: parent
+                anchors.bottomMargin: 4
                 color: wifiEnabled ? panelAccent : inkBg
                 border.color: wifiEnabled ? panelAccent : mutedFg
 
@@ -456,7 +417,7 @@ Item {
 
         Item {
             width: parent.width
-            height: parent.height - 184 - (selectedSsid !== "" ? 88 : 0)
+            height: parent.height - 200 - (selectedSsid !== "" ? 88 : 0)
 
             Text {
                 anchors.centerIn: parent

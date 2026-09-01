@@ -45,6 +45,7 @@ Flickable {
             width: parent.width
             theme: page.theme
             title: "Keyboard"
+            description: "Layout and held-key response"
         }
 
         SharedUi.SettingRow {
@@ -126,6 +127,7 @@ Flickable {
             width: parent.width
             theme: page.theme
             title: "Pointer"
+            description: "Mouse speed and focus policy"
         }
 
         SharedUi.SettingRow {
@@ -181,6 +183,7 @@ Flickable {
             width: parent.width
             theme: page.theme
             title: "Touchpad"
+            description: "Gestures used for scrolling and clicking"
         }
 
         SharedUi.SettingRow {

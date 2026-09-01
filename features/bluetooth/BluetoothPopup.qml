@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Bluetooth
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: bluetoothWindow
@@ -290,19 +291,16 @@ PanelWindow {
         enabled: bluetoothWindow.opened
         y: 32
         width: Math.min(430, parent.width - 20)
-        height: opened ? Math.min(570, parent.height - 46, Math.max(268, 204 + Math.min(deviceList.length, 6) * 56) + (pairingBusy ? 84 : 0)) : 0
+        height: opened ? Math.min(570, parent.height - 46, Math.max(284, 220 + Math.min(deviceList.length, 6) * 56) + (pairingBusy ? 84 : 0)) : 0
         clip: true
         opacity: opened ? 1 : 0
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
         Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            clip: true
+            theme: bluetoothWindow.theme
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
@@ -311,58 +309,20 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 12
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
+                    theme: bluetoothWindow.theme
+                    title: "Bluetooth"
+                    subtitle: !adapterAvailable
+                        ? "No adapter detected"
+                        : (statusController && statusController.connected
+                            ? "Connected  ·  " + statusController.primaryName
+                            : (adapterEnabled ? "Ready to connect" : "Bluetooth is off"))
+                    trailingWidth: 67
 
                     Rectangle {
-                        width: 36
-                        height: 36
-                        color: panelAccent
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰂯"
-                            color: panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Column {
-                        width: parent.width - 123
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-
-                        Text {
-                            width: parent.width
-                            text: "BLUETOOTH"
-                            color: panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 3
-                            font.bold: true
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: !adapterAvailable
-                                ? "No adapter detected"
-                                : (statusController && statusController.connected
-                                    ? "Connected  ·  " + statusController.primaryName
-                                    : (adapterEnabled ? "Ready to connect" : "Bluetooth is off"))
-                            color: mutedFg
-                            font.pixelSize: 9
-                            elide: Text.ElideRight
-                        }
-                    }
-
-                    Rectangle {
-                        width: 67
-                        height: 30
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.fill: parent
+                        anchors.bottomMargin: 4
                         color: adapterEnabled ? panelAccent : inkBg
                         border.color: adapterEnabled ? panelAccent : mutedFg
                         border.width: 1
@@ -498,7 +458,7 @@ PanelWindow {
 
                 Item {
                     width: parent.width
-                    height: parent.height - 184 - (bluetoothWindow.pairingBusy ? 84 : 0)
+                    height: parent.height - 200 - (bluetoothWindow.pairingBusy ? 84 : 0)
 
                     Text {
                         anchors.centerIn: parent

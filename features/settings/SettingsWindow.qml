@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import "../../ui" as SharedUi
 
 // A settings app. A shell tobbi felulete layer-shell overlay, ez viszont igazi
 // xdg-toplevel: atmeretezheto, a Hyprland ablakkent kezeli, es nyitva maradhat
@@ -21,28 +22,53 @@ FloatingWindow {
     readonly property var pages: [{
         "id": "display",
         "label": "Display",
-        "icon": "󰍹"
+        "icon": "󰍹",
+        "description": "Outputs, scale and physical arrangement",
+        "group": "WORKSPACE",
+        "startsGroup": true
     }, {
         "id": "windows",
         "label": "Windows",
-        "icon": "󰖯"
+        "icon": "󰖯",
+        "description": "Tiling geometry, borders and visual effects",
+        "group": "WORKSPACE",
+        "startsGroup": false
     }, {
         "id": "input",
         "label": "Input",
-        "icon": "󰌌"
+        "icon": "󰌌",
+        "description": "Keyboard, pointer and touchpad behaviour",
+        "group": "WORKSPACE",
+        "startsGroup": false
     }, {
         "id": "system",
         "label": "System",
-        "icon": "󰒓"
+        "icon": "󰒓",
+        "description": "Shell services, power and external tools",
+        "group": "SHELL",
+        "startsGroup": true
     }, {
         "id": "keybindings",
         "label": "Keybindings",
-        "icon": "󰌆"
-    }, {
-        "id": "packages",
-        "label": "Packages",
-        "icon": "󰏗"
+        "icon": "󰌆",
+        "description": "A searchable index of active shortcuts",
+        "group": "SHELL",
+        "startsGroup": false
     }]
+    readonly property var currentPage: {
+        for (var i = 0; i < pages.length; i++) {
+            if (pages[i].id === settingsController.activePage)
+                return pages[i];
+        }
+        return pages[0];
+    }
+    readonly property int currentPageIndex: {
+        for (var i = 0; i < pages.length; i++) {
+            if (pages[i].id === settingsController.activePage)
+                return i;
+        }
+        return 0;
+    }
 
     signal closeRequested()
 
@@ -102,7 +128,7 @@ FloatingWindow {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 208
+            width: 232
             theme: window.theme
             pages: window.pages
             activePage: settingsController.activePage
@@ -115,19 +141,44 @@ FloatingWindow {
             anchors.left: sidebar.right
             anchors.right: parent.right
             anchors.top: parent.top
-            height: visible ? 34 : 0
+            height: visible ? 38 : 0
             visible: !settingsController.backendAvailable && !settingsController.loading
             color: window.theme && window.theme.surface ? window.theme.surface : "#1b1613"
 
             Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 24
+                anchors.leftMargin: 28
                 anchors.verticalCenter: parent.verticalCenter
                 text: "The Vellum daemon is not reachable, so Hyprland settings are read-only."
                 color: window.muted
                 font.pixelSize: 11
             }
 
+        }
+
+        SharedUi.PopupHeader {
+            id: pageHeader
+
+            anchors.left: sidebar.right
+            anchors.leftMargin: 28
+            anchors.right: parent.right
+            anchors.rightMargin: 28
+            anchors.top: banner.bottom
+            anchors.topMargin: 20
+            theme: window.theme
+            title: window.currentPage.label
+            subtitle: window.currentPage.description
+            trailingWidth: 58
+
+            Text {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                text: (window.currentPageIndex + 1).toString().padStart(2, "0") + " / " + window.pages.length.toString().padStart(2, "0")
+                color: window.muted
+                font.family: "monospace"
+                font.pixelSize: 9
+                font.letterSpacing: 1
+            }
         }
 
         Loader {
@@ -138,12 +189,13 @@ FloatingWindow {
                 || settingsController.activePage === "input"
 
             anchors.left: sidebar.right
-            anchors.leftMargin: 24
+            anchors.leftMargin: 28
             anchors.right: parent.right
-            anchors.rightMargin: 24
-            anchors.top: banner.bottom
+            anchors.rightMargin: 28
+            anchors.top: pageHeader.bottom
+            anchors.topMargin: 10
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 18
+            anchors.bottomMargin: 22
             asynchronous: false
             enabled: !hyprPage || settingsController.backendAvailable
             opacity: enabled ? 1 : 0.45
@@ -157,12 +209,19 @@ FloatingWindow {
                     return systemPage;
                 case "keybindings":
                     return keybindingsPage;
-                case "packages":
-                    return packagesPage;
                 default:
                     return displayPage;
                 }
             }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 2
+            color: window.theme ? window.theme.accent : "#b7372f"
+            z: 100
         }
 
     }
@@ -213,16 +272,6 @@ FloatingWindow {
 
         KeybindingsPage {
             controller: keybindingsState
-            theme: window.theme
-        }
-
-    }
-
-    Component {
-        id: packagesPage
-
-        PackagesPage {
-            controller: settingsController
             theme: window.theme
         }
 

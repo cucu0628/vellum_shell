@@ -104,6 +104,7 @@ Item {
         anchors.fill: parent
         visible: card.compact
         theme: card.theme
+        editorial: true
         title: card.statusLabel
         kanji: ""
         trailing: card.player && card.player.identity ? card.player.identity.toUpperCase() : "NO SOURCE"
@@ -115,7 +116,7 @@ Item {
             width: parent.height
             height: parent.height
             color: card.background
-            border.color: card.accent
+            border.color: Qt.rgba(1, 1, 1, 0.12)
             border.width: 1
             clip: true
 
@@ -147,8 +148,9 @@ Item {
                 height: 24
                 text: card.trackTitle
                 color: card.foreground
-                font.pixelSize: 19
-                font.weight: Font.DemiBold
+                font.family: "serif"
+                font.pixelSize: 20
+                font.weight: Font.Medium
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
@@ -245,6 +247,7 @@ Item {
         anchors.fill: parent
         visible: !card.compact
         theme: card.theme
+        editorial: true
         title: "MEDIA"
         kanji: ""
         trailing: card.statusLabel
@@ -263,7 +266,7 @@ Item {
                 width: parent.height
                 height: parent.height
                 color: card.background
-                border.color: card.accent
+                border.color: Qt.rgba(1, 1, 1, 0.12)
                 border.width: 1
                 clip: true
 
@@ -387,8 +390,9 @@ Item {
                     height: 58
                     text: card.trackTitle
                     color: card.foreground
-                    font.pixelSize: 23
-                    font.weight: Font.DemiBold
+                    font.family: "serif"
+                    font.pixelSize: 25
+                    font.weight: Font.Medium
                     wrapMode: Text.Wrap
                     maximumLineCount: 2
                     elide: Text.ElideRight

@@ -31,7 +31,6 @@ Item {
 
     property var _pending: ({})       // keres id -> callback
     property var _refcounts: ({})     // topic -> hany feliratkozo
-    property var _queue: []           // kapcsolat elott feladott keresek
     property int _nextId: 1
     property int _backoff: 250
     property bool _rebuilding: false
@@ -56,18 +55,24 @@ Item {
     function call(domain, method, params, callback) {
         var id = _nextId++
         if (callback) _pending[id] = callback
-        _send({ op: "call", id: id, domain: domain, method: method, params: params || {} })
+        if (!_send({ op: "call", id: id, domain: domain, method: method, params: params || {} })) {
+            delete _pending[id]
+            if (callback) callback(null, {
+                code: "disconnected",
+                message: "a backend nem elerheto"
+            })
+        }
         return id
     }
 
     function _send(message) {
         message.v = 1
         if (!_socket || !_socket.connected) {
-            _queue.push(message)
-            return
+            return false
         }
         _socket.write(JSON.stringify(message) + "\n")
         _socket.flush()
+        return true
     }
 
     function _onLine(line) {
@@ -113,26 +118,18 @@ Item {
             socket.write(JSON.stringify({ v: 1, op: "subscribe", topics: activeTopics }) + "\n")
         }
 
-        // A sorban allo feliratkozasokat NEM jatsszuk ujra: a fenti osszevont
-        // subscribe mar lefedi oket a `_refcounts` alapjan. Ujrakuldve a daemon
-        // topiconkent ketszer szamolna feliratkozot, de bontaskor csak egyszer
-        // engedne el -- a lazy hurok orokre futna.
-        var queued = _queue
-        _queue = []
-        for (var i = 0; i < queued.length; i++) {
-            var message = queued[i]
-            if (message.op === "subscribe" || message.op === "unsubscribe") continue
-            socket.write(JSON.stringify(message) + "\n")
-        }
         socket.flush()
     }
 
     function _onDisconnected() {
         // A valaszra varo hivok ne fagyjanak be orokre.
-        for (var id in _pending) {
-            _pending[id](null, { code: "disconnected", message: "megszakadt a kapcsolat a backenddel" })
-        }
+        // Elobb levalasztjuk a terkepet: egy callbackbol inditott uj hivas igy
+        // nem veszhet el a regi pending allapot takaritasakor.
+        var pending = _pending
         _pending = {}
+        for (var id in pending) {
+            pending[id](null, { code: "disconnected", message: "megszakadt a kapcsolat a backenddel" })
+        }
         _scheduleReconnect()
     }
 

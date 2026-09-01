@@ -5,6 +5,7 @@ import Quickshell.Wayland
 import Quickshell.Services.Mpris
 import "." as MediaUi
 import "../weather" as WeatherUi
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: mediaPopup
@@ -125,8 +126,8 @@ PanelWindow {
         anchors.horizontalCenter: parent.horizontalCenter
         enabled: mediaPopup.opened
         y: mediaPopup.barHeight + 6
-        width: Math.min(720, mediaPopup.width - 20)
-        height: mediaPopup.opened ? 576 : 0
+        width: Math.min(760, mediaPopup.width - 24)
+        height: mediaPopup.opened ? Math.min(600, mediaPopup.height - mediaPopup.barHeight - 18) : 0
         clip: true
         opacity: mediaPopup.opened ? 1 : 0
         Behavior on height { NumberAnimation { duration: 230; easing.type: Easing.OutCubic } }
@@ -135,10 +136,29 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: panelBg
-            border.color: panelAccent
+            border.color: Qt.rgba(1, 1, 1, 0.12)
             border.width: 1
             radius: 0
             clip: true
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 1
+                height: 2
+                color: panelAccent
+            }
+
+            SharedUi.ShellLogo {
+                anchors.right: parent.right
+                anchors.rightMargin: -34
+                anchors.top: parent.top
+                anchors.topMargin: -54
+                size: 190
+                color: panelFg
+                opacity: 0.025
+            }
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
@@ -149,23 +169,16 @@ PanelWindow {
                 anchors.top: parent.top
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                anchors.topMargin: 16
-                height: 40
+                anchors.topMargin: 18
+                height: 44
 
-                Rectangle {
+                SharedUi.ShellLogo {
                     id: headerSeal
-                    width: 40
-                    height: 40
-                    color: panelAccent
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰕮"
-                        color: panelBg
-                        font.family: "Symbols Nerd Font Mono"
-                        font.pixelSize: 22
-                        font.weight: Font.DemiBold
-                    }
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    size: 38
+                    color: panelAccent
                 }
 
                 Column {
@@ -177,18 +190,19 @@ PanelWindow {
                     spacing: 3
 
                     Text {
-                        text: "DASHBOARD"
+                        text: "Vellum"
                         color: panelFg
-                        font.pixelSize: 12
-                        font.letterSpacing: 3
-                        font.bold: true
+                        font.family: "serif"
+                        font.pixelSize: 22
+                        font.weight: Font.Medium
                     }
 
                     Text {
                         width: parent.width
-                        text: mediaPopup.userName
+                        text: "DASHBOARD  ·  " + mediaPopup.userName.toUpperCase()
                         color: mutedFg
-                        font.pixelSize: 9
+                        font.pixelSize: 8
+                        font.letterSpacing: 1.8
                         elide: Text.ElideRight
                     }
                 }
@@ -203,7 +217,8 @@ PanelWindow {
                         anchors.right: parent.right
                         text: two(calendarNow.getHours()) + ":" + two(calendarNow.getMinutes())
                         color: panelFg
-                        font.pixelSize: 24
+                        font.family: "serif"
+                        font.pixelSize: 25
                         font.weight: Font.Light
                     }
 
@@ -225,10 +240,10 @@ PanelWindow {
                 anchors.top: header.bottom
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                anchors.topMargin: 12
+                anchors.topMargin: 10
                 height: 1
                 color: mutedFg
-                opacity: 0.35
+                opacity: 0.2
             }
 
             Row {
@@ -238,8 +253,8 @@ PanelWindow {
                 anchors.top: headerRule.bottom
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                anchors.topMargin: 12
-                height: 30
+                anchors.topMargin: 10
+                height: 32
                 spacing: 8
 
                 Repeater {
@@ -256,10 +271,17 @@ PanelWindow {
                         width: (tabBar.width - tabBar.spacing * 2) / 3
                         height: tabBar.height
                         radius: 0
-                        color: tabChip.selected ? panelAccent : (tabMouse.containsMouse ? hoverBg : "transparent")
-                        border.color: tabChip.selected ? panelAccent : lineBg
-                        border.width: 1
+                        color: tabMouse.containsMouse ? hoverBg : "transparent"
                         Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: tabChip.selected ? 2 : 1
+                            color: tabChip.selected ? panelAccent : mutedFg
+                            opacity: tabChip.selected ? 1 : 0.22
+                        }
 
                         Row {
                             anchors.centerIn: parent
@@ -268,17 +290,17 @@ PanelWindow {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.icon
-                                color: tabChip.selected ? panelBg : panelAccent
+                                color: tabChip.selected ? panelAccent : mutedFg
                                 font.pixelSize: 14
                             }
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: modelData.label
-                                color: tabChip.selected ? panelBg : panelFg
+                                color: tabChip.selected ? panelAccent : mutedFg
                                 font.pixelSize: 9
-                                font.letterSpacing: 2
-                                font.bold: true
+                                font.letterSpacing: 1.8
+                                font.bold: tabChip.selected
                             }
 
                         }

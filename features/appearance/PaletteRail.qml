@@ -66,24 +66,25 @@ Item {
             width: rail.chipWidth
             height: list.height
             color: chip.current ? rail.surfaceColor : (chipMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.075) : "transparent")
-            border.color: chip.current ? rail.accent : Qt.rgba(1, 1, 1, 0.06)
+            border.color: chip.current ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.06)
             border.width: 1
             Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
             Behavior on border.color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
 
             Rectangle {
                 anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
+                anchors.leftMargin: 9
+                anchors.verticalCenter: parent.verticalCenter
                 width: 2
+                height: 14
                 color: chip.modelData.accent
-                opacity: chip.current ? 1 : 0.45
+                opacity: chip.current ? 1 : 0.55
                 Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
             }
 
             Column {
                 anchors.left: parent.left
-                anchors.leftMargin: 13
+                anchors.leftMargin: 17
                 anchors.right: parent.right
                 anchors.rightMargin: 11
                 anchors.verticalCenter: parent.verticalCenter
@@ -93,8 +94,9 @@ Item {
                     width: parent.width
                     text: chip.modelData.name
                     color: chip.current ? rail.accent : rail.fg
-                    font.pixelSize: 12
-                    font.weight: Font.DemiBold
+                    font.family: "serif"
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
                     elide: Text.ElideRight
                 }
 

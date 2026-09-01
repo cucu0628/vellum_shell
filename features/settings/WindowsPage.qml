@@ -23,7 +23,8 @@ Flickable {
         SettingsSection {
             width: parent.width
             theme: page.theme
-            title: "Layout"
+            title: "Tiling and geometry"
+            description: "Spacing, borders and the active tiling algorithm"
         }
 
         SharedUi.SettingRow {
@@ -127,7 +128,8 @@ Flickable {
         SettingsSection {
             width: parent.width
             theme: page.theme
-            title: "Decoration"
+            title: "Visual treatment"
+            description: "Shape and opacity of application windows"
         }
 
         SharedUi.SettingRow {
@@ -188,6 +190,13 @@ Flickable {
                 onCommitted: (value) => page.controller.setOption("decoration:inactive_opacity", value)
             }
 
+        }
+
+        SettingsSection {
+            width: parent.width
+            theme: page.theme
+            title: "Compositor effects"
+            description: "GPU-rendered blur, shadows and motion"
         }
 
         SharedUi.SettingRow {
@@ -264,21 +273,6 @@ Flickable {
 
         SharedUi.SettingRow {
             theme: page.theme
-            label: "Animations"
-            description: "Window, workspace and layer transitions."
-
-            SharedUi.SettingToggle {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                theme: page.theme
-                checked: page.controller.optionBool("animations:enabled", true)
-                onToggled: (value) => page.controller.setOption("animations:enabled", value)
-            }
-
-        }
-
-        SharedUi.SettingRow {
-            theme: page.theme
             enabled: page.controller.optionBool("decoration:shadow:enabled", false)
             label: "Shadow range"
             description: "How far the window shadow extends."
@@ -294,6 +288,21 @@ Flickable {
                 value: page.controller.optionNumber("decoration:shadow:range", 4)
                 onMoved: (value) => page.controller.previewOption("decoration:shadow:range", value)
                 onCommitted: (value) => page.controller.setOption("decoration:shadow:range", value)
+            }
+
+        }
+
+        SharedUi.SettingRow {
+            theme: page.theme
+            label: "Animations"
+            description: "Window, workspace and layer transitions."
+
+            SharedUi.SettingToggle {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                theme: page.theme
+                checked: page.controller.optionBool("animations:enabled", true)
+                onToggled: (value) => page.controller.setOption("animations:enabled", value)
             }
 
         }

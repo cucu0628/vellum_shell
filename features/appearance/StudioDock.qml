@@ -28,7 +28,7 @@ Rectangle {
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
 
     readonly property int sideMargin: 18
-    readonly property int labelWidth: 84
+    readonly property int labelWidth: 96
 
     signal wallpaperSelected(int index)
     signal paletteSelected(int index)
@@ -43,6 +43,7 @@ Rectangle {
     radius: 0
     border.color: Qt.rgba(1, 1, 1, 0.09)
     border.width: 1
+    clip: true
 
     // A paletta valtasa a dokkon is latszik, ezert az atmenet szamit: enelkul a
     // sav egyik kepkockarol a masikra atvalt, ami rantasnak hat.
@@ -61,6 +62,16 @@ Rectangle {
         Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
     }
 
+    SharedUi.ShellLogo {
+        anchors.right: parent.right
+        anchors.rightMargin: -34
+        anchors.top: parent.top
+        anchors.topMargin: -54
+        size: 190
+        color: dock.fg
+        opacity: 0.022
+    }
+
     Item {
         id: header
 
@@ -69,21 +80,16 @@ Rectangle {
         anchors.top: topRule.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
-        anchors.topMargin: 16
-        height: 40
+        anchors.topMargin: 14
+        height: 50
 
-        Rectangle {
+        SharedUi.ShellLogo {
             id: seal
-            width: 40
-            height: 40
+            anchors.left: parent.left
+            anchors.top: parent.top
+            size: 38
             color: dock.accent
             Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-
-            SharedUi.ShellLogo {
-                anchors.centerIn: parent
-                size: 24
-                color: dock.bg
-            }
         }
 
         Column {
@@ -91,15 +97,16 @@ Rectangle {
             anchors.leftMargin: 14
             anchors.right: closeButton.left
             anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 3
+            anchors.top: parent.top
+            spacing: 1
 
             Text {
                 width: parent.width
                 text: dock.selectedWallpaper ? dock.selectedWallpaper.name : "Loading scene…"
                 color: dock.fg
-                font.pixelSize: 16
-                font.weight: Font.DemiBold
+                font.family: "serif"
+                font.pixelSize: 20
+                font.weight: Font.Medium
                 elide: Text.ElideRight
                 Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
             }
@@ -111,9 +118,9 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     text: dock.selectedTheme ? dock.selectedTheme.name.toUpperCase() : ""
                     color: dock.accent
-                    font.pixelSize: 9
+                    font.pixelSize: 8
                     font.bold: true
-                    font.letterSpacing: 2
+                    font.letterSpacing: 1.8
                     Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
                 }
 
@@ -123,7 +130,7 @@ Rectangle {
                         ? (dock.selectedTheme.kind === "dynamic" ? "· from this image" : "· static palette")
                         : ""
                     color: dock.mutedFg
-                    font.pixelSize: 9
+                    font.pixelSize: 8
                 }
             }
         }
@@ -131,7 +138,8 @@ Rectangle {
         Rectangle {
             id: closeButton
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 4
             width: 26
             height: 26
             color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.075) : "transparent"
@@ -153,6 +161,15 @@ Rectangle {
                 onClicked: dock.cancelRequested()
             }
         }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: dock.mutedFg
+            opacity: 0.18
+        }
     }
 
     // A savok sotetebb alapon ulnek, mint a dokk: a ket ertek adja a melyseget.
@@ -164,18 +181,30 @@ Rectangle {
         anchors.top: header.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
-        anchors.topMargin: 16
+        anchors.topMargin: 12
         height: 128
         color: dock.bg
         Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
         border.color: Qt.rgba(1, 1, 1, 0.05)
         border.width: 1
 
+        Rectangle {
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -22
+            width: 14
+            height: 2
+            color: dock.accent
+            opacity: dock.emphasisRail === "wallpaper" ? 1 : 0.35
+        }
+
         Text {
             id: wallpaperLabel
             anchors.left: parent.left
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -2
             width: dock.labelWidth - 14
             text: "WALLPAPER"
             color: dock.emphasisRail === "wallpaper" ? dock.accent : dock.mutedFg
@@ -232,11 +261,23 @@ Rectangle {
         border.color: Qt.rgba(1, 1, 1, 0.05)
         border.width: 1
 
+        Rectangle {
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -22
+            width: 14
+            height: 2
+            color: dock.accent
+            opacity: dock.emphasisRail === "theme" ? 1 : 0.35
+        }
+
         Text {
             id: paletteLabel
             anchors.left: parent.left
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -2
             width: dock.labelWidth - 14
             text: "PALETTE"
             color: dock.emphasisRail === "theme" ? dock.accent : dock.mutedFg

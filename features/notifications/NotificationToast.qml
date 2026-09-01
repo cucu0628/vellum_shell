@@ -10,6 +10,12 @@ Item {
     property var actions: []
     property bool shown: false
     property bool animateTransitions: true
+    readonly property bool hasDefaultAction: {
+        for (var i = 0; i < actions.length; i++) {
+            if (actions[i] && actions[i].identifier === "default") return true
+        }
+        return false
+    }
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
@@ -49,10 +55,12 @@ Item {
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: toast.hasDefaultAction ? Qt.PointingHandCursor : Qt.ArrowCursor
             onEntered: toast.hoverChanged(true)
             onExited: toast.hoverChanged(false)
-            onClicked: toast.activated()
+            onClicked: {
+                if (toast.hasDefaultAction) toast.activated()
+            }
         }
 
         Row {

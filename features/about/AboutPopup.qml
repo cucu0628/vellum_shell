@@ -12,7 +12,6 @@ PanelWindow {
     property alias themeName: systemInfo.themeName
     property int shellUptime: 0
 
-    readonly property string panelBg: theme ? theme.background : "#11130f"
     readonly property string panelFg: theme ? theme.foreground : "#e8ddc7"
     readonly property string panelAccent: theme ? theme.accent : "#b7372f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
@@ -34,9 +33,9 @@ PanelWindow {
     ].filter(function (item) { return item.value !== ""; })
 
     readonly property int shellRows: Math.max(1, shellItems.length)
-    // DashPanel chrome (header, rule, margins) is 60px; rows are 32 with 6 between.
-    readonly property int panelHeight: 60 + shellRows * 32 + (shellRows - 1) * 6
-    readonly property int frameHeight: 16 + 44 + 12 + 1 + 12 + panelHeight + 16
+    // DashPanel chrome is 60px; the ledger uses compact 38px records.
+    readonly property int panelHeight: 60 + shellRows * 38
+    readonly property int frameHeight: 20 + 52 + 16 + panelHeight + 20
 
     function formatUptime(seconds) {
         if (seconds <= 0) return "just started"
@@ -85,7 +84,7 @@ PanelWindow {
         id: content
         anchors.centerIn: parent
         enabled: opened
-        width: Math.min(860, parent.width - 44)
+        width: Math.min(820, parent.width - 44)
         height: Math.min(aboutWindow.frameHeight, parent.height - 64)
         opacity: opened ? 1 : 0
         scale: opened ? 1 : 0.96
@@ -96,176 +95,152 @@ PanelWindow {
         Behavior on opacity { NumberAnimation { duration: aboutWindow.opened ? 160 : 110; easing.type: aboutWindow.opened ? Easing.OutQuart : Easing.InQuad } }
         Behavior on scale { NumberAnimation { duration: aboutWindow.opened ? 260 : 130; easing.type: aboutWindow.opened ? Easing.OutQuart : Easing.InQuad } }
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            radius: 0
-            clip: true
+            theme: aboutWindow.theme
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
-            Item {
+            SharedUi.PopupHeader {
                 id: header
+
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 16
-                height: 44
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                anchors.topMargin: 20
+                theme: aboutWindow.theme
+                title: "About Vellum"
+                subtitle: "Shell identity / runtime ledger"
+                trailingWidth: 168
 
                 Column {
-                    anchors.left: parent.left
-                    anchors.right: headerMeta.left
-                    anchors.rightMargin: 16
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 3
-
-                    Text {
-                        text: "ABOUT VELLUM SHELL"
-                        color: panelFg
-                        font.pixelSize: 12
-                        font.letterSpacing: 3
-                        font.bold: true
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "Identity, runtime and configuration"
-                        color: mutedFg
-                        font.pixelSize: 9
-                        elide: Text.ElideRight
-                    }
-                }
-
-                Column {
-                    id: headerMeta
+                    width: parent.width
                     anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.top: parent.top
                     spacing: 2
 
                     Text {
                         anchors.right: parent.right
                         text: systemInfo.shellVersion !== "" ? systemInfo.shellVersion : "Vellum Shell"
                         color: panelFg
-                        font.pixelSize: 15
-                        font.weight: Font.Light
+                        font.family: "monospace"
+                        font.pixelSize: 9
                     }
 
                     Text {
                         anchors.right: parent.right
-                        text: aboutWindow.themeName !== "" ? aboutWindow.themeName.toUpperCase() : "NO THEME"
+                        text: aboutWindow.themeName !== "" ? "THEME / " + aboutWindow.themeName.toUpperCase() : "THEME / UNSET"
                         color: panelAccent
-                        font.pixelSize: 9
-                        font.letterSpacing: 2
+                        font.pixelSize: 7
+                        font.letterSpacing: 1.4
                         font.bold: true
                     }
                 }
-            }
-
-            Rectangle {
-                id: headerRule
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: header.bottom
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 12
-                height: 1
-                color: mutedFg
-                opacity: 0.35
             }
 
             Row {
                 id: body
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: headerRule.bottom
+                anchors.top: header.bottom
                 anchors.bottom: parent.bottom
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 12
-                anchors.bottomMargin: 16
-                spacing: 14
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                anchors.topMargin: 16
+                anchors.bottomMargin: 20
+                spacing: 16
 
                 Rectangle {
-                    width: 286
+                    id: identityPlate
+
+                    width: 252
                     height: body.height
                     color: inkBg
-                    border.color: panelAccent
+                    border.color: Qt.rgba(1, 1, 1, 0.09)
                     border.width: 1
 
                     Rectangle {
                         anchors.left: parent.left
                         anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 3
+                        width: 2
+                        height: 82
+                        color: panelAccent
+                    }
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 16
+                        anchors.top: parent.top
+                        anchors.topMargin: 14
+                        text: "01 / IDENTITY"
+                        color: mutedFg
+                        font.family: "monospace"
+                        font.pixelSize: 7
+                        font.letterSpacing: 1.2
+                    }
+
+                    SharedUi.ShellLogo {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 48
+                        size: 142
                         color: panelAccent
                     }
 
                     Column {
-                        anchors.centerIn: parent
-                        width: parent.width - 36
-                        spacing: 9
-
-                        Item {
-                            width: 210
-                            height: 210
-                            anchors.horizontalCenter: parent.horizontalCenter
-
-                            Image {
-                                id: fastfetchLogo
-                                anchors.fill: parent
-                                source: "file://" + Quickshell.env("HOME") + "/.config/fastfetch/vellum.png"
-                                sourceSize: Qt.size(420, 420)
-                                fillMode: Image.PreserveAspectFit
-                                asynchronous: true
-                                mipmap: true
-                            }
-
-                            SharedUi.ShellLogo {
-                                anchors.centerIn: parent
-                                visible: fastfetchLogo.status === Image.Error
-                                size: 150
-                                color: panelAccent
-                            }
-                        }
+                        anchors.left: parent.left
+                        anchors.leftMargin: 18
+                        anchors.right: parent.right
+                        anchors.rightMargin: 18
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 18
+                        spacing: 5
 
                         Text {
                             width: parent.width
-                            text: "VELLUM SHELL"
+                            text: "Vellum Shell"
                             color: panelFg
-                            font.pixelSize: 18
-                            font.bold: true
-                            font.letterSpacing: 4
+                            font.family: "serif"
+                            font.pixelSize: 25
+                            font.weight: Font.Medium
                             horizontalAlignment: Text.AlignHCenter
                         }
 
                         Text {
                             width: parent.width
-                            text: systemInfo.userHost !== "" ? systemInfo.userHost : "Quickshell desktop shell"
+                            text: "QUICKSHELL / HYPRLAND"
                             color: mutedFg
-                            font.pixelSize: 10
+                            font.pixelSize: 7
+                            font.letterSpacing: 1.8
                             horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
                         }
 
                         Rectangle {
-                            width: 56
-                            height: 2
+                            width: 42
+                            height: 1
                             anchors.horizontalCenter: parent.horizontalCenter
                             color: panelAccent
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: systemInfo.userHost !== "" ? systemInfo.userHost : "desktop shell"
+                            color: panelFg
+                            font.family: "monospace"
+                            font.pixelSize: 9
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
                         }
 
                         Text {
                             width: parent.width
                             text: aboutWindow.themeName !== "" ? aboutWindow.themeName.toUpperCase() : "NO ACTIVE THEME"
                             color: panelAccent
-                            font.pixelSize: 8
+                            font.pixelSize: 7
                             font.bold: true
-                            font.letterSpacing: 2
+                            font.letterSpacing: 1.4
                             horizontalAlignment: Text.AlignHCenter
                             elide: Text.ElideRight
                         }
@@ -273,14 +248,13 @@ PanelWindow {
                 }
 
                 AboutUi.InfoSectionCard {
-                    width: body.width - 286 - body.spacing
+                    width: body.width - identityPlate.width - body.spacing
                     height: body.height
                     theme: aboutWindow.theme
-                    title: "SHELL DETAILS"
+                    title: "RUNTIME LEDGER"
                     kanji: ""
-                    trailing: shellItems.length + " ITEMS"
+                    trailing: shellItems.length + " RECORDS"
                     entries: aboutWindow.shellItems
-                    border.color: Qt.rgba(1, 1, 1, 0.09)
                 }
             }
         }

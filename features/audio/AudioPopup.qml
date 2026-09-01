@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: audioWindow
@@ -187,13 +188,9 @@ PanelWindow {
         clip: true
         opacity: opened ? 1 : 0
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            radius: 0
-            clip: true
+            theme: audioWindow.theme
 
             MouseArea {
                 anchors.fill: parent
@@ -218,54 +215,16 @@ PanelWindow {
                     width: parent.width
                     spacing: 10
 
-                    Row {
+                    SharedUi.PopupHeader {
                         width: parent.width
-                        height: 36
-                        spacing: 10
+                        theme: audioWindow.theme
+                        title: "Audio"
+                        subtitle: Pipewire.ready ? "PipeWire mixer" : "Waiting for PipeWire"
+                        trailingWidth: 86
 
                         Rectangle {
-                            width: 36
-                            height: 36
-                            color: panelAccent
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰕾"
-                                color: panelBg
-                                font.family: "Symbols Nerd Font Mono"
-                                font.pixelSize: 20
-                                font.weight: Font.DemiBold
-                            }
-
-                        }
-
-                        Column {
-                            width: parent.width - 142
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
-
-                            Text {
-                                text: "AUDIO CONTROL"
-                                color: panelFg
-                                font.pixelSize: 12
-                                font.letterSpacing: 3
-                                font.bold: true
-                            }
-
-                            Text {
-                                width: parent.width
-                                text: Pipewire.ready ? "PipeWire audio mixer" : "Waiting for PipeWire"
-                                color: mutedFg
-                                font.pixelSize: 9
-                                elide: Text.ElideRight
-                            }
-
-                        }
-
-                        Rectangle {
-                            width: 86
-                            height: 28
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.fill: parent
+                            anchors.bottomMargin: 6
                             color: advMouse.containsMouse ? panelAccent : inkBg
                             border.color: panelAccent
                             border.width: 1
@@ -290,13 +249,6 @@ PanelWindow {
 
                         }
 
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: mutedFg
-                        opacity: 0.35
                     }
 
                     AudioUi.SectionHeader {

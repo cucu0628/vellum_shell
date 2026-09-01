@@ -53,6 +53,7 @@ Item {
                 title: "CONDITIONS"
                 kanji: ""
                 trailing: card.location.toUpperCase()
+                editorial: true
 
                 Text {
                     id: conditionGlyph
@@ -110,6 +111,7 @@ Item {
                 theme: card.theme
                 title: "READINGS"
                 kanji: ""
+                editorial: true
 
                 Grid {
                     anchors.fill: parent
@@ -148,6 +150,7 @@ Item {
                 theme: card.theme
                 title: "SUN CYCLE"
                 kanji: ""
+                editorial: true
 
                 Column {
                     anchors.fill: parent
@@ -180,6 +183,7 @@ Item {
                 title: "FORECAST"
                 kanji: ""
                 trailing: card.forecast.length > 0 ? card.forecast.length + " DAYS" : ""
+                editorial: true
 
                 Row {
                     id: forecastRow

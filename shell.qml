@@ -54,6 +54,13 @@ ShellRoot {
     // atvehesse. Ha a daemon nem fut, a shell degradaltan, de mukodik.
     Core.Backend {
         id: backend
+
+        // Az offline parancsokat szandekosan nem jatszuk vissza. A prepare
+        // idempotens startup-muvelet, ezert minden friss kapcsolatnal explicit
+        // ujra kiadjuk.
+        onConnectedChanged: {
+            if (connected) backend.call("hypr", "prepare", {}, null)
+        }
     }
     readonly property var shellBackend: backend
 
@@ -124,7 +131,6 @@ ShellRoot {
     Component.onCompleted: {
         refreshVisibleWorkspaces()
         audioOsdReadyTimer.start()
-        shellBackend.call("hypr", "prepare", {}, null)
     }
 
     onAudioVolumePercentChanged: showVolumeOsd()

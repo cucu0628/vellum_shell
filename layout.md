@@ -191,7 +191,6 @@ vellum_shell/
 │   │   ├── KeybindingsController.qml # Gyorsbillentyűk beolvasása
 │   │   ├── KeybindingsPage.qml       # Kereshető gyorsbillentyű-jegyzék
 │   │   ├── MonitorCanvas.qml         # Monitor-elrendezés vászon
-│   │   ├── PackagesPage.qml          # Csomagkezelés oldal
 │   │   ├── SettingsController.qml    # A settings állapota és backend-hívásai
 │   │   ├── SettingsSection.qml       # Beállítás-szekció
 │   │   ├── SettingsSidebar.qml       # Oldalsáv
@@ -397,8 +396,9 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
 - Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, oldalsávos
-  navigációval: Display, Windows, Input, System és Packages oldal. A menü paletta
-  megszűnt; a műveletei a launcherbe, a beállításai ide kerültek.
+  navigációval: Display, Windows, Input, System és Keybindings oldal. A menü
+  paletta megszűnt; a műveletei, köztük a csomagkezelő workflow-k a launcherbe,
+  a beállításai ide kerültek.
 - `hypr` backend modul: monitorok és kompozitor-opciók olvasása `hyprctl`-lel,
   írása élőben (`hyprctl eval` + natív Lua API) és perzisztensen. A perzisztens forma egy
   `~/.config/hypr/vellum-settings.json` store, amiből a `vellum_display.lua` és

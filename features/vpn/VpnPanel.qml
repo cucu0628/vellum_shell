@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 // Proton VPN half of the connectivity panel. Proton VPN does not expose
 // activatable NetworkManager profiles, so every action goes through the
@@ -27,7 +28,7 @@ Item {
     readonly property bool planKnown: controller ? controller.planKnown : false
     readonly property string errorMessage: controller ? controller.errorMessage : ""
     readonly property var countries: controller ? controller.countries : []
-    readonly property int preferredHeight: locationSelection ? 488 : 334
+    readonly property int preferredHeight: locationSelection ? 504 : 350
     readonly property var visibleCountries: {
         if (countryFilter === "")
             return countries;
@@ -90,62 +91,22 @@ Item {
         anchors.fill: parent
         spacing: 12
 
-        Row {
+        SharedUi.PopupHeader {
             width: parent.width
-            height: 36
-            spacing: 10
+            theme: vpnPanel.theme
+            title: "Proton VPN"
+            subtitle: !cliAvailable
+                ? "protonvpn CLI not found"
+                : (busy
+                    ? (action === "connect" ? "Connecting..." : "Disconnecting...")
+                    : (connected
+                        ? "Connected" + (protocol !== "" ? "  ·  " + protocol : "") + (checking ? "  ·  updating" : "")
+                        : "Disconnected"))
+            trailingWidth: 47
 
             Rectangle {
-                width: 36
-                height: 36
-                color: panelAccent
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰦝"
-                    color: panelBg
-                    font.family: "Symbols Nerd Font Mono"
-                    font.pixelSize: 20
-                    font.weight: Font.DemiBold
-                }
-
-            }
-
-            Column {
-                width: parent.width - 103
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 1
-
-                Text {
-                    width: parent.width
-                    text: "PROTON VPN"
-                    color: panelFg
-                    font.pixelSize: 12
-                    font.letterSpacing: 3
-                    font.bold: true
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    width: parent.width
-                    text: !cliAvailable
-                        ? "protonvpn CLI not found"
-                        : (busy
-                            ? (action === "connect" ? "Connecting..." : "Disconnecting...")
-                            : (connected
-                                ? "Connected" + (protocol !== "" ? "  ·  " + protocol : "") + (checking ? "  ·  updating" : "")
-                                : "Disconnected"))
-                    color: mutedFg
-                    font.pixelSize: 9
-                    elide: Text.ElideRight
-                }
-
-            }
-
-            Rectangle {
-                width: 47
-                height: 30
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.fill: parent
+                anchors.bottomMargin: 4
                 color: connected ? panelAccent : inkBg
                 border.color: connected ? panelAccent : mutedFg
 
@@ -330,7 +291,7 @@ Item {
 
         Item {
             width: parent.width
-            height: parent.height - 266 - (errorLine.visible ? 26 : 0)
+            height: parent.height - 282 - (errorLine.visible ? 26 : 0)
 
             Text {
                 anchors.centerIn: parent

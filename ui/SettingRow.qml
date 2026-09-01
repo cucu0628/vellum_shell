@@ -21,7 +21,7 @@ Rectangle {
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
 
     width: parent ? parent.width : 0
-    height: Math.max(52, textColumn.implicitHeight + 22)
+    height: Math.max(58, textColumn.implicitHeight + 24)
     z: controlRaised ? 1000 : 0
     color: "transparent"
     // Az `enabled` a QQuickItem-e: a gyerekekre magatol oroklodik, itt csak
@@ -35,13 +35,14 @@ Rectangle {
         anchors.right: controlSlot.left
         anchors.rightMargin: 20
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 3
+        spacing: 4
 
         Text {
             width: parent.width
             text: row.label
             color: row.foreground
             font.pixelSize: 13
+            font.weight: Font.Medium
             elide: Text.ElideRight
         }
 
@@ -51,6 +52,7 @@ Rectangle {
             text: row.description
             color: row.muted
             font.pixelSize: 10
+            lineHeight: 1.15
             wrapMode: Text.WordWrap
         }
 
@@ -71,7 +73,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         height: 1
         color: row.muted
-        opacity: 0.12
+        opacity: 0.14
     }
 
 }

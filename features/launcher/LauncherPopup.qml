@@ -34,9 +34,10 @@ PanelWindow {
     // Prefix helyett alakfelismeres: ami matek kifejezesnek nez ki, az a qalc-hoz
     // megy. Igy a szamolas nem kulon mod, csak egy talalat a kozos listaban.
     readonly property string calcExpression: projectMode ? "" : mathExpression(query)
-    readonly property string modeTitle: projectMode ? "PROJECTS" : "SEARCH"
+    readonly property string modeTitle: projectMode ? "PROJECTS" : (hasQuery ? "SEARCH" : "APPLICATIONS")
     readonly property var searchResults: buildResults(query)
     readonly property var visibleItems: projectMode ? projectItems() : searchResults
+    readonly property bool listVisible: hasQuery || visibleItems.length > 0
     readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 50 - 4 : 46
 
     function refreshApplications() {
@@ -123,8 +124,7 @@ PanelWindow {
             return [];
 
         var queryWords = words(value);
-        if (queryWords.length === 0)
-            return [];
+        var browsingApps = queryWords.length === 0;
 
         var matches = [];
         // A szamolas eredmenye mindig legfelul all: ha a lekerdezes egyaltalan
@@ -142,13 +142,29 @@ PanelWindow {
         var apps = applications;
         for (var i = 0; i < apps.length; i++) {
             var app = apps[i];
-            var score = scoreApp(app, queryWords);
+            var score = browsingApps ? appStatScore(app) + 1 : scoreApp(app, queryWords);
             if (score > 0)
                 matches.push({
                 "app": app,
                 "score": score
             });
 
+        }
+        if (browsingApps) {
+            matches.sort((a, b) => {
+                return b.score - a.score || itemSortName(a).localeCompare(itemSortName(b));
+            });
+            var browsingResult = [];
+            for (var b = 0; b < matches.length && b < 50; b++) browsingResult.push({
+                "type": "app",
+                "app": matches[b].app
+            })
+            var browsingActions = launcherActions.items;
+            for (var ba = 0; ba < browsingActions.length; ba++) browsingResult.push({
+                "type": "action",
+                "action": browsingActions[ba]
+            })
+            return browsingResult;
         }
         var actions = launcherActions.items;
         for (var a = 0; a < actions.length; a++) {
@@ -595,12 +611,12 @@ PanelWindow {
 
         anchors.centerIn: parent
         enabled: opened
-        width: Math.min(840, launcherWindow.width - 32)
-        height: hasQuery ? Math.min(500, launcherWindow.height - 40, 215 + Math.max(46, resultsHeight)) : 154
+        width: Math.min(760, launcherWindow.width - 32)
+        height: listVisible ? Math.min(520, launcherWindow.height - 40, 238 + Math.max(46, resultsHeight)) : 182
         opacity: opened ? 1 : 0
-        scale: opened ? 1 : 0.96
+        scale: opened ? 1 : 0.985
         transform: Translate {
-            y: launcherWindow.opened ? 0 : 12
+            y: launcherWindow.opened ? 0 : 18
 
             Behavior on y {
                 NumberAnimation {
@@ -613,10 +629,29 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: panelBg
-            border.color: panelAccent
+            border.color: Qt.rgba(1, 1, 1, 0.12)
             border.width: 1
             radius: 0
             clip: true
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 1
+                height: 2
+                color: panelAccent
+            }
+
+            SharedUi.ShellLogo {
+                anchors.right: parent.right
+                anchors.rightMargin: -34
+                anchors.top: parent.top
+                anchors.topMargin: -54
+                size: 190
+                color: panelFg
+                opacity: 0.025
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -627,51 +662,69 @@ PanelWindow {
 
             Column {
                 anchors.fill: parent
-                anchors.leftMargin: 22
-                anchors.rightMargin: 22
-                anchors.topMargin: 18
-                anchors.bottomMargin: 14
-                spacing: 8
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                anchors.topMargin: 20
+                anchors.bottomMargin: 16
+                spacing: 10
 
-                Row {
+                Item {
                     width: parent.width
-                    height: 30
-                    spacing: 10
+                    height: 44
 
-                    Rectangle {
-                        width: 30
-                        height: 30
+                    SharedUi.ShellLogo {
+                        id: launcherMark
+
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        size: 38
                         color: panelAccent
+                    }
+
+                    Column {
+                        anchors.left: launcherMark.right
+                        anchors.leftMargin: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 0
 
                         Text {
-                            anchors.centerIn: parent
-                            text: "󰀻"
-                            color: panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 18
-                            font.weight: Font.DemiBold
+                            text: "Vellum"
+                            color: panelFg
+                            font.family: "serif"
+                            font.pixelSize: 22
+                            font.weight: Font.Medium
+                        }
+
+                        Text {
+                            text: "SEARCH  ·  COMMAND  ·  OPEN"
+                            color: mutedFg
+                            font.pixelSize: 8
+                            font.letterSpacing: 1.8
                         }
 
                     }
 
                     Column {
+                        anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
+                        spacing: 3
 
                         Text {
-                            text: "VELLUM SHELL"
-                            color: panelFg
-                            font.pixelSize: 12
+                            anchors.right: parent.right
+                            text: projectMode ? "PROJECTS" : "UNIFIED SEARCH"
+                            color: panelAccent
+                            font.pixelSize: 8
                             font.bold: true
-                            font.letterSpacing: 3
+                            font.letterSpacing: 1.8
                         }
 
                         Text {
-                            text: "Apps, actions and emoji"
+                            anchors.right: parent.right
+                            text: "TAB CHANGES MODE"
                             color: mutedFg
-                            font.pixelSize: 9
+                            font.family: "monospace"
+                            font.pixelSize: 8
                         }
-
                     }
 
                 }
@@ -680,7 +733,7 @@ PanelWindow {
                     id: searchField
 
                     width: parent.width
-                    height: 48
+                    height: 52
                     opened: launcherWindow.opened
                     indicator: projectMode ? ">" : "⌕"
                     placeholder: projectMode ? "Search projects in ~/Projects..." : "Search apps, actions and emoji..."
@@ -718,27 +771,27 @@ PanelWindow {
 
                             width: (parent.width - 6) / 2
                             height: 27
-                            color: activeMode || modeMouse.containsMouse ? inkBg : "transparent"
-                            border.color: activeMode ? panelAccent : mutedFg
-                            border.width: 1
+                            color: modeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: activeMode ? 2 : 1
+                                color: activeMode ? panelAccent : mutedFg
+                                opacity: activeMode ? 1 : 0.22
+                            }
 
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 7
-
-                                Text {
-                                    text: (index + 1).toString().padStart(2, "0")
-                                    color: panelAccent
-                                    font.family: "monospace"
-                                    font.pixelSize: 8
-                                }
+                                spacing: 8
 
                                 Text {
                                     text: modelData.label
-                                    color: activeMode ? panelFg : mutedFg
-                                    font.family: "monospace"
-                                    font.pixelSize: 8
-                                    font.letterSpacing: 1
+                                    color: activeMode ? panelAccent : mutedFg
+                                    font.pixelSize: 9
+                                    font.bold: activeMode
+                                    font.letterSpacing: 1.8
                                 }
 
                             }
@@ -759,13 +812,13 @@ PanelWindow {
                 }
 
                 Item {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
                     height: 18
 
                     Text {
                         anchors.left: parent.left
-                        text: modeTitle + "  /  " + visibleItems.length
+                        text: modeTitle + "  ·  " + visibleItems.length + (visibleItems.length === 1 ? " RESULT" : " RESULTS")
                         color: panelAccent
                         font.pixelSize: 8
                         font.letterSpacing: 2
@@ -774,7 +827,7 @@ PanelWindow {
 
                     Text {
                         anchors.right: parent.right
-                        text: "TAB  MODE    ↑↓  SELECT    ENTER  RUN    ESC  CLOSE"
+                        text: "↑↓  SELECT     ENTER  OPEN     ESC  CLOSE"
                         color: mutedFg
                         font.family: "monospace"
                         font.pixelSize: 8
@@ -783,17 +836,17 @@ PanelWindow {
                 }
 
                 Rectangle {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
                     height: 1
-                    color: panelAccent
-                    opacity: 0.45
+                    color: mutedFg
+                    opacity: 0.2
                 }
 
                 Item {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
-                    height: parent.height - 173
+                    height: parent.height - 195
 
                     Text {
                         visible: visibleItems.length === 0
