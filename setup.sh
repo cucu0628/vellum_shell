@@ -110,6 +110,9 @@ preflight() {
   plan+=("backend forditasa es telepitese (scripts/backend-install)")
   plan+=("Hyprland require sorok: colors, bindings, autostart, vellum_display, vellum_tuning")
   plan+=("kitty include es GTK @import bekotese")
+  if [[ -d "$HOME/.config/nvim/lua/plugins" ]]; then
+    plan+=("LazyVim specek: ~/.config/nvim/lua/plugins/vellum.lua, vellum-keys.lua")
+  fi
   plan+=("tema alkalmazasa (zen: $theme_zen)")
   plan+=("NetworkManager, bluetooth es PipeWire szolgaltatasok engedelyezese")
   if [[ $install_sddm == true ]]; then
@@ -283,6 +286,20 @@ current_theme=$(<"$target_dir/current-theme")
 zen_flag=(--no-zen)
 [[ $theme_zen == true ]] && zen_flag=()
 "$HOME/.local/bin/vellum" theme apply "$current_theme" "${zen_flag[@]}" >/dev/null
+
+# LazyVim: a colorscheme-et a backend generalja a Neovim site mappajaba, itt
+# csak a plugin spec kerul a helyere. Sajat vellum.lua-t nem irunk felul.
+nvim_plugins="$HOME/.config/nvim/lua/plugins"
+if [[ -d $nvim_plugins ]]; then
+  for nvim_module in vellum.lua vellum-keys.lua; do
+    nvim_spec="$nvim_plugins/$nvim_module"
+    if [[ ! -e $nvim_spec ]]; then
+      install -m 644 "$source_dir/nvim/$nvim_module" "$nvim_spec"
+    elif ! cmp -s "$source_dir/nvim/$nvim_module" "$nvim_spec"; then
+      printf 'Figyelmeztetes: sajat %s marad ervenyben; a Vellum spec NEM kerul be.\n' "$nvim_spec" >&2
+    fi
+  done
+fi
 
 btop_config="$HOME/.config/btop/btop.conf"
 if [[ -r $btop_config ]] && grep -Eq '^[[:space:]]*color_theme[[:space:]]*=' "$btop_config"; then

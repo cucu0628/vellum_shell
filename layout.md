@@ -47,6 +47,7 @@ vellum_shell/
 │   │   │   │   ├── icon.rs           # Ikontéma választása
 │   │   │   │   ├── kitty.rs          # kitty színséma
 │   │   │   │   ├── mod.rs
+│   │   │   │   ├── neovim.rs         # Neovim colorscheme (LazyVim)
 │   │   │   │   ├── sddm.rs           # SDDM greeter theme.conf
 │   │   │   │   └── zen.rs            # Zen Browser stíluslapok és profil-bekötés
 │   │   │   ├── color.rs              # Színműveletek (mix, luminancia, árnyalat)
@@ -67,6 +68,7 @@ vellum_shell/
 │   │   ├── gtk-theme.css.tmpl
 │   │   ├── hyprland-colors.lua.tmpl
 │   │   ├── kitty.conf.tmpl
+│   │   ├── nvim-colors.lua.tmpl
 │   │   ├── sddm-theme.conf.tmpl
 │   │   ├── zen-content-theme.css.tmpl
 │   │   └── zen-theme.css.tmpl
@@ -206,6 +208,13 @@ vellum_shell/
 ├── hypr/                             # Telepíthető Hyprland modulok
 │   ├── autostart.lua
 │   └── bindings.lua
+├── nvim/                             # Telepíthető Neovim modulok
+│   ├── vellum-keys/                  # Állandó gyorsbillentyű-súgó plugin
+│   │   └── lua/vellum_keys/
+│   │       ├── init.lua              # Lebegő ablak, módkövetés, kapcsoló
+│   │       └── keys.lua              # A súgó tartalma módonként
+│   ├── vellum-keys.lua               # LazyVim spec a súgóhoz
+│   └── vellum.lua                    # LazyVim spec: colorscheme és élő újratöltés
 ├── pam/                              # PAM profil a zárolóképernyőhöz
 │   └── vellum-shell
 ├── scripts/                          # Külső shell műveletek

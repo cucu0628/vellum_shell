@@ -24,6 +24,8 @@ Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
   appearance, screenshot) and emoji at once, and evaluates anything that looks
   like a maths expression.
 - Launcher project mode (`>`) for directories under `~/Projects`.
+- Terminal desktop entries (`Terminal=true`, such as Neovim or btop) open in a
+  kitty window instead of being started without a TTY.
 - Clipboard history with text and image previews, activation, and deletion.
 - Notification server with toasts, history, actions, unread state, and DND.
 - Notification center grouping per application, with collapsible groups,
@@ -153,8 +155,8 @@ recommended entry point for a fresh system.
 
 `scripts/uninstall` reverses what the setup installed: the systemd user service
 and the `vellum` binary, the generated Hyprland modules, the `require` lines it
-appended, and the include/import lines it added to `kitty.conf`, `gtk.css`, and
-`btop.conf`. It is also the ownership manifest — anything not listed there was
+appended, the include/import lines it added to `kitty.conf`, `gtk.css`, and
+`btop.conf`, and the generated Neovim colorscheme with its LazyVim spec. It is also the ownership manifest — anything not listed there was
 yours before the install and is left alone, including the repository, your
 wallpapers, and your screenshots.
 
@@ -304,7 +306,7 @@ wheel steps through wallpapers.
 Browsing touches nothing on disk: the shell recolours in process and the
 wallpaper swap is a texture change. `Enter` closes the dock and applies the
 theme everywhere — the state files plus every external application palette
-(GTK, kitty, btop, icons, Zen, SDDM). `Esc` closes and restores what you
+(GTK, kitty, btop, Neovim, icons, Zen, SDDM). `Esc` closes and restores what you
 started with.
 
 ### State files
@@ -351,8 +353,36 @@ The backend generates:
 - `~/.config/hypr/colors.lua` for Hyprland's native Lua configuration.
 - `vellum-theme.css` in the active Zen Browser profile, imported by `userChrome.css`.
 - A `btop` theme in the user's btop configuration.
+- `~/.local/share/nvim/site/colors/vellum.lua`, a full Neovim colorscheme.
 - A matching Vellum logo and Fastfetch configuration. A local
   `~/.config/fastfetch/config.template.jsonc` overrides the bundled layout.
+
+### Neovim and LazyVim
+
+The Neovim colorscheme is generated into `~/.local/share/nvim/site/colors/vellum.lua`.
+That directory is on Neovim's runtime path, so `:colorscheme vellum` works from
+any configuration and nothing generated ends up inside the user's own nvim
+config repository. The generator only runs when Neovim is present on the machine.
+
+`nvim/vellum.lua` is the LazyVim side. `setup.sh` copies it to
+`~/.config/nvim/lua/plugins/vellum.lua` when a LazyVim layout exists, leaving an
+existing file of that name alone. The spec sets `colorscheme = "vellum"` and
+watches the generated file, so a theme switch in the Appearance Studio recolours
+running Neovim instances without a restart.
+
+`nvim/vellum-keys/` is a small local plugin that keeps the base keymaps of the
+current mode visible in a corner of the editor: file manager, new tab, delete,
+save, buffer and window motions, LSP actions. Unlike which-key it needs no
+leading key press — it is always on screen and follows the mode, so normal,
+insert, visual and terminal each show their own list. `<leader>uk` and
+`:VellumKeys on|off|toggle` hide it, and it steps aside on its own in a narrow
+terminal, on the dashboard, and while a picker or the Lazy UI has focus. Its
+colours are `default`-linked to the float highlights, so it follows the palette
+with everything else, and the key list is data in `lua/vellum_keys/keys.lua`
+(or `setup({ groups = ... })` from your own spec).
+
+`nvim/vellum-keys.lua` is the spec that loads it from the repository, so a
+`git pull` updates the hint list without copying anything into the nvim config.
 
 The output formats live in `backend/templates/`, so they can be adjusted without
 rebuilding. A missing template falls back to the version compiled into the
@@ -375,6 +405,7 @@ vellum_shell/
 │   ├── src/modules/       One file per capability (theme, network, vpn, ...)
 │   ├── templates/         Theme output templates, editable without rebuilding
 │   └── tests/             Golden comparison against the previous bash output
+├── nvim/                  LazyVim specs: generated colorscheme and the key hints
 ├── systemd/               User service that starts the backend at login
 ├── scripts/               Interactive helpers and installers
 ├── sddm/                  SDDM greeter theme matching the lock screen

@@ -13,6 +13,7 @@ pub mod gtk;
 pub mod hyprland;
 pub mod icon;
 pub mod kitty;
+pub mod neovim;
 pub mod sddm;
 pub mod zen;
 
@@ -77,6 +78,7 @@ pub fn run_all(palette: &Palette, include_zen: bool) -> Vec<Outcome> {
         // Kulso alkalmazasok: hianyozhatnak, es akkor nincs mit temazni.
         run("icon", OPTIONAL, || icon::generate(palette)),
         run("btop", OPTIONAL, || btop::generate(palette)),
+        run("neovim", OPTIONAL, || neovim::generate(palette)),
         run("fastfetch", OPTIONAL, || fastfetch::generate(palette)),
         // Az SDDM temaja rendszerkonyvtarban ul: root nelkul varhatoan bukik.
         run("sddm", OPTIONAL, || sddm::generate(palette)),

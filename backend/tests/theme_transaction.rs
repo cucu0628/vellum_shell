@@ -34,6 +34,7 @@ impl Sandbox {
         unsafe {
             std::env::set_var("HOME", &root);
             std::env::set_var("XDG_CONFIG_HOME", root.join(".config"));
+            std::env::set_var("XDG_DATA_HOME", root.join(".local/share"));
             std::env::set_var("VELLUM_SHELL_DIR", &shell_dir);
             std::env::set_var("VELLUM_NO_SIDE_EFFECTS", "1");
         }

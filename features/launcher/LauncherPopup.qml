@@ -17,6 +17,9 @@ PanelWindow {
     property var applications: []
     property var projects: []
     property string delayedActionCommand: ""
+    // A Terminal=true bejegyzesek gazdaja. A shell tobbi resze is kittyt
+    // hasznal (scripts/floating-terminal, a launcher terminal muvelete).
+    property string terminalProgram: "kitty"
     // A visszafordithatatlan muveletek elso Enterre csak kijelolodnek; a
     // masodik inditja el oket. -1, ha nincs ilyen fuggoben.
     property int pendingConfirmIndex: -1
@@ -360,6 +363,40 @@ PanelWindow {
         return "";
     }
 
+    // A Quickshell `execute()` nem tud a Terminal=true bejegyzesekkel mit
+    // kezdeni: TTY nelkul inditja el oket, igy az nvim es minden mas TUI ablak
+    // nelkul, arva folyamatkent maradna a hatterben. Ezeket sajat
+    // terminalablakban inditjuk.
+    function launchApp(app) {
+        if (app.runInTerminal === true) {
+            var command = terminalArgv(app);
+            if (command.length > 0) {
+                Quickshell.execDetached(command);
+                return ;
+            }
+        }
+        app.execute();
+    }
+
+    // A `command` a mar szetbontott, mezokodok (%f, %U, ...) nelkuli parancs.
+    // Ha a Quickshell nem tudta ertelmezni az Exec sort, a nyers szoveg a
+    // tartalek -- olyankor a shell bontja szet.
+    function terminalArgv(app) {
+        var parsed = app.command || [];
+        var command = [];
+        for (var i = 0; i < parsed.length; i++) {
+            command.push(parsed[i]);
+        }
+        if (command.length > 0)
+            return [terminalProgram, "--"].concat(command);
+
+        var exec = (app.execString || "").replace(/%[fFuUdDnNickvm]/g, "").replace(/%%/g, "%").trim();
+        if (exec === "")
+            return [];
+
+        return [terminalProgram, "--", "sh", "-c", exec];
+    }
+
     function activateSelected() {
         if (visibleItems.length === 0)
             return ;
@@ -367,7 +404,7 @@ PanelWindow {
         var index = Math.max(0, Math.min(selectedIndex, visibleItems.length - 1));
         var item = visibleItems[index];
         if (item.type === "app") {
-            item.app.execute();
+            launchApp(item.app);
             frecencyStore.record(item.app.id || item.app.name);
             opened = false;
         } else if (item.type === "calc" && calcResult !== "") {

@@ -48,6 +48,21 @@ pub fn config_dir() -> PathBuf {
     }
 }
 
+/// XDG adatmappa. A Neovim `site` konyvtara ide esik.
+pub fn data_dir() -> PathBuf {
+    match std::env::var_os("XDG_DATA_HOME") {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir),
+        _ => home().join(".local/share"),
+    }
+}
+
+/// A generalt Neovim colorscheme. A `site` mappa a runtimepath resze, tehat a
+/// `:colorscheme vellum` innen is betoltodik, a felhasznalo nvim configja
+/// viszont generalt fajl nelkul marad.
+pub fn nvim_colorscheme() -> PathBuf {
+    data_dir().join("nvim/site/colors/vellum.lua")
+}
+
 pub fn hypr_dir() -> PathBuf {
     config_dir().join("hypr")
 }

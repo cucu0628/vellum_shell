@@ -139,6 +139,20 @@ if [[ -e "$HOME/.config/btop/themes/vellum.theme" ]]; then
   act rm -f "$HOME/.config/btop/themes/vellum.theme"
 fi
 
+nvim_colors="$HOME/.local/share/nvim/site/colors/vellum.lua"
+# A fejlec bizonyitja, hogy a generalt fajlt toroljuk, nem egy sajat temat.
+if [[ -e $nvim_colors ]] && head -n1 "$nvim_colors" | grep -Fq 'Vellum Shell colorscheme'; then
+  act rm -f "$nvim_colors"
+fi
+for nvim_module in vellum.lua vellum-keys.lua; do
+  nvim_spec="$HOME/.config/nvim/lua/plugins/$nvim_module"
+  if [[ -e $nvim_spec ]] && cmp -s "$repo/nvim/$nvim_module" "$nvim_spec"; then
+    act rm -f "$nvim_spec"
+  elif [[ -e $nvim_spec ]]; then
+    note "megorizve (sajat valtozat): $nvim_spec"
+  fi
+done
+
 printf '\nPAM\n'
 if [[ -e /etc/pam.d/vellum-shell ]]; then
   act sudo rm -f /etc/pam.d/vellum-shell
