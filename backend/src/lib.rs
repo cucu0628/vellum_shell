@@ -10,4 +10,5 @@ pub mod ipc;
 pub mod module;
 pub mod modules;
 pub mod nm;
+pub mod proc;
 pub mod theme;

@@ -52,6 +52,10 @@ PanelWindow {
     // teruleten fogjuk el -- mellette a kattintas az asztalra megy.
     mask: Region { item: studio.revealed ? dock : sliver }
 
+    // A LazyPopup ezt nezi: amig igaz, nem bontja le a feluletet, tehat a
+    // temaalkalmazas callbackje meg letezo controllert talal.
+    readonly property bool busy: appearanceController.applying
+
     AppearanceController {
         id: appearanceController
         onFocusRequested: focusTimer.start()

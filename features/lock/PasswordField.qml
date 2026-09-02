@@ -1,28 +1,32 @@
 import QtQuick
 
+// Jelszomezo a shell mezoinek nyelven (ui/SearchField): eles sarkok, egy
+// hajszalnyi keret, ami fokuszban akcentesre valt, es balra egy tomor
+// akcentcsik. A karakterek negyzet pontokkent jelennek meg, nem golyokkent.
 Rectangle {
     id: passwordBox
 
     required property var lockRoot
 
     readonly property int charCount: lockRoot.password.length
-    readonly property int dotCount: Math.min(charCount, 22)
-    readonly property color edgeColor: lockRoot.failed ? lockRoot.alertColor : lockRoot.accent
+    readonly property int dotCount: Math.min(charCount, 24)
+    readonly property color edgeColor: lockRoot.failed
+        ? lockRoot.alertColor
+        : (passwordInput.activeFocus ? lockRoot.accent : lockRoot.outline)
 
     function forceInputFocus() {
         passwordInput.forceActiveFocus()
     }
 
-    height: 50
-    color: lockRoot.surface
-    border.color: edgeColor
-    border.width: lockRoot.failed ? 2 : 1
+    height: 48
     radius: 0
+    color: Qt.rgba(0, 0, 0, 0.22)
+    border.color: edgeColor
+    border.width: lockRoot.failed || passwordInput.activeFocus ? 2 : 1
     transform: Translate { id: failedShake; x: 0 }
 
     onCharCountChanged: keyPulse.restart()
 
-    Behavior on color { ColorAnimation { duration: 180 } }
     Behavior on border.color { ColorAnimation { duration: 140 } }
     Behavior on border.width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
@@ -36,6 +40,7 @@ Rectangle {
 
     SequentialAnimation {
         id: shakeAnimation
+
         NumberAnimation { target: failedShake; property: "x"; to: -9; duration: 50; easing.type: Easing.OutQuad }
         NumberAnimation { target: failedShake; property: "x"; to: 9; duration: 75; easing.type: Easing.InOutQuad }
         NumberAnimation { target: failedShake; property: "x"; to: -6; duration: 65; easing.type: Easing.InOutQuad }
@@ -45,6 +50,7 @@ Rectangle {
 
     Rectangle {
         id: pulseOverlay
+
         anchors.fill: parent
         anchors.margins: 1
         color: passwordBox.lockRoot.accent
@@ -53,16 +59,17 @@ Rectangle {
 
     NumberAnimation {
         id: keyPulse
+
         target: pulseOverlay
         property: "opacity"
-        from: 0.1
+        from: 0.08
         to: 0
-        duration: 300
+        duration: 280
         easing.type: Easing.OutCubic
     }
 
     Rectangle {
-        width: 3
+        width: 2
         height: parent.height
         anchors.left: parent.left
         color: passwordBox.edgeColor
@@ -71,12 +78,14 @@ Rectangle {
     }
 
     Text {
-        text: ""
-        font.family: "omarchy"
-        font.pixelSize: 15
+        id: lockGlyph
+
+        text: "󰌾"
         color: passwordBox.edgeColor
+        font.family: "Symbols Nerd Font Mono"
+        font.pixelSize: 15
         anchors.left: parent.left
-        anchors.leftMargin: 20
+        anchors.leftMargin: 16
         anchors.verticalCenter: parent.verticalCenter
 
         Behavior on color { ColorAnimation { duration: 140 } }
@@ -86,7 +95,7 @@ Rectangle {
         id: dots
 
         anchors.left: parent.left
-        anchors.leftMargin: 52
+        anchors.leftMargin: 46
         anchors.verticalCenter: parent.verticalCenter
         spacing: 7
 
@@ -94,8 +103,8 @@ Rectangle {
             model: passwordBox.dotCount
 
             Rectangle {
-                width: 7
-                height: 7
+                width: 6
+                height: 6
                 color: passwordBox.edgeColor
                 anchors.verticalCenter: parent.verticalCenter
 
@@ -110,14 +119,12 @@ Rectangle {
     }
 
     Rectangle {
-        id: caret
-
         width: 2
-        height: 20
-        x: 52 + (passwordBox.dotCount > 0 ? dots.width + 6 : 0)
+        height: 18
+        x: 46 + (passwordBox.dotCount > 0 ? dots.width + 6 : 0)
         anchors.verticalCenter: parent.verticalCenter
         color: passwordBox.edgeColor
-        visible: !passwordBox.lockRoot.unlockInProgress
+        visible: !passwordBox.lockRoot.unlockInProgress && passwordInput.activeFocus
 
         Behavior on x { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
@@ -134,32 +141,56 @@ Rectangle {
         visible: passwordBox.charCount === 0 && !passwordBox.lockRoot.unlockInProgress
         color: passwordBox.lockRoot.muted
         opacity: 0.5
-        font.pixelSize: 10
+        font.pixelSize: 9
         font.letterSpacing: 4
-        x: 66
+        x: 60
         anchors.verticalCenter: parent.verticalCenter
     }
 
-    // Hitelesítés alatt lassan sodródó jelzőcsík az alsó élen.
-    Rectangle {
-        property real slideMargin: 18
-
-        width: passwordBox.lockRoot.unlockInProgress ? 30 : 0
-        height: 1
+    // Jobb szelen: nyugalomban a belepteto jel, hitelesites alatt harom
+    // vandorlo negyzet.
+    Text {
+        text: "󰌑"
+        visible: !passwordBox.lockRoot.unlockInProgress
+        color: passwordBox.lockRoot.muted
+        opacity: passwordBox.charCount > 0 ? 0.8 : 0.3
+        font.family: "Symbols Nerd Font Mono"
+        font.pixelSize: 13
         anchors.right: parent.right
-        anchors.rightMargin: slideMargin
-        anchors.bottom: parent.bottom
-        color: passwordBox.lockRoot.accent
-        opacity: passwordBox.lockRoot.unlockInProgress ? 0.7 : 0
+        anchors.rightMargin: 16
+        anchors.verticalCenter: parent.verticalCenter
 
-        Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: 140 } }
+    }
 
-        SequentialAnimation on slideMargin {
-            running: passwordBox.lockRoot.unlockInProgress
-            loops: Animation.Infinite
-            NumberAnimation { to: 62; duration: 900; easing.type: Easing.InOutSine }
-            NumberAnimation { to: 18; duration: 900; easing.type: Easing.InOutSine }
+    Row {
+        id: busyMarks
+
+        anchors.right: parent.right
+        anchors.rightMargin: 16
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 5
+        visible: passwordBox.lockRoot.unlockInProgress
+
+        Repeater {
+            model: 3
+
+            Rectangle {
+                required property int index
+
+                width: 4
+                height: 4
+                color: passwordBox.lockRoot.accent
+
+                SequentialAnimation on opacity {
+                    running: busyMarks.visible
+                    loops: Animation.Infinite
+                    PauseAnimation { duration: index * 160 }
+                    NumberAnimation { to: 1; duration: 220; easing.type: Easing.OutCubic }
+                    NumberAnimation { to: 0.2; duration: 340; easing.type: Easing.InOutSine }
+                    PauseAnimation { duration: (2 - index) * 160 }
+                }
+            }
         }
     }
 

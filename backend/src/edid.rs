@@ -73,7 +73,7 @@ pub fn parse(edid: &[u8]) -> Option<MonitorIdentity> {
 
     // Negy 18 bajtos leiro az 54. bajttol. A nullaval kezdodok szoveges
     // leirok; a tipus a 3. bajt: 0xFC = kijelzonev, 0xFF = sorozatszam.
-    for chunk in edid[54..126].chunks_exact(18) {
+    for chunk in edid[54..126].as_chunks::<18>().0 {
         if chunk[0..3] != [0, 0, 0] {
             continue;
         }

@@ -2,8 +2,14 @@ import QtQuick
 
 // Privacy indicator: exists only while something is actually capturing. The mic
 // icon means an app is linked to a capture device, the camera icon means an app
-// holds the camera. Both breathe slowly so the bar shows it without shouting,
-// and clicking opens the panel that names the apps behind them.
+// holds the camera. Clicking opens the panel that names the apps behind them.
+//
+// The signal here is the icon's *presence*, not its motion: the item has zero
+// width while nothing captures, so it appearing at all is the event worth
+// noticing. It fades in once when that happens and then holds still -- a
+// looping pulse in peripheral vision keeps pulling the eye back long after the
+// message has landed. The accent colour stays, because something recording you
+// is not the same class of information as a bluetooth icon.
 Item {
     id: root
 
@@ -24,15 +30,22 @@ Item {
     height: parent.height
     visible: width > 0
     clip: true
-    Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    // Egyetlen halk megjelenes: a szelesseg es az atlatszatlansag egyutt fut fel.
+    opacity: activeCount > 0 ? 1 : 0
 
+    Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+
+    // Ugyanaz a szabaly, mint a bar tobbi elemenel: az akcentus-csik a
+    // kijelolest jelenti, nem az allapotot. Allandoan bekapcsolva egy szines
+    // blokk ult a sav aljan, ami semmi ujat nem mondott az ikonhoz kepest.
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 2
         color: root.theme.accent
-        opacity: root.activeCount > 0 ? 1 : 0
+        opacity: root.highlighted ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
     }
 
@@ -52,7 +65,6 @@ Item {
                 color: root.theme.accent
                 font.family: "Symbols Nerd Font Mono"
                 font.pixelSize: 14
-                opacity: root.highlighted ? 1 : pulse.value
             }
         }
 
@@ -68,25 +80,8 @@ Item {
                 color: root.theme.accent
                 font.family: "Symbols Nerd Font Mono"
                 font.pixelSize: 14
-                opacity: root.highlighted ? 1 : pulse.value
             }
         }
-    }
-
-    // One shared breath so the two icons never drift apart, stilled while the
-    // panel is open or hovered, and never running while nothing is captured.
-    QtObject {
-        id: pulse
-        property real value: 1
-    }
-
-    SequentialAnimation {
-        running: root.activeCount > 0
-        loops: Animation.Infinite
-        alwaysRunToEnd: true
-
-        NumberAnimation { target: pulse; property: "value"; to: 0.45; duration: 900; easing.type: Easing.InOutSine }
-        NumberAnimation { target: pulse; property: "value"; to: 1; duration: 900; easing.type: Easing.InOutSine }
     }
 
     MouseArea {

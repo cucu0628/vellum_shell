@@ -1,0 +1,78 @@
+name: checks
+
+# Ugyanaz, amit a `scripts/check` futtat helyben. A lepesek itt kulon jobokra
+# vannak bontva, hogy a hibas resz egy pillantasra latszodjon.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            backend/target
+          key: cargo-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: cargo-
+
+      - name: cargo fmt
+        run: cargo fmt --manifest-path backend/Cargo.toml --check
+
+      - name: cargo clippy
+        run: cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+
+      # A generatorok a HOME ala irnanak; a tesztek sajat homokozot allitanak,
+      # a mellekhatasokat (gsettings, systemctl, magick) pedig kikapcsoljuk.
+      - name: cargo test
+        env:
+          VELLUM_NO_SIDE_EFFECTS: "1"
+        run: cargo test --manifest-path backend/Cargo.toml
+
+  qml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Qt eszkozok
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qt6-declarative-dev-tools
+
+      # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
+      # figyelmeztetest. Csak a hibak buktatnak.
+      - name: qmllint
+        run: |
+          lint=$(command -v qmllint || echo /usr/lib/qt6/bin/qmllint)
+          output=$("$lint" shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml \
+            features/*/*.qml 2>&1 || true)
+          printf 'figyelmeztetes: %s\n' "$(grep -c '^Warning:' <<<"$output" || true)"
+          if grep '^Error:' <<<"$output"; then
+            exit 1
+          fi
+
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          mapfile -t scripts < <(find scripts -maxdepth 1 -type f -perm -u+x)
+          shellcheck setup.sh install.sh "${scripts[@]}"

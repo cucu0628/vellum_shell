@@ -41,6 +41,16 @@ const SAMPLE_BOUND: u32 = 4000;
 /// Az erteke lenyegtelen -- csak arra kell, hogy felismerjuk az esetet.
 const NEUTRAL_SENTINEL: Argb = Argb { alpha: 255, red: 0x80, green: 0x80, blue: 0x80 };
 
+/// A kvantalas egyszerre egy kepen fut.
+///
+/// A `SAMPLE_BOUND` szandekosan magas (lasd fent), igy egy dekodolt kep es a
+/// kvantalo munkaterulete egyutt tobb szaz MB is lehet. A daemon
+/// memoriakerete ennel joval szukebb, a temavalaszto pedig huzas kozben
+/// kepenkent ker previewt -- parhuzamosan futtatva ezek osszeadodnanak. A
+/// sorbaallitas nem tesz tobb munkat, csak nem egyszerre vegzi el, es a
+/// vegeredmenyt nem valtoztatja meg.
+static QUANTIZE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// A kepbol szarmaztatott theme.conf tartalma. A `generate` es a `palette_for`
 /// is ezt hasznalja, igy a ketto sosem terhet el egymastol.
 fn render_conf(wallpaper: &Path) -> Result<String> {
@@ -69,6 +79,10 @@ pub fn generate(wallpaper: &Path) -> Result<Palette> {
 }
 
 fn scheme_for(wallpaper: &Path) -> Result<Scheme> {
+    // A mergezett zar sem indok a temaalkalmazas megtagadasara: a zar csak
+    // sorbaallit, nem ved adatot.
+    let _guard = QUANTIZE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+
     let mut image = ImageReader::open(wallpaper)
         .with_context(|| format!("a hatterkep nem olvashato: {}", wallpaper.display()))?;
     if let Some((width, height)) = sample_size(wallpaper) {

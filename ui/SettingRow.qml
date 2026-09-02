@@ -20,6 +20,30 @@ Rectangle {
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
 
+    // A sor cimkeje a vezerlo neve is: enelkul a kepernyoolvaso csak annyit
+    // mondana, hogy "kapcsolo", azt viszont nem, hogy mit kapcsol. A vezerlo
+    // sajat `accessibleName`-je erosebb, ha a hivo kifejezetten megadta.
+    function publishAccessibleName() {
+        var item = controlSlot.children.length > 0 ? controlSlot.children[0] : null
+        if (!item || item.accessibleName === undefined) return
+        if (item.accessibleName === "" || item.accessibleName === row._publishedName) {
+            item.accessibleName = row.label
+            row._publishedName = row.label
+        }
+        if (item.accessibleDescription !== undefined
+            && (item.accessibleDescription === "" || item.accessibleDescription === row._publishedDescription)) {
+            item.accessibleDescription = row.description
+            row._publishedDescription = row.description
+        }
+    }
+
+    property string _publishedName: ""
+    property string _publishedDescription: ""
+
+    onLabelChanged: publishAccessibleName()
+    onDescriptionChanged: publishAccessibleName()
+    Component.onCompleted: publishAccessibleName()
+
     width: parent ? parent.width : 0
     height: Math.max(58, textColumn.implicitHeight + 24)
     z: controlRaised ? 1000 : 0

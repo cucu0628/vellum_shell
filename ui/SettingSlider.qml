@@ -3,6 +3,10 @@ import QtQuick
 // Ertek-csuszka szamkijelzovel. Huzas kozben folyamatosan `moved`-ot ad, de
 // `committed`-et csak elengedeskor -- igy egy csuszka mozgatasa nem kuld tucatnyi
 // irast a backendnek.
+//
+// Billentyuzetrol a nyilak lepnek egyet, a Page lepesek tizet, a Home/End a ket
+// veget adja. Egy billentyus allitas azonnal `committed`: nincs "elengedes",
+// amire varni lehetne.
 Item {
     id: slider
 
@@ -12,6 +16,9 @@ Item {
     property real to: 100
     property real stepSize: 1
     property string suffix: ""
+    // Amit a kepernyoolvaso mond. A SettingRow magatol atadja a sor cimket.
+    property string accessibleName: ""
+    property string accessibleDescription: ""
 
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
     readonly property string accent: theme ? theme.accent : "#b7372f"
@@ -42,8 +49,44 @@ Item {
         return text + slider.suffix;
     }
 
+    // Egy billentyus lepes: az ertek modositasa es azonnali veglegesitese.
+    function nudge(steps) {
+        if (!slider.enabled) return
+        var step = slider.stepSize > 0 ? slider.stepSize : slider.span / 100
+        var next = slider.quantize(slider.value + steps * step)
+        if (next === slider.value) return
+        slider.moved(next)
+        slider.committed(next)
+    }
+
+    function jumpTo(target) {
+        if (!slider.enabled) return
+        var next = slider.quantize(target)
+        if (next === slider.value) return
+        slider.moved(next)
+        slider.committed(next)
+    }
+
     implicitWidth: 240
     implicitHeight: 28
+
+    activeFocusOnTab: enabled
+    Keys.onLeftPressed: (event) => { slider.nudge(-1); event.accepted = true }
+    Keys.onRightPressed: (event) => { slider.nudge(1); event.accepted = true }
+    Keys.onDownPressed: (event) => { slider.nudge(-1); event.accepted = true }
+    Keys.onUpPressed: (event) => { slider.nudge(1); event.accepted = true }
+    Keys.onPressed: (event) => {
+        if (event.key === Qt.Key_PageDown) { slider.nudge(-10); event.accepted = true }
+        else if (event.key === Qt.Key_PageUp) { slider.nudge(10); event.accepted = true }
+        else if (event.key === Qt.Key_Home) { slider.jumpTo(slider.from); event.accepted = true }
+        else if (event.key === Qt.Key_End) { slider.jumpTo(slider.to); event.accepted = true }
+    }
+
+    Accessible.role: Accessible.Slider
+    Accessible.name: slider.accessibleName
+    Accessible.description: slider.accessibleDescription
+    Accessible.onIncreaseAction: slider.nudge(1)
+    Accessible.onDecreaseAction: slider.nudge(-1)
 
     Text {
         id: readout
@@ -83,6 +126,12 @@ Item {
             color: slider.accent
             anchors.verticalCenter: parent.verticalCenter
             x: Math.max(0, Math.min(parent.width - width, parent.width * slider.ratio - width / 2))
+        }
+
+        FocusRing {
+            theme: slider.theme
+            active: slider.activeFocus
+            anchors.margins: -6
         }
 
         MouseArea {

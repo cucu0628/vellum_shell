@@ -12,6 +12,12 @@ pub struct Health {
     started: Instant,
 }
 
+impl Default for Health {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Health {
     pub fn new() -> Self {
         Self { started: Instant::now() }
@@ -26,6 +32,10 @@ impl Health {
             "binary": std::env::current_exe().ok().map(|path| path.display().to_string()),
             "pid": std::process::id(),
             "uptimeSeconds": self.started.elapsed().as_secs(),
+            // Modulonkenti allapot: "running", "idle" vagy "restarting" a
+            // legutobbi hibaval. Enelkul egy befagyott topic ugyanugy nez ki,
+            // mint egy csendes.
+            "modules": crate::ipc::hub::module_health(),
         })
     }
 }
@@ -41,7 +51,10 @@ impl Module for Health {
             topic: "health",
             summary: "A daemon allapota: verzio, pid, uptime.",
             streams: true,
-            methods: vec![MethodDescription::new("ping", "Elerheto-e a daemon.")],
+            methods: vec![MethodDescription::new(
+                "ping",
+                "Elerheto-e a daemon, es mit csinalnak a modulok.",
+            )],
         }
     }
 

@@ -9,6 +9,7 @@ fi
 install_packages=true
 install_sddm=false
 theme_zen=false
+dry_run=false
 
 usage() {
   cat <<'EOF'
@@ -17,6 +18,8 @@ Hasznalat: ./setup.sh [opciok]
   --skip-packages  Ne futtassa a csomagtelepitot.
   --with-sddm      Telepitse es aktivalja a Vellum Ink SDDM temat is.
   --with-zen       Alkalmazza a temat a meglevo Zen Browser profilra is.
+  --dry-run        Csak az ellenorzest es a tervet mutassa; ne modositson semmit.
+  --plan           A --dry-run szinonimaja.
   -h, --help       Mutassa ezt a sugot.
 EOF
 }
@@ -26,28 +29,129 @@ while (( $# > 0 )); do
     --skip-packages) install_packages=false ;;
     --with-sddm) install_sddm=true ;;
     --with-zen) theme_zen=true ;;
+    --dry-run|--plan) dry_run=true ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'Ismeretlen opcio: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
   shift
 done
 
-command -v pacman >/dev/null 2>&1 || {
-  printf 'Hiba: ez a setup csak Arch Linux/CachyOS rendszeren hasznalhato.\n' >&2
-  exit 1
-}
-
 source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 target_dir="$HOME/.config/quickshell/vellum_shell"
 
+# -- preflight ---------------------------------------------------------------
+#
+# Minden elofeltetel egyszerre derul ki, nem egyesevel, felig elvegzett
+# telepites kozben. Ami csak figyelmeztetes, az nem allitja meg a setupot, de a
+# vegen ujra elhangzik -- kulonben egy megorzott sajat bindings.lua mellett a
+# setup sikeresnek latszana Vellum gyorsbillentyuk nelkul.
+
+problems=()
+warnings=()
+plan=()
+
+# "1.88" <= "1.98"? A sort -V a verziok rendezesere valo.
+version_at_least() {
+  local have=$1 want=$2
+  [[ $have == "$want" ]] && return 0
+  [[ $(printf '%s\n%s\n' "$want" "$have" | sort -V | head -n1) == "$want" ]]
+}
+
+required_rust() {
+  sed -n 's/^rust-version = "\(.*\)"/\1/p' "$source_dir/backend/Cargo.toml" | head -n1
+}
+
+preflight() {
+  command -v pacman >/dev/null 2>&1 || \
+    problems+=("nincs pacman: ez a setup Arch Linux / CachyOS rendszerre valo")
+
+  # A backend nem opcionalis: a temazas es a rendszerallapot mar csak benne
+  # letezik. Az install.sh hozza a `rust` csomagot; --skip-packages mellett
+  # viszont a felhasznalonak kell.
+  local msrv
+  msrv=$(required_rust)
+  if command -v cargo >/dev/null 2>&1; then
+    local have
+    have=$(rustc --version 2>/dev/null | awk '{print $2}')
+    if [[ -n $have && -n $msrv ]] && ! version_at_least "$have" "$msrv"; then
+      problems+=("a Rust $have tul regi; a backendhez legalabb $msrv kell")
+    fi
+  elif [[ $install_packages == true ]]; then
+    plan+=("Rust telepitese (a backend forrasbol epul)")
+  else
+    problems+=("nincs cargo, a --skip-packages miatt pedig nem is telepitjuk (sudo pacman -S rust)")
+  fi
+
+  if [[ ! -e "$HOME/.config/hypr/hyprland.lua" && ! -r /usr/share/hypr/hyprland.lua ]]; then
+    problems+=("nincs Hyprland Lua alapkonfiguracio; Hyprland 0.55 vagy ujabb kell")
+  fi
+
+  if [[ -e $target_dir || -L $target_dir ]] \
+    && [[ $(readlink -f "$target_dir") != "$source_dir" ]]; then
+    problems+=("a celhely mar letezik es nem erre a repora mutat: $target_dir")
+  fi
+
+  # A sajat Hyprland moduljaidhoz nem nyulunk. Ha van sajat bindings.lua vagy
+  # autostart.lua, a Vellum valtozata NEM kerul be -- ezt latni kell.
+  local module target
+  for module in bindings autostart; do
+    target="$HOME/.config/hypr/$module.lua"
+    if [[ -e $target ]] && ! cmp -s "$source_dir/hypr/$module.lua" "$target"; then
+      warnings+=("sajat $module.lua marad ervenyben; a Vellum $module.lua NEM kerul be (vesd ossze: $source_dir/hypr/$module.lua)")
+    else
+      plan+=("$module.lua telepitese ide: $target")
+    fi
+  done
+
+  if [[ $install_packages == true ]]; then
+    plan+=("csomagok telepitese az install.sh-val")
+  fi
+  plan+=("PAM modul: /etc/pam.d/vellum-shell")
+  plan+=("backend forditasa es telepitese (scripts/backend-install)")
+  plan+=("Hyprland require sorok: colors, bindings, autostart, vellum_display, vellum_tuning")
+  plan+=("kitty include es GTK @import bekotese")
+  plan+=("tema alkalmazasa (zen: $theme_zen)")
+  plan+=("NetworkManager, bluetooth es PipeWire szolgaltatasok engedelyezese")
+  if [[ $install_sddm == true ]]; then
+    plan+=("Vellum Ink SDDM tema telepitese es aktivalasa")
+  fi
+
+  if ! sudo -n true 2>/dev/null; then
+    warnings+=("a setup sudo jelszot fog kerni (PAM, szolgaltatasok, SDDM)")
+  fi
+}
+
+report_preflight() {
+  local item
+  if (( ${#problems[@]} > 0 )); then
+    printf '\nMegoldando, mielott a setup futhatna:\n'
+    for item in "${problems[@]}"; do printf '  - %s\n' "$item"; done
+  fi
+  if (( ${#warnings[@]} > 0 )); then
+    printf '\nFigyelmeztetes:\n'
+    for item in "${warnings[@]}"; do printf '  - %s\n' "$item"; done
+  fi
+}
+
+preflight
+if (( ${#problems[@]} > 0 )); then
+  report_preflight >&2
+  exit 1
+fi
+
+if [[ $dry_run == true ]]; then
+  printf 'Terv (--dry-run: semmi nem modosul):\n'
+  for item in "${plan[@]}"; do printf '  - %s\n' "$item"; done
+  report_preflight
+  exit 0
+fi
+
+report_preflight
+
+# A celhely egyezeset a preflight mar ellenorizte.
 if [[ $source_dir != "$target_dir" ]]; then
   mkdir -p "$(dirname "$target_dir")"
-  if [[ -e $target_dir || -L $target_dir ]]; then
-    if [[ $(readlink -f "$target_dir") != "$source_dir" ]]; then
-      printf 'Hiba: a celhely mar letezik es nem erre a repora mutat: %s\n' "$target_dir" >&2
-      exit 1
-    fi
-  else
+  if [[ ! -e $target_dir && ! -L $target_dir ]]; then
     ln -s "$source_dir" "$target_dir"
   fi
 fi
@@ -62,9 +166,8 @@ fi
 
 sudo install -Dm644 "$source_dir/pam/vellum-shell" /etc/pam.d/vellum-shell
 
-# A backend nem opcionalis: a temazas es a rendszerallapot mar csak benne
-# letezik. A shell nelkule is elindul, de alapertelmezett szinekkel es ures
-# allapottal -- ezert a setup itt megall, nem hagy felkesz telepitest.
+# A cargo meglete es verzioja a preflightban dolt el; a csomagtelepito ota
+# viszont valtozhatott, ezert itt meg egyszer megnezzuk.
 if ! command -v cargo >/dev/null 2>&1; then
   printf 'Hiba: nincs cargo. A backend nelkul nincs temazas. Telepitsd: sudo pacman -S rust\n' >&2
   exit 1
@@ -219,6 +322,9 @@ if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
 fi
 
 printf '\nA Vellum Shell setup kesz. A shell Hyprland alatt automatikusan elindul.\n'
+# A megorzott sajat modulokat itt is elmondjuk: a setup kulonben sikeresnek
+# latszana Vellum gyorsbillentyuk nelkul.
+report_preflight
 if [[ ! -r "$target_dir/current-wallpaper" ]]; then
   printf 'Tegy egy kepet a %s mappaba; a shell automatikusan az elsot valasztja.\n' "$HOME/Pictures/wallpapers"
 fi

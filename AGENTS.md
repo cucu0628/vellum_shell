@@ -34,11 +34,19 @@ Read `README.md` for supported behavior and `layout.md` for the detailed archite
 
 ## Validation
 
-Run the checks relevant to the files changed:
+`scripts/check` runs every gate below in one go and skips the tools that are not
+installed, which is what CI (`.github/workflows/checks.yml`) runs too:
+
+```bash
+./scripts/check
+```
+
+Or run only the checks relevant to the files changed:
 
 ```bash
 # Rust backend
 cargo fmt --manifest-path backend/Cargo.toml --check
+cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
 
 # QML (from the repository root)
@@ -53,3 +61,11 @@ For executable Python helpers, first use a temporary cache/config directory and 
 The QML shell has no nested-Wayland integration suite. For changes involving session lock, authentication, display management, package installation, or power operations, report the manual test still required instead of exercising it on the user's active session.
 
 Theme generator changes must keep `cargo test --manifest-path backend/Cargo.toml` green. Do not regenerate `backend/tests/golden/` casually; `backend/tests/capture-golden.sh` is historical and depends on removed Bash generators.
+
+`backend/tests/ipc_contract.rs` records the `vellum describe` surface. Changing a
+topic, a method name, or a required parameter fails that test on purpose: update
+the recorded contract, the QML callers, and the README IPC section together.
+
+`qmllint` reports warnings on a clean tree because it does not know the Quickshell
+types (`uncreatable-type`, unqualified access inside delegates). The gate fails on
+`Error:` only; treat a rising warning count as a signal to look, not as a failure.

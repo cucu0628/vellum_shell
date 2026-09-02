@@ -56,6 +56,10 @@ Item {
             backend.subscribe("hypr");
             reload();
         } else {
+            // Egy meg nem erositett kijelzovaltas nem maradhat allva csak
+            // azert, mert bezartuk az ablakot. A backend orajat ez csak
+            // megelozi -- az ugyanigy visszaallitana.
+            revertPreview();
             backend.unsubscribe("hypr");
         }
     }
@@ -192,22 +196,99 @@ Item {
         optionWrites = nextWrites;
     }
 
-    function applyMonitor(setting, callback) {
-        applyMonitors([setting], callback);
-    }
+    // -- kijelzo-elonezet ----------------------------------------------------
+    //
+    // A tranzakciot a backend birtokolja: a `previewMonitors` eloben alkalmaz,
+    // de nem ment, es megerosites nelkul magatol visszaall. Itt csak a tokent
+    // es a visszaszamlalast tukrozzuk.
+    //
+    // Azert itt es nem a DisplayPage-ben: ez a controller az ablak szintjen el,
+    // igy egy oldalvaltas nem viszi magaval. Az ablak bezarasat pedig mar a
+    // backend oraja fedi -- korabban a Timerrel egyutt a visszaallitas is
+    // eltunt, es egy rossz monitorbeallitas veglegesse valt.
+    property string previewToken: ""
+    property int previewSeconds: 0
+    property bool previewBusy: false
+
+    signal previewFailed(string message)
 
     // Egy egesz elrendezes egyetlen hivasban: a kijelzok pozicioja egymashoz
     // kepest ertelmes, ezert felig alkalmazott allapot nem maradhat utanunk.
-    function applyMonitors(settings, callback) {
-        backend.call("hypr", "setMonitors", {
+    function previewMonitors(settings, callback) {
+        if (previewBusy)
+            return;
+
+        previewBusy = true;
+        backend.call("hypr", "previewMonitors", {
             "monitors": settings
         }, (result, error) => {
-            if (error)
-                console.warn("Settings: a monitor nem allithato:", error.message)
+            controller.previewBusy = false
+            if (error) {
+                console.warn("Settings: a kijelzo nem allithato:", error.message)
+                controller.previewFailed(error.message || "a kijelzo nem allithato")
+                controller.reload()
+                if (callback)
+                    callback(false)
+                return
+            }
+            controller.previewToken = result && result.token ? result.token : ""
+            controller.previewSeconds = Math.max(1, Math.round((result && result.timeoutMs ? result.timeoutMs : 12000) / 1000))
             controller.reload()
             if (callback)
-                callback(!error)
+                callback(true)
         })
+    }
+
+    function confirmPreview() {
+        var token = previewToken;
+        if (token === "")
+            return;
+
+        clearPreview();
+        backend.call("hypr", "confirmMonitors", {
+            "token": token
+        }, (result, error) => {
+            if (error)
+                console.warn("Settings: a kijelzobeallitas nem mentheto:", error.message)
+            controller.reload()
+        })
+    }
+
+    function revertPreview() {
+        var token = previewToken;
+        if (token === "")
+            return;
+
+        clearPreview();
+        backend.call("hypr", "revertMonitors", {
+            "token": token
+        }, (result, error) => {
+            if (error)
+                console.warn("Settings: a visszaallitas nem sikerult:", error.message)
+            controller.reload()
+        })
+    }
+
+    function clearPreview() {
+        previewToken = "";
+        previewSeconds = 0;
+    }
+
+    // Csak tukor: a tenyleges visszaallitast a backend vegzi, akkor is, ha ez
+    // az ablak addigra eltunt.
+    Timer {
+        id: previewTimer
+
+        interval: 1000
+        repeat: true
+        running: controller.previewToken !== ""
+        onTriggered: {
+            controller.previewSeconds--;
+            if (controller.previewSeconds <= 0) {
+                controller.clearPreview();
+                controller.reload();
+            }
+        }
     }
 
     function resetScope(scope) {

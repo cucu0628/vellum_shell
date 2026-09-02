@@ -12,8 +12,25 @@ import Quickshell.Io
 Item {
     id: backend
 
-    readonly property string socketPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/vellum-shell.sock"
+    // A `VELLUM_SOCKET` mindket oldalon ugyanaz a kapcsolo (lasd
+    // `ipc::socket_path`): XDG_RUNTIME_DIR nelkul a Rust oldal uid-suffixes
+    // /tmp utvonalra esik vissza, amit innen nem lehet kiszamolni. Ilyen
+    // munkamenetben a `shell-start` allitja be ezt a valtozot mindkettonek.
+    readonly property string socketPath: {
+        var explicitPath = Quickshell.env("VELLUM_SOCKET")
+        if (explicitPath) return explicitPath
+        var runtimeDir = Quickshell.env("XDG_RUNTIME_DIR")
+        if (runtimeDir) return runtimeDir + "/vellum-shell.sock"
+        return "/tmp/vellum-shell.sock"
+    }
     readonly property bool connected: _socket ? _socket.connected : false
+
+    // A daemon nelkul ezek az allapotok mar nem allapotok, hanem emlekek: a
+    // halozat, a VPN vagy a csatolt eszkozok kozben barmi lehet. A `theme`
+    // szandekosan nincs koztuk -- az konfiguracio, ami a daemon kiesese utan is
+    // ervenyes marad, es a torlese az egesz shellt alapertelmezett szinekre
+    // ejtene.
+    readonly property var volatileTopics: ["network", "vpn", "removable", "privacy", "sysstats", "weather", "hypr"]
 
     // A Socket sajat magat regisztralja ide. Nem a Loader.item-et hasznaljuk,
     // mert az meg null, amikor a frissen letrehozott Socket mar csatlakozott.
@@ -130,7 +147,24 @@ Item {
         for (var id in pending) {
             pending[id](null, { code: "disconnected", message: "megszakadt a kapcsolat a backenddel" })
         }
+        _dropVolatileTopics()
         _scheduleReconnect()
+    }
+
+    // A mulando allapotok eldobasa, hogy a controllerek a sajat "nem elerheto"
+    // agukra essenek vissza, ahelyett hogy elavult adatot mutatnanak
+    // aktualiskent. Ujracsatlakozaskor a daemon amugy is azonnal kuld friss
+    // snapshotot minden elo feliratkozasra.
+    function _dropVolatileTopics() {
+        var next = {}
+        var dropped = []
+        for (var key in topics) {
+            if (volatileTopics.indexOf(key) >= 0) dropped.push(key)
+            else next[key] = topics[key]
+        }
+        if (dropped.length === 0) return
+        topics = next
+        for (var i = 0; i < dropped.length; i++) topicUpdated(dropped[i], null)
     }
 
     // A Quickshell Socket egy sikertelen vagy megszakadt kapcsolat utan nem

@@ -107,6 +107,20 @@ cd "$HOME/.config/quickshell/vellum_shell"
 ./setup.sh
 ```
 
+To see what it would do first — the setup checks every prerequisite up front and
+prints its plan without changing anything:
+
+```bash
+./setup.sh --dry-run
+```
+
+The same preflight runs before a real install, so a missing Rust toolchain or an
+unusable Hyprland config stops the setup before it has touched the system. It
+also reports what it will *not* do: if you already have your own
+`~/.config/hypr/bindings.lua` or `autostart.lua`, those are kept and Vellum's
+versions are skipped, so the shell would come up without its key bindings. The
+notice is repeated at the end of the run.
+
 To install and activate the bundled SDDM theme as well:
 
 ```bash
@@ -135,6 +149,24 @@ Restart an already running instance with:
 `install.sh` remains available as a package-only installer. `setup.sh` is the
 recommended entry point for a fresh system.
 
+### Removing it again
+
+`scripts/uninstall` reverses what the setup installed: the systemd user service
+and the `vellum` binary, the generated Hyprland modules, the `require` lines it
+appended, and the include/import lines it added to `kitty.conf`, `gtk.css`, and
+`btop.conf`. It is also the ownership manifest — anything not listed there was
+yours before the install and is left alone, including the repository, your
+wallpapers, and your screenshots.
+
+```bash
+scripts/uninstall --dry-run     # show what would be removed
+scripts/uninstall               # remove it
+scripts/uninstall --with-sddm --purge-state
+```
+
+Config files you had modified yourself (your own `bindings.lua`, a `colors.lua`
+that is not ours) are reported and kept.
+
 ## Usage
 
 Bar items open their related surfaces on the selected monitor. Every major
@@ -159,10 +191,17 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `power` | `toggle`, `open`, `close` (alias of `settings`) |
 | `notifications` | `toggle`, `dnd`, `close`, `clear`, `grouping`, `expand`, `collapse` |
 | `audio` | `toggle`, `open`, `close` |
+| `media` | `toggle`, `open`, `overview`, `player`, `weather`, `close` |
 | `network` | `toggle`, `open`, `close` |
+| `bluetooth` | `toggle`, `open`, `close` |
+| `vpn` | `toggle`, `open`, `close`, `connect`, `disconnect`, `app` |
 | `removable` | `toggle`, `open`, `close` |
+| `lock` | `lock` |
 | `about` | `toggle`, `open`, `close` |
 | `screenshot` | `capture`, `window`, `workspace`, `region` |
+
+Every overlay opens on the focused monitor and closes the others, because they
+all go through `app/PopupCoordinator.qml`.
 
 The setup installs these bindings in `~/.config/hypr/bindings.lua` using the
 native Hyprland Lua API:
@@ -183,9 +222,13 @@ The lock screen is hosted by the main shell and activated over IPC:
 quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call lock lock
 ```
 
-It creates a secure `WlSessionLock` surface on every monitor. One monitor shows
-the password input and the others use an ambient view. Select the input monitor
-on the Settings app's System page, or directly:
+It creates a secure `WlSessionLock` surface on every monitor. Locking blurs the
+current desktop wallpaper behind a themed scrim instead of cutting to black, so
+the transition stays continuous in both directions; without a wallpaper the
+shell palette and the ensō watermark stand in. One monitor shows the clock and
+the password card, the others use an ambient view that echoes the typed
+characters. Select the input monitor on the Settings app's System page, or
+directly:
 
 ```bash
 ~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor list
@@ -197,10 +240,10 @@ installs `/etc/pam.d/vellum-shell`; no external lock-screen package is used.
 
 ### Login screen (SDDM)
 
-`sddm/vellum-ink/` is an SDDM greeter theme that reuses the lock-screen visual
-language: the same ensō background, shoji shutter, seal, panel, and palette.
-It adds the greeter-only controls: user picker, session picker, keyboard
-layout, and the power actions.
+`sddm/vellum-ink/` is an SDDM greeter theme in the same ink visual language and
+on the same palette, with its own copies of the components under
+`sddm/vellum-ink/Ink*.qml`. It adds the greeter-only controls: user picker,
+session picker, keyboard layout, and the power actions.
 
 ```bash
 ~/.config/quickshell/vellum_shell/scripts/sddm-install --preview            # test run, no root
@@ -308,8 +351,8 @@ The backend generates:
 - `~/.config/hypr/colors.lua` for Hyprland's native Lua configuration.
 - `vellum-theme.css` in the active Zen Browser profile, imported by `userChrome.css`.
 - A `btop` theme in the user's btop configuration.
-- A matching Vellum logo, plus a Fastfetch configuration when a local
-  `config.template.jsonc` is present.
+- A matching Vellum logo and Fastfetch configuration. A local
+  `~/.config/fastfetch/config.template.jsonc` overrides the bundled layout.
 
 The output formats live in `backend/templates/`, so they can be adjusted without
 rebuilding. A missing template falls back to the version compiled into the
@@ -398,6 +441,23 @@ is visible without a reload:
 modules, so their values win. Deleting the JSON store (or the System page's
 "Reset Hyprland settings") drops every override and falls back to your config.
 
+Display changes go through a transaction owned by the daemon, because a bad mode
+or position can leave a screen the user can no longer click on:
+
+```text
+hypr.previewMonitors   validate, apply live, arm a 12 s auto-revert; returns a token
+hypr.confirmMonitors   cancel the timer and persist the layout
+hypr.revertMonitors    restore the previous layout right away
+```
+
+Nothing reaches `vellum-settings.json` until it is confirmed, and the timer lives
+in the daemon, so closing the Settings window — or losing the shell entirely —
+still restores the previous layout. `previewMonitors` rejects a layout before it
+touches the compositor: unknown outputs, unsupported resolutions, out-of-range
+scale, transform or VRR values, overlapping displays, and turning off the last
+active output. `setMonitors` remains for non-interactive callers and now saves
+only after the live apply succeeds.
+
 PipeWire, UPower, Bluetooth, MPRIS, notifications, the system tray, and PAM stay
 in QML: Quickshell already exposes them as event-driven C++ services.
 
@@ -405,17 +465,25 @@ See [`layout.md`](layout.md) for the detailed architecture and migration notes.
 
 ## Development
 
-Run QML static checks from the repository root:
+One command runs every static check — Rust formatting, Clippy, the test suite,
+`qmllint`, and ShellCheck — skipping whatever is not installed:
 
 ```bash
+./scripts/check
+```
+
+The same gates run in CI (`.github/workflows/checks.yml`). To run a single piece:
+
+```bash
+cargo fmt --manifest-path backend/Cargo.toml --check
+cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path backend/Cargo.toml
 qmllint shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+shellcheck setup.sh install.sh scripts/*
 ```
 
-Validate shell scripts when ShellCheck is installed:
-
-```bash
-shellcheck scripts/*
-```
+`qmllint` warns on a clean tree because it does not know the Quickshell types, so
+the gate fails on errors only.
 
 The shell has not yet been covered by an automated integration test in a
 nested Wayland session. Test changes on a non-critical session before using the

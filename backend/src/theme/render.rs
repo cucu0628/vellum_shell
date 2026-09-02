@@ -8,7 +8,8 @@
 use crate::theme::paths;
 use anyhow::{Context, Result};
 use std::collections::BTreeMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 pub type Vars = BTreeMap<String, String>;
 
@@ -50,6 +51,18 @@ pub fn load_template(name: &str, builtin: &str) -> String {
     }
 }
 
+/// Egy ideiglenes fajlnev ugyanabban a mappaban, mint a cel.
+///
+/// A PID onmagaban nem eleg: a daemonban tobb szal is irhat egyszerre (a
+/// temavalaszto elonezete es egy parhuzamos alkalmazas), es ugyanarra a nevre
+/// ket iro egymas felig kiirt tartalmat nevezne at a helyere. A processzenkent
+/// novekvo sorszam teszi a nevet egyedive.
+fn temp_path(path: &Path) -> PathBuf {
+    static SERIAL: AtomicU64 = AtomicU64::new(0);
+    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+    path.with_extension(format!("vellum-tmp-{}-{serial}", std::process::id()))
+}
+
 /// Atomikus iras: ideiglenes fajl ugyanabban a mappaban, majd rename.
 /// Ha a tartalom valtozatlan, nem irunk -- ez a bash `cmp -s` viselkedese, es
 /// megkimeli a fajlfigyeloket a felesleges ebresztestol.
@@ -60,16 +73,51 @@ pub fn write_if_changed(path: &Path, contents: &str) -> Result<bool> {
         return Ok(false);
     }
 
+    stage(path, contents)?.commit()?;
+    Ok(true)
+}
+
+/// Egy kiirt, de meg a helyere nem tett fajl.
+///
+/// Ez adja a tobbfajlos tranzakciot: eloszor minden resztvevo kiirodik a maga
+/// ideiglenes fajljaba, es a rename-ek csak akkor kovetkeznek, ha mind sikerult.
+/// Igy nem maradhat felig atallitott allapot azert, mert a masodik iras bukott.
+#[must_use = "a staged fajl commit vagy eldobas nelkul szemetet hagy"]
+pub struct Staged {
+    temp: PathBuf,
+    target: PathBuf,
+}
+
+impl Staged {
+    /// A helyere teszi a fajlt.
+    pub fn commit(mut self) -> Result<()> {
+        std::fs::rename(&self.temp, &self.target)
+            .with_context(|| format!("nem nevezheto at ide: {}", self.target.display()))?;
+        // Nehogy a Drop utana torolni probalja a mar atnevezett fajlt.
+        self.temp.clear();
+        Ok(())
+    }
+}
+
+impl Drop for Staged {
+    fn drop(&mut self) {
+        if !self.temp.as_os_str().is_empty() {
+            let _ = std::fs::remove_file(&self.temp);
+        }
+    }
+}
+
+/// Kiirja a tartalmat egy ideiglenes fajlba a cel mappajaban, de nem teszi meg
+/// a helyere. Eldobva (commit nelkul) a temp fajl is eltunik.
+pub fn stage(path: &Path, contents: &str) -> Result<Staged> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
             .with_context(|| format!("nem hozhato letre a mappa: {}", parent.display()))?;
     }
 
-    let tmp = path.with_extension(format!("vellum-tmp-{}", std::process::id()));
-    std::fs::write(&tmp, contents).with_context(|| format!("nem irhato: {}", tmp.display()))?;
-    std::fs::rename(&tmp, path)
-        .with_context(|| format!("nem nevezheto at ide: {}", path.display()))?;
-    Ok(true)
+    let temp = temp_path(path);
+    std::fs::write(&temp, contents).with_context(|| format!("nem irhato: {}", temp.display()))?;
+    Ok(Staged { temp, target: path.to_path_buf() })
 }
 
 #[cfg(test)]
@@ -80,6 +128,65 @@ mod tests {
         let mut vars = Vars::new();
         vars.insert("ACCENT".into(), "#abcdef".into());
         vars
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("vellum-render-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn a_staged_file_only_appears_after_commit() {
+        let dir = scratch("stage");
+        let target = dir.join("current-theme");
+
+        let staged = stage(&target, "rose-pine\n").unwrap();
+        assert!(!target.exists(), "a staged fajl mar a helyen van");
+
+        staged.commit().unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "rose-pine\n");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_dropped_stage_leaves_nothing_behind() {
+        let dir = scratch("drop");
+        let target = dir.join("current-theme");
+
+        drop(stage(&target, "eldobva\n").unwrap());
+
+        assert!(!target.exists());
+        let leftovers: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().collect();
+        assert!(leftovers.is_empty(), "ideiglenes fajl maradt: {leftovers:?}");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A PID onmagaban nem tette egyedive a nevet: ket parhuzamos iro
+    /// ugyanabba az ideiglenes fajlba dolgozott volna.
+    #[test]
+    fn concurrent_writers_do_not_share_a_temp_file() {
+        let dir = scratch("temp");
+        let target = dir.join("gtk-theme.css");
+
+        let first = stage(&target, "elso\n").unwrap();
+        let second = stage(&target, "masodik\n").unwrap();
+
+        let names: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .flatten()
+            .map(|entry| entry.file_name().to_string_lossy().to_string())
+            .collect();
+        assert_eq!(names.len(), 2, "a ket iro ugyanazt a temp fajlt hasznalta: {names:?}");
+
+        first.commit().unwrap();
+        second.commit().unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "masodik\n");
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

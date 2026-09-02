@@ -102,11 +102,11 @@ impl ModuleError {
 #[derive(Clone)]
 pub struct StateSink {
     topic: &'static str,
-    tx: mpsc::UnboundedSender<(String, Value)>,
+    tx: mpsc::Sender<(String, Value)>,
 }
 
 impl StateSink {
-    pub fn new(topic: &'static str, tx: mpsc::UnboundedSender<(String, Value)>) -> Self {
+    pub fn new(topic: &'static str, tx: mpsc::Sender<(String, Value)>) -> Self {
         Self { topic, tx }
     }
 
@@ -116,8 +116,18 @@ impl StateSink {
 
     /// Kozzeteszi az uj allapotot. Ha a hub mar leallt, csendben elnyelodik --
     /// egy leallas alatti push nem hiba.
+    ///
+    /// A csatorna kotott. A publikalo hurok csak egy map-beirast es egy
+    /// broadcastot vegez, tehat a sor gyakorlatilag sosem all -- ha megis
+    /// megtelik, egy elszabadult modul all mogotte, es akkor jobb egy koztes
+    /// allapotot eldobni (a kovetkezo push amugy is felulirna), mint korlatlanul
+    /// noni. Hangosan naplozzuk, mert ez sosem normalis.
     pub fn push(&self, data: Value) {
-        let _ = self.tx.send((self.topic.to_string(), data));
+        if let Err(mpsc::error::TrySendError::Full(_)) =
+            self.tx.try_send((self.topic.to_string(), data))
+        {
+            tracing::error!(topic = self.topic, "az allapot-sor megtelt, a push eldobva");
+        }
     }
 }
 

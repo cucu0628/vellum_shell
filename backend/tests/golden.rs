@@ -124,9 +124,9 @@ fn generators_match_bash_baseline() {
     // hasznal, mint a Wayland munkamenet. A formatumat a sddm.rs egysegtesztje
     // rogziti; a szinek lekepezese valtozatlan.
     //
-    // A fastfetch is hianyzik: az csak az assets/vellum-logo.svg-t szinezi at,
-    // es maga az SVG azota ujratervezodott, igy a rogzitett baseline mar nem a
-    // jelenlegi forrasrol szol. A transzformaciot a fastfetch.rs tesztje fedi.
+    // A fastfetch is hianyzik: a logo forrasa idokozben ujratervezodott, igy a
+    // rogzitett SVG baseline mar nem a jelenlegi forrasrol szol. A marker- es
+    // config-transzformaciot a fastfetch.rs egysegtesztje fedi.
     let outputs: &[(&str, &str)] = &[
         ("kitty-theme", "kitty-theme.conf"),
         ("gtk-theme", "gtk-theme.css"),

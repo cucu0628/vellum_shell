@@ -1,18 +1,23 @@
 import QtQuick
 
-// A zarolokepernyo palettaja a backend `theme` topicjabol.
+// A zarolokepernyo palettaja es hatterkepe a backend `theme` topicjabol.
 //
 // Korabban ez a fajl a `scripts/theme-read` kimenetet parsolta. Ha a backend
 // nem elerheto, a lenti alapertekek maradnak -- a zarolas ilyenkor is mukodik,
-// csak semleges szinekkel.
+// csak semleges szinekkel es hatterkep nelkul.
 QtObject {
     id: root
 
     required property var backend
 
-    readonly property var colors: backend && backend.topics.theme && backend.topics.theme.colors
-        ? backend.topics.theme.colors
-        : ({})
+    readonly property var themeTopic: backend && backend.topics.theme ? backend.topics.theme : null
+
+    readonly property var colors: themeTopic && themeTopic.colors ? themeTopic.colors : ({})
+
+    // Ugyanaz a hatterkep, amit a core/WallpaperController rak az asztalra: a
+    // zarolas igy nem egy masik kepernyo, hanem ugyanannak a lapnak a
+    // befagyasztasa.
+    readonly property string wallpaper: themeTopic && themeTopic.wallpaper ? themeTopic.wallpaper : ""
 
     // FIGYELEM: a lekepezes szandekosan "kereszt", ugyanugy, mint a
     // core/ThemeStore-ban: a MUTED kulcs az `outline`-ba megy, a

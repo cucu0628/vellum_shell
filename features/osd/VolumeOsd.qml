@@ -14,7 +14,6 @@ PanelWindow {
     readonly property color panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property color panelAccent: theme ? theme.accent : "#d7472f"
     readonly property color mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
-    readonly property color inkBg: theme && theme.surface ? theme.surface : "#1b1613"
     readonly property real volumeRatio: Math.max(0, Math.min(1, volumePercent / 150))
 
     function showVolume(percent, isMuted, targetScreen) {
@@ -26,8 +25,8 @@ PanelWindow {
     }
 
     visible: shown || content.opacity > 0
-    implicitWidth: 300
-    implicitHeight: 66
+    implicitWidth: 360
+    implicitHeight: 70
     color: "transparent"
     mask: Region {}
     anchors.bottom: true
@@ -43,11 +42,11 @@ PanelWindow {
         anchors.fill: parent
         color: osd.panelBg
         border.color: osd.panelAccent
-        border.width: 2
+        border.width: 1
         radius: 0
         opacity: osd.shown ? 1 : 0
 
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.Linear } }
+        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
         Rectangle {
             anchors.left: parent.left
@@ -55,61 +54,59 @@ PanelWindow {
             anchors.bottom: parent.bottom
             width: 3
             color: osd.panelAccent
+            opacity: osd.muted ? 0.45 : 1
         }
 
         Row {
             anchors.fill: parent
-            anchors.margins: 12
-            anchors.leftMargin: 16
+            anchors.margins: 14
+            anchors.leftMargin: 18
             spacing: 12
 
-            Rectangle {
-                width: 38
-                height: 38
-                anchors.verticalCenter: parent.verticalCenter
-                color: osd.inkBg
-                border.color: Qt.rgba(1, 1, 1, 0.08)
-                border.width: 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: osd.muted || osd.volumePercent === 0 ? "" : ""
-                    color: osd.muted ? osd.mutedFg : osd.panelAccent
-                    font.family: "Symbols Nerd Font Mono"
-                    font.pixelSize: 21
-                }
+            Text {
+                width: 24
+                height: parent.height
+                text: osd.muted || osd.volumePercent === 0 ? "" : ""
+                color: osd.muted ? osd.mutedFg : osd.panelAccent
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 20
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
             }
 
             Column {
-                width: parent.width - 50
+                width: parent.width - 36
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 7
+                spacing: 5
 
                 Row {
                     width: parent.width
+                    height: 14
 
                     Text {
-                        width: parent.width - 48
+                        width: parent.width - 56
                         text: "VOLUME"
                         color: osd.panelAccent
                         font.pixelSize: 9
                         font.bold: true
-                        font.letterSpacing: 2
+                        font.letterSpacing: 3
+                        verticalAlignment: Text.AlignVCenter
                     }
 
                     Text {
-                        width: 48
+                        width: 56
                         text: osd.muted ? "MUTE" : osd.volumePercent + "%"
                         color: osd.muted ? osd.mutedFg : osd.panelFg
+                        font.family: "monospace"
                         font.pixelSize: 11
-                        font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
 
                 Item {
                     width: parent.width
-                    height: 6
+                    height: 5
 
                     Rectangle {
                         anchors.fill: parent

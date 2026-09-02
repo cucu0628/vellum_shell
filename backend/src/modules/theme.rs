@@ -10,11 +10,25 @@ use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
-pub struct Theme;
+pub struct Theme {
+    /// A temat modosito muveletek sorbaallitasa.
+    ///
+    /// Az `apply` es a `setWallpaper` ugyanazokat az allapotfajlokat es
+    /// generalt kimeneteket irja. Parhuzamosan futva ket temavaltas
+    /// osszekeveredhet: az egyik palettajaval generalt fajlok mellett a masik
+    /// slugja maradna bejegyezve.
+    mutation: tokio::sync::Mutex<()>,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Theme {
     pub fn new() -> Self {
-        Self
+        Self { mutation: tokio::sync::Mutex::new(()) }
     }
 
     /// A topic tartalma: az aktiv paletta minden kulcsa, plusz a slug es a
@@ -95,6 +109,7 @@ impl Module for Theme {
                 // daemon egyszalu futtatojat.
                 let slug = slug.to_string();
                 let wallpaper = wallpaper.map(str::to_string);
+                let _mutation = self.mutation.lock().await;
                 let report = tokio::task::spawn_blocking(move || {
                     theme::apply(&slug, wallpaper.as_deref(), zen)
                 })
@@ -109,6 +124,7 @@ impl Module for Theme {
                     .get("path")
                     .and_then(Value::as_str)
                     .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'path'"))?;
+                let _mutation = self.mutation.lock().await;
                 theme::set_wallpaper(path)?;
                 sink.push(Self::snapshot());
                 Ok(json!({ "wallpaper": path }))

@@ -5,7 +5,6 @@ use crate::theme::render::{Vars, load_template, render, write_if_changed};
 use crate::theme::{color, paths};
 use anyhow::Result;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 
 const BUILTIN: &str = include_str!("../../../templates/gtk-theme.css.tmpl");
 
@@ -17,24 +16,19 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     // A portal-ujrainditas draga, es a valaszto elo elonezete percenkent
     // tobbszor is alkalmazhat temat. Valtozatlan CSS-nel nincs mit frissiteni.
     if changed && crate::theme::side_effects_enabled() {
-        let _ = Command::new("gsettings")
-            .args(["set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+        crate::proc::run_quiet(
+            "gsettings",
+            &["set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"],
+            crate::proc::SHORT,
+        );
 
         // A portalok gyorsitotarazzak a temat; ujrainditas nelkul a GTK appok a
         // regi szineket mutatnak a kovetkezo bejelentkezesig.
-        let _ = Command::new("systemctl")
-            .args([
-                "--user",
-                "restart",
-                "xdg-desktop-portal-gtk.service",
-                "xdg-desktop-portal.service",
-            ])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+        crate::proc::run_quiet(
+            "systemctl",
+            &["--user", "restart", "xdg-desktop-portal-gtk.service", "xdg-desktop-portal.service"],
+            crate::proc::LONG,
+        );
     }
 
     Ok(Some((output, changed)))

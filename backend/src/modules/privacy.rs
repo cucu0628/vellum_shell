@@ -26,6 +26,12 @@ pub struct CameraUser {
 
 pub struct Privacy;
 
+impl Default for Privacy {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Privacy {
     pub fn new() -> Self {
         Self

@@ -28,6 +28,7 @@ QtObject {
     required property var vpnCli
     required property var aboutPopup
     required property var notifications
+    required property var trayMenu
 
     signal calendarRefreshRequested()
 
@@ -43,7 +44,8 @@ QtObject {
         "privacy",
         "ai",
         "about",
-        "notifications"
+        "notifications",
+        "tray"
     ]
 
     function overlayItem(name) {
@@ -60,14 +62,17 @@ QtObject {
         case "ai": return aiPopup
         case "about": return aboutPopup
         case "notifications": return notifications
+        case "tray": return trayMenu
         }
         return null
     }
 
-    // A notifications sajat feluletet hasznal (`menuOpened` / `setMenuOpen`),
-    // ezert az allapotat mindig ezen a harom fuggvenyen keresztul erjuk el.
+    // Ket fedoreteg sajat feluletet hasznal az `opened` helyett: a notifications
+    // (`menuOpened` / `setMenuOpen`) es a tray menu (`visible` / `openFor` /
+    // `close`). Az allapotukat ezert mindig ezeken a fuggvenyeken at erjuk el.
     function isOverlayOpen(name) {
         if (name === "notifications") return notifications.menuOpened === true
+        if (name === "tray") return trayMenu.visible === true
         var item = overlayItem(name)
         return !!item && item.opened === true
     }
@@ -82,6 +87,7 @@ QtObject {
             var name = overlayNames[i]
             if (name === except) continue
             if (name === "notifications") notifications.menuOpened = false
+            else if (name === "tray") trayMenu.close()
             else overlayItem(name).opened = false
         }
     }
@@ -93,6 +99,13 @@ QtObject {
 
         if (name === "notifications") {
             notifications.setMenuOpen(open, nextScreen)
+            return
+        }
+
+        // A tray menu nyitasahoz a modell is kell, ezert azt csak zarni lehet
+        // errol az utrol; nyitni az `openTrayMenu` valo.
+        if (name === "tray") {
+            if (!open) trayMenu.close()
             return
         }
 
@@ -133,6 +146,20 @@ QtObject {
         notifications.setAllGroupsExpanded(expanded)
     }
 
+    // -- tray ----------------------------------------------------------------
+
+    // A tray menu is teljes kepernyos fedoreteg, ezert ugyanugy kizarja a
+    // tobbit. Korabban a bar kozvetlenul nyitotta, igy egy nyitva felejtett
+    // launcher vagy media panel alatta maradt.
+    function openTrayMenu(nextScreen, model, globalX) {
+        closeOverlays("tray")
+        trayMenu.openFor(nextScreen, model, globalX)
+    }
+
+    function closeTrayMenu() {
+        trayMenu.close()
+    }
+
     // -- settings ------------------------------------------------------------
 
     function setSettingsOpen(open) {
@@ -142,6 +169,17 @@ QtObject {
         }
         settings.opened = open
     }
+
+    // -- media ---------------------------------------------------------------
+
+    // A media panel egy adott fulon. Korabban az IPC kozvetlenul allitotta az
+    // `opened`-et, igy a tobbi fedoreteg nyitva maradt alatta.
+    function openMediaTab(tab, nextScreen) {
+        if (tab !== undefined && tab !== null) mediaPopup.currentTab = tab
+        setOverlayOpen("media", true, nextScreen)
+    }
+
+    function setMediaOpen(open, nextScreen) { setOverlayOpen("media", open, nextScreen) }
 
     function toggleSettings() {
         setSettingsOpen(!settings.opened)

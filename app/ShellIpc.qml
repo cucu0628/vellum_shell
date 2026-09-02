@@ -21,10 +21,7 @@ Item {
     }
 
     function openMediaTab(tab) {
-        var screen = focusedScreenProvider()
-        if (screen) coordinator.mediaPopup.screen = screen
-        coordinator.mediaPopup.currentTab = tab
-        coordinator.mediaPopup.opened = true
+        coordinator.openMediaTab(tab, focusedScreenProvider())
     }
 
     Timer {
@@ -122,8 +119,11 @@ Item {
     IpcHandler {
         target: "audio"
 
-        function toggle(): void { coordinator.toggleAudioScreenAgnostic() }
-        function open(): void { coordinator.setAudioOpen(true) }
+        // Ugyanaz a monitorvalasztas, mint a tobbi IPC utvonalon: a panel ott
+        // nyilik, ahol a felhasznalo epp dolgozik. (A `toggleAudioScreenAgnostic`
+        // annak maradt, aki tenyleg nem tudja a kepernyot.)
+        function toggle(): void { coordinator.toggleAudio(focusedScreenProvider()) }
+        function open(): void { coordinator.setAudioOpen(true, focusedScreenProvider()) }
         function close(): void { coordinator.setAudioOpen(false) }
     }
 
@@ -135,7 +135,7 @@ Item {
         function overview(): void { root.openMediaTab(0) }
         function player(): void { root.openMediaTab(1) }
         function weather(): void { root.openMediaTab(2) }
-        function close(): void { coordinator.mediaPopup.opened = false }
+        function close(): void { coordinator.setMediaOpen(false) }
     }
 
     IpcHandler {

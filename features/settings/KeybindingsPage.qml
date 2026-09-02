@@ -92,7 +92,7 @@ Item {
             font.pixelSize: 10
         }
 
-        ActionButton {
+        SharedUi.ActionButton {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             height: 26

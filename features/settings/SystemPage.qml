@@ -95,7 +95,7 @@ Flickable {
             label: "Network connections"
             description: "Opens nm-connection-editor for VPN and enterprise Wi-Fi setup."
 
-            ActionButton {
+            SharedUi.ActionButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 theme: page.theme
@@ -110,7 +110,7 @@ Flickable {
             label: "Hyprland configuration"
             description: "Opens ~/.config/hypr. Vellum only writes its own generated modules there."
 
-            ActionButton {
+            SharedUi.ActionButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 theme: page.theme
@@ -132,7 +132,7 @@ Flickable {
             label: "Reset Hyprland settings"
             description: "Discards everything this app wrote and falls back to your own config."
 
-            ActionButton {
+            SharedUi.ActionButton {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 theme: page.theme

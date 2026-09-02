@@ -32,6 +32,12 @@ pub struct NetworkState {
 
 pub struct Network;
 
+impl Default for Network {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Network {
     pub fn new() -> Self {
         Self

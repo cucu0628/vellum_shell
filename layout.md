@@ -145,15 +145,12 @@ vellum_shell/
 │   ├── lock/
 │   │   ├── AmbientLockView.qml       # Többi monitor ambient nézete
 │   │   ├── AuthenticationController.qml
-│   │   ├── LockBackground.qml        # Csendes háttér: ensō kör, vignetta
+│   │   ├── LockBackground.qml        # Elhomályosuló asztali háttérkép, fátyol, ensō vízjel
 │   │   ├── LockCard.qml              # Beviteli monitor panelje
 │   │   ├── LockClock.qml             # Óra, dátum, napi haladásjelző
-│   │   ├── LockGlow.qml              # Rétegzett puha fényfolt
 │   │   ├── LockRoot.qml              # LockShell.qml belső implementációja
 │   │   ├── LockScreenSettingsController.qml
-│   │   ├── LockSeal.qml              # Forgó zárjel
-│   │   ├── LockShutter.qml           # Shoji nyitó/záró animáció minden monitoron
-│   │   ├── LockThemeController.qml
+│   │   ├── LockThemeController.qml   # Paletta és háttérkép a `theme` topicból
 │   │   ├── PasswordField.qml
 │   │   └── PowerStatusController.qml
 │   ├── media/
@@ -386,7 +383,13 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - About rendszerinformáció controller.
 - A felesleges gyökér popup wrapperek megszűntek; a `shell.qml` közvetlenül importálja a feature-típusokat.
 - Lock theme, power, PAM controller, háttér, card és password field szétválasztása.
-- Lockscreen újratervezés csendes tus stílusban: ensō háttér, pecsét, óra és shoji nyitó/záró animáció.
+- Lockscreen újratervezés a shell panelnyelvén: a zárás az asztali háttérképet
+  homályosítja el fekete átmenet helyett, fölötte nagy óra és `ui/PopupFrame`
+  formájú kártya. A shoji redőny, a pecsét és a fényfolt megszűnt.
+- A feloldás két ütemű (`closing`, majd `thawing`): előbb a panel tűnik el, utána
+  enged fel a homály, a fátyol, a vignetta és a vízjel. A `WlSessionLock`-ot csak
+  akkor engedjük el, amikor a felület már pontosan az asztali háttérkép, így az
+  utolsó képkocka és az asztal között nincs ugrás.
 - Rust backend: protokoll, hub, lazy topicok és a `core/Backend.qml` kliens
   automatikus újracsatlakozással.
 - Téma-motor: paletta, színmatek és a nyolc generátor egy helyen, natív Material

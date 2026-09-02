@@ -25,6 +25,10 @@ use tokio::sync::Mutex;
 /// Ennyi ideig hisszuk el a CLI-tol kapott reszleteket.
 const DETAIL_TTL: Duration = Duration::from_secs(60);
 
+/// A protonvpn CLI felso hatara. Halozatra var, ezert nagyvonalubb, mint egy
+/// helyi lekerdezes -- de nem vegtelen.
+const CLI_TIMEOUT: Duration = Duration::from_secs(20);
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VpnState {
@@ -73,6 +77,12 @@ struct Cache {
 
 pub struct Vpn {
     cache: Mutex<Cache>,
+}
+
+impl Default for Vpn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Vpn {
@@ -357,13 +367,20 @@ async fn run_cli(args: &[&str]) -> Result<String> {
 
 /// `Ok(stdout)` sikeres futasnal, `Err(stderr vagy stdout)` egyebkent.
 async fn run_cli_result(args: &[&str]) -> std::result::Result<String, String> {
-    let output = tokio::process::Command::new("protonvpn")
-        .args(args)
-        // A python figyelmeztetesei kulonben belekeverednek a kimenetbe.
-        .env("PYTHONWARNINGS", "ignore")
-        .output()
-        .await
-        .map_err(|err| err.to_string())?;
+    // A protonvpn CLI halozatra var: idokorlat nelkul egy elakadt kapcsolodas
+    // orokre fogva tartana a hivot.
+    let output = tokio::time::timeout(
+        CLI_TIMEOUT,
+        tokio::process::Command::new("protonvpn")
+            .args(args)
+            // A python figyelmeztetesei kulonben belekeverednek a kimenetbe.
+            .env("PYTHONWARNINGS", "ignore")
+            .kill_on_drop(true)
+            .output(),
+    )
+    .await
+    .map_err(|_| format!("a protonvpn nem valaszolt {} masodperc alatt", CLI_TIMEOUT.as_secs()))?
+    .map_err(|err| err.to_string())?;
 
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     if output.status.success() {

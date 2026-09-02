@@ -28,51 +28,101 @@ pub struct Outcome {
     pub changed: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Kotelezo-e ez a generator: az altalunk birtokolt fajlok igen, a
+    /// kulso alkalmazasok konfigja nem. Egy kotelezo generator hibaja azt
+    /// jelenti, hogy a tema nem lett alkalmazva -- lasd `theme::apply`.
+    pub required: bool,
 }
 
 impl Outcome {
-    fn ok(generator: &'static str, written: Option<(PathBuf, bool)>) -> Self {
+    fn ok(generator: &'static str, required: bool, written: Option<(PathBuf, bool)>) -> Self {
         match written {
-            Some((path, changed)) => Self { generator, path: Some(path), changed, error: None },
-            None => Self { generator, path: None, changed: false, error: None },
+            Some((path, changed)) => {
+                Self { generator, path: Some(path), changed, error: None, required }
+            }
+            None => Self { generator, path: None, changed: false, error: None, required },
         }
     }
 
-    fn failed(generator: &'static str, err: &anyhow::Error) -> Self {
-        Self { generator, path: None, changed: false, error: Some(format!("{err:#}")) }
+    fn failed(generator: &'static str, required: bool, err: &anyhow::Error) -> Self {
+        Self { generator, path: None, changed: false, error: Some(format!("{err:#}")), required }
+    }
+
+    pub fn is_failure(&self) -> bool {
+        self.error.is_some()
     }
 }
+
+/// Kotelezo generator: olyan fajlt ir, ami a shell sajat felulethez vagy a
+/// telepitesunkhoz tartozik. Ha ez bukik, a temavaltas nem tortent meg.
+const REQUIRED: bool = true;
+
+/// Opcionalis generator: egy kulso alkalmazas konfigja. Ha az app nincs
+/// telepitve vagy a profilja hianyzik, az nem a temavaltas hibaja.
+const OPTIONAL: bool = false;
 
 /// Vegigfuttatja az osszes generatort.
 ///
 /// Egy generator hibaja nem allitja meg a tobbit -- ez a korabbi `|| true`
 /// lancolas viselkedese: ha pl. nincs Zen profil, a kitty temaja attol meg
-/// frissuljon.
+/// frissuljon. A kotelezo es az opcionalis hiba viszont nem ugyanaz: az
+/// elobbibol a `theme::apply` hibat csinal, es meg sem rogziti az uj temat.
 pub fn run_all(palette: &Palette, include_zen: bool) -> Vec<Outcome> {
     let mut outcomes = vec![
-        run("kitty", || kitty::generate(palette)),
-        run("gtk", || gtk::generate(palette)),
-        run("icon", || icon::generate(palette)),
-        run("hyprland", || hyprland::generate(palette)),
-        run("btop", || btop::generate(palette)),
-        run("fastfetch", || fastfetch::generate(palette)),
-        run("sddm", || sddm::generate(palette)),
+        // A sajat mappankba vagy a sajat konfigfajljainkba iranak: ha ezek
+        // buknak, az nem egy hianyzo alkalmazas, hanem valodi irasi hiba.
+        run("kitty", REQUIRED, || kitty::generate(palette)),
+        run("gtk", REQUIRED, || gtk::generate(palette)),
+        run("hyprland", REQUIRED, || hyprland::generate(palette)),
+        // Kulso alkalmazasok: hianyozhatnak, es akkor nincs mit temazni.
+        run("icon", OPTIONAL, || icon::generate(palette)),
+        run("btop", OPTIONAL, || btop::generate(palette)),
+        run("fastfetch", OPTIONAL, || fastfetch::generate(palette)),
+        // Az SDDM temaja rendszerkonyvtarban ul: root nelkul varhatoan bukik.
+        run("sddm", OPTIONAL, || sddm::generate(palette)),
     ];
 
     // A Zen profil patchelese a legtolakodobb muvelet, ezert kulon kapcsolhato.
     if include_zen {
-        outcomes.push(run("zen", || zen::generate(palette)));
+        outcomes.push(run("zen", OPTIONAL, || zen::generate(palette)));
     }
 
     outcomes
 }
 
-fn run(name: &'static str, generate: impl FnOnce() -> Result<Option<(PathBuf, bool)>>) -> Outcome {
+/// A kotelezo generatorok hibai, ember altal olvashato formaban.
+pub fn required_failures(outcomes: &[Outcome]) -> Vec<String> {
+    outcomes
+        .iter()
+        .filter(|outcome| outcome.required && outcome.is_failure())
+        .map(|outcome| {
+            format!("{}: {}", outcome.generator, outcome.error.as_deref().unwrap_or("ismeretlen"))
+        })
+        .collect()
+}
+
+fn run(
+    name: &'static str,
+    required: bool,
+    generate: impl FnOnce() -> Result<Option<(PathBuf, bool)>>,
+) -> Outcome {
     match generate() {
-        Ok(written) => Outcome::ok(name, written),
+        Ok(written) => Outcome::ok(name, required, written),
         Err(err) => {
-            tracing::warn!(generator = name, error = format!("{err:#}"), "generator hibara futott");
-            Outcome::failed(name, &err)
+            if required {
+                tracing::error!(
+                    generator = name,
+                    error = format!("{err:#}"),
+                    "kotelezo generator hibara futott"
+                );
+            } else {
+                tracing::warn!(
+                    generator = name,
+                    error = format!("{err:#}"),
+                    "opcionalis generator kimaradt"
+                );
+            }
+            Outcome::failed(name, required, &err)
         }
     }
 }

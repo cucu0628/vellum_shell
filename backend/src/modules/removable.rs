@@ -59,6 +59,12 @@ pub struct RemovableDevice {
 
 pub struct Removable;
 
+impl Default for Removable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Removable {
     pub fn new() -> Self {
         Self
@@ -239,8 +245,8 @@ async fn read_devices(manager: &zbus::fdo::ObjectManagerProxy<'_>) -> Vec<Remova
         .collect();
 
     let mut devices: Vec<RemovableDevice> = objects
-        .iter()
-        .filter_map(|(_, interfaces)| {
+        .values()
+        .filter_map(|interfaces| {
             let block = interfaces.get(BLOCK)?;
             let filesystem = interfaces.get(FILESYSTEM)?;
 

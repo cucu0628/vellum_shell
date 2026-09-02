@@ -108,23 +108,36 @@ pub struct ApplyReport {
     pub generators: Vec<generators::Outcome>,
 }
 
-/// Egy tema (es opcionalisan hatterkep) alkalmazasa: allapot rogzitese, majd
-/// az osszes generator lefuttatasa.
+/// Egy tema (es opcionalisan hatterkep) alkalmazasa.
+///
+/// Tranzakciokent fut, mert a felig alkalmazott tema rosszabb, mint a regi:
+///
+///   1. **ervenyesites** -- letezik-e a tema es a hatterkep;
+///   2. **paletta** -- a dinamikus temanal ez maga a generalas;
+///   3. **generatorok** -- a kotelezoek hibaja itt megallit;
+///   4. **commit** -- az allapotfajlok csak a legvegen, egyszerre irodnak ki.
+///
+/// Korabban a `current-theme` es a `current-wallpaper` legelol irodott ki. Egy
+/// olvashatatlan hatterkep vagy egy elbukott generalas utan is az uj tema
+/// maradt bejegyezve, es a kovetkezo indulaskor a shell egy sosem alkalmazott
+/// temaval jott fel.
 pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<ApplyReport> {
     let conf = paths::theme_conf(slug);
     // A dinamikus tema conf-ja generalt: meg nem letezhet az elso futaskor.
     if slug != DYNAMIC_SLUG && !conf.is_file() {
         anyhow::bail!("ismeretlen tema: {slug}");
     }
-
-    write_state(&paths::current_theme_file(), slug)?;
-    if let Some(wallpaper) = wallpaper {
-        write_state(&paths::current_wallpaper_file(), wallpaper)?;
+    if let Some(wallpaper) = wallpaper
+        && !std::path::Path::new(wallpaper).is_file()
+    {
+        anyhow::bail!("a hatterkep nem letezik: {wallpaper}");
     }
 
     let palette = if slug == DYNAMIC_SLUG {
         // A dinamikus paletta a hatterkepbol szuletik, ezert eloszor azt kell
         // eloallitani -- kulonben a generatorok az elozo kep szineit irnak ki.
+        // Hatterkep nelkul a mar rogzitett allapotra esunk vissza; ez meg a
+        // regi ertek, mert a commit csak a vegen jon.
         let source = wallpaper
             .map(str::to_string)
             .or_else(|| paths::read_line_file(&paths::current_wallpaper_file()))
@@ -136,12 +149,40 @@ pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<A
 
     let outcomes = generators::run_all(&palette, include_zen);
 
+    // Egy hianyzo Zen profil vagy a root nelkuli SDDM nem hiba. Egy sajat
+    // fajlunk kiirhatatlansaga viszont igen: olyankor a tema nem lett
+    // alkalmazva, es nem is jegyezzuk be.
+    let failures = generators::required_failures(&outcomes);
+    if !failures.is_empty() {
+        anyhow::bail!("a tema nem alkalmazhato -- {}", failures.join("; "));
+    }
+
+    commit_state(slug, wallpaper)?;
+
     Ok(ApplyReport {
         slug: slug.to_string(),
         wallpaper: wallpaper.map(str::to_string),
         palette: palette.to_json(),
         generators: outcomes,
     })
+}
+
+/// A ket allapotfajl egyutt. Eloszor mindketto kiirodik egy ideiglenes fajlba,
+/// es a rename-ek csak akkor kovetkeznek, ha mindketto sikerult -- kulonben egy
+/// elbukott masodik iras utan a tema es a hatterkep nem ugyanarrol szolna.
+fn commit_state(slug: &str, wallpaper: Option<&str>) -> Result<()> {
+    let theme_file = paths::current_theme_file();
+    let mut staged = vec![render::stage(&theme_file, &format!("{slug}\n"))?];
+
+    if let Some(wallpaper) = wallpaper {
+        let wallpaper_file = paths::current_wallpaper_file();
+        staged.push(render::stage(&wallpaper_file, &format!("{wallpaper}\n"))?);
+    }
+
+    for entry in staged {
+        entry.commit()?;
+    }
+    Ok(())
 }
 
 /// A hatterkepbol szarmaztatott paletta, allapotiras es generatorok nelkul.

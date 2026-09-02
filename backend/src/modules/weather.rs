@@ -57,6 +57,12 @@ pub struct Weather {
     cache: Mutex<Cache>,
 }
 
+impl Default for Weather {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Weather {
     pub fn new() -> Self {
         Self {

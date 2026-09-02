@@ -25,8 +25,9 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 /// Amit a settings app olvasni es allitani tud. A lista szandekosan zart: egy
@@ -144,11 +145,54 @@ impl Store {
     }
 }
 
-pub struct Hypr;
+/// Meddig el egy meg nem erositett kijelzo-elonezet. Ennyi ido utan a backend
+/// magatol visszaall -- akkor is, ha a settings ablak vagy az egesz shell
+/// addigra eltunt.
+const PREVIEW_TIMEOUT_MS: u64 = 12_000;
+
+/// Ertelmes skalahatarok. A Hyprland ennel szelsosegesebbet is elfogad, de
+/// olyat mar nem lehet visszakattintani.
+const MIN_SCALE: f64 = 0.25;
+const MAX_SCALE: f64 = 8.0;
+
+/// Egy folyamatban levo, meg meg nem erositett kijelzovaltas.
+///
+/// Szandekosan a backend birtokolja es nem a settings app: egy rossz mod vagy
+/// pozicio pont azt a felulet teszi hasznalhatatlanna, aminek vissza kellene
+/// vonnia. Igy a visszaallitas akkor is lefut, ha a kliens oldal kozben
+/// megsemmisult -- oldalvaltas, ablakbezaras vagy shell-osszeomlas eseten is.
+struct Preview {
+    token: String,
+    /// Az elonezet elott ervenyes elo allapot, teljes egeszeben.
+    previous: Vec<MonitorSetting>,
+    /// Amit meg kell erositeni. Csak `confirmMonitors` utan kerul a store-ba.
+    requested: Vec<MonitorSetting>,
+    /// Az automatikus visszaallitast vegzo task. Confirm/revert leallitja.
+    guard: tokio::task::JoinHandle<()>,
+}
+
+#[derive(Default)]
+struct HyprState {
+    preview: Option<Preview>,
+}
+
+pub struct Hypr {
+    /// Minden modositast sorbaallit. A `setOptions` es a `setMonitors` kulonben
+    /// egymas ala olvashatna be a store-t es veszthetne el a masik irasat.
+    /// Ugyanez a zar vedi az elonezet allapotat is, igy nincs zarolasi sorrend,
+    /// amit el lehetne rontani.
+    state: tokio::sync::Mutex<HyprState>,
+}
+
+impl Default for Hypr {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Hypr {
     pub fn new() -> Self {
-        Self
+        Self { state: tokio::sync::Mutex::new(HyprState::default()) }
     }
 
     fn snapshot() -> Value {
@@ -157,6 +201,96 @@ impl Hypr {
             "monitors": monitors(),
             "options": read_options(),
         })
+    }
+
+    /// Elonezet inditasa: ervenyesites, elo alkalmazas, es egy fegyverbe
+    /// allitott visszaallitas. A store-hoz **nem** nyulunk -- az csak a
+    /// megerositeskor valtozik.
+    async fn begin_preview(
+        self: &Arc<Self>,
+        state: &mut HyprState,
+        requested: Vec<MonitorSetting>,
+        sink: &StateSink,
+    ) -> Result<Value> {
+        let live = tokio::task::spawn_blocking(live_monitors).await??;
+        validate_layout(&requested, &live)?;
+
+        // Egymast koveto finomhangolasok mind az utolso *megerositett*
+        // allapotra allnak vissza, nem az elozo elonezetre.
+        let previous = match state.preview.take() {
+            Some(pending) => {
+                pending.guard.abort();
+                pending.previous
+            }
+            None => snapshot_settings(&live),
+        };
+
+        let attempt = requested.clone();
+        let rollback = previous.clone();
+        if let Err(err) = tokio::task::spawn_blocking(move || apply_live(&attempt)).await? {
+            // A felig alkalmazott elrendezes nem maradhat itt: ez az az eset,
+            // amikor a felhasznalonak mar nincs mivel visszakattintania.
+            let _ = tokio::task::spawn_blocking(move || apply_live(&rollback)).await?;
+            return Err(err);
+        }
+
+        let token = next_token();
+        let guard = tokio::spawn({
+            let module = Arc::clone(self);
+            let token = token.clone();
+            let sink = sink.clone();
+            async move {
+                tokio::time::sleep(Duration::from_millis(PREVIEW_TIMEOUT_MS)).await;
+                module.expire_preview(&token, &sink).await;
+            }
+        });
+
+        state.preview =
+            Some(Preview { token: token.clone(), previous, requested: requested.clone(), guard });
+
+        Ok(json!({
+            "token": token,
+            "timeoutMs": PREVIEW_TIMEOUT_MS,
+            "monitors": requested,
+        }))
+    }
+
+    /// Megerosites: a mar elo elrendezes lemezre kerul.
+    async fn confirm_preview(&self, state: &mut HyprState, token: &str) -> Result<Value> {
+        let preview = take_preview(state, token)?;
+        let requested = preview.requested;
+        let store = tokio::task::spawn_blocking(move || persist_monitors(requested)).await??;
+        Ok(json!({ "monitors": store.monitors }))
+    }
+
+    /// Azonnali visszavonas, a lejaratra varas nelkul.
+    async fn revert_preview(&self, state: &mut HyprState, token: &str) -> Result<Value> {
+        let preview = take_preview(state, token)?;
+        let previous = preview.previous;
+        let restore = previous.clone();
+        tokio::task::spawn_blocking(move || apply_live(&restore)).await??;
+        Ok(json!({ "monitors": previous }))
+    }
+
+    /// A lejarati task teste. Nem `take_preview`-t hasznal, mert itt nincs mit
+    /// abortalni: ez maga a fegyverben allo task.
+    async fn expire_preview(&self, token: &str, sink: &StateSink) {
+        let mut state = self.state.lock().await;
+        let Some(preview) = state.preview.take_if(|pending| pending.token == token) else {
+            return;
+        };
+
+        let previous = preview.previous;
+        match tokio::task::spawn_blocking(move || apply_live(&previous)).await {
+            Ok(Ok(())) => tracing::info!(token, "a kijelzo-elonezet lejart, visszaallitva"),
+            Ok(Err(err)) => tracing::error!(%err, "a kijelzo-elonezet nem allithato vissza"),
+            Err(err) => tracing::error!(%err, "a visszaallito task elszallt"),
+        }
+        drop(state);
+
+        if let Ok(snapshot) = tokio::task::spawn_blocking(Hypr::snapshot).await {
+            sink.push(snapshot);
+        }
     }
 }
 
@@ -183,6 +317,27 @@ impl Module for Hypr {
                     .param("values", "object", true, "Kulcs -> ertek parok."),
                 MethodDescription::new("setMonitors", "Monitorok allitasa eloben es a konfigban.")
                     .param("monitors", "array", true, "MonitorSetting objektumok listaja."),
+                MethodDescription::new(
+                    "previewMonitors",
+                    "Kijelzovaltas elonezetben: eloben alkalmaz, de nem ment. \
+                     Megerosites nelkul a backend magatol visszaallitja.",
+                )
+                .param(
+                    "monitors",
+                    "array",
+                    true,
+                    "MonitorSetting objektumok listaja.",
+                ),
+                MethodDescription::new(
+                    "confirmMonitors",
+                    "Egy fuggo elonezet veglegesitese es perzisztalasa.",
+                )
+                .param("token", "string", true, "A previewMonitors adta token."),
+                MethodDescription::new(
+                    "revertMonitors",
+                    "Egy fuggo elonezet azonnali visszavonasa.",
+                )
+                .param("token", "string", true, "A previewMonitors adta token."),
                 MethodDescription::new("reset", "Perzisztalt beallitasok eldobasa a store-bol.")
                     .param("scope", "string", true, "options, monitors vagy all."),
             ],
@@ -238,26 +393,45 @@ impl Module for Hypr {
                     }
                 }
 
+                let _state = self.state.lock().await;
                 let applied = tokio::task::spawn_blocking(move || set_options(values)).await??;
                 sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
                 Ok(applied)
             }
 
             "setMonitors" => {
-                let raw = params
-                    .get("monitors")
-                    .cloned()
-                    .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'monitors' tomb"))?;
-                let monitors: Vec<MonitorSetting> = serde_json::from_value(raw)
-                    .map_err(|err| ModuleError::invalid_params(err.to_string()))?;
-
-                if monitors.iter().any(|item| item.output.trim().is_empty()) {
-                    return Err(ModuleError::invalid_params("ures 'output' a listaban").into());
-                }
-
+                let monitors = parse_monitors(&params)?;
+                let _state = self.state.lock().await;
                 let applied = tokio::task::spawn_blocking(move || set_monitors(monitors)).await??;
                 sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
                 Ok(applied)
+            }
+
+            "previewMonitors" => {
+                let monitors = parse_monitors(&params)?;
+                let mut state = self.state.lock().await;
+                let started = self.begin_preview(&mut state, monitors, sink).await?;
+                drop(state);
+                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                Ok(started)
+            }
+
+            "confirmMonitors" => {
+                let token = parse_token(&params)?;
+                let mut state = self.state.lock().await;
+                let confirmed = self.confirm_preview(&mut state, &token).await?;
+                drop(state);
+                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                Ok(confirmed)
+            }
+
+            "revertMonitors" => {
+                let token = parse_token(&params)?;
+                let mut state = self.state.lock().await;
+                let reverted = self.revert_preview(&mut state, &token).await?;
+                drop(state);
+                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                Ok(reverted)
             }
 
             "reset" => {
@@ -267,6 +441,7 @@ impl Module for Hypr {
                     .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'scope'"))?
                     .to_string();
 
+                let _state = self.state.lock().await;
                 let store = tokio::task::spawn_blocking(move || reset(&scope)).await??;
                 sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
                 Ok(serde_json::to_value(store)?)
@@ -313,20 +488,120 @@ fn set_options(values: Map<String, Value>) -> Result<Value> {
     Ok(json!({ "options": store.options }))
 }
 
+/// Monitorok allitasa egy lepesben. Elonezet nelkuli ut: a settings app a
+/// kockazatos valtoztatasokra a `previewMonitors`-t hasznalja, ez a hivas
+/// azoknak marad, akik mar tudjak, mit akarnak.
+///
+/// Ket dolgot csinal maskepp, mint korabban: ervenyesit, mielott hozzanyulna a
+/// kompozitorhoz, es **csak sikeres elo alkalmazas utan ment**. Egy elbukott
+/// eval korabban is a lemezre kerult, igy egy hibas beallitas a kovetkezo
+/// indulaskor visszajott.
 fn set_monitors(monitors: Vec<MonitorSetting>) -> Result<Value> {
-    let mut store = Store::load();
+    // Hyprland nelkul nincs mit ervenyesiteni es nincs mit eloben allitani, a
+    // perzisztalas viszont ilyenkor is helyes: kovetkezo indulaskor ervenyre
+    // jut. Ez a shell graceful degradation szerzodese.
+    let live = live_monitors().ok();
 
-    for setting in monitors {
-        let live_code = render_monitor_lua(&setting);
-        if let Err(err) = hyprctl(&["eval", &live_code]) {
-            tracing::warn!(%err, output = setting.output, "a monitor nem allithato eloben");
+    if let Some(live) = &live {
+        validate_layout(&monitors, live)?;
+        let previous = snapshot_settings(live);
+        if let Err(err) = apply_live(&monitors) {
+            // Egy felig alkalmazott elrendezes rosszabb, mint a regi.
+            let _ = apply_live(&previous);
+            return Err(err);
         }
-        store.upsert_monitor(setting);
     }
 
+    let store = persist_monitors(monitors)?;
+    Ok(json!({ "monitors": store.monitors, "live": live.is_some() }))
+}
+
+/// A store frissitese es kiirasa. Csak akkor hivjuk, ha az elo alkalmazas mar
+/// sikerult (vagy nincs elo session).
+fn persist_monitors(monitors: Vec<MonitorSetting>) -> Result<Store> {
+    let mut store = Store::load();
+    for setting in monitors {
+        store.upsert_monitor(setting);
+    }
     store.render()?;
     store.save()?;
-    Ok(json!({ "monitors": store.monitors }))
+    Ok(store)
+}
+
+/// Egyetlen `hyprctl eval` az egesz elrendezesre. Egy hivas egy chunkban: a
+/// kijelzok pozicioja egymashoz kepest ertelmes, ezert nem akarunk kozottuk
+/// olyan pillanatot, amikor csak a fele allt at.
+fn apply_live(monitors: &[MonitorSetting]) -> Result<()> {
+    let mut code = String::new();
+    for setting in monitors {
+        code.push_str(&render_monitor_lua(setting));
+    }
+    if code.is_empty() {
+        return Ok(());
+    }
+    hyprctl(&["eval", &code])?;
+    Ok(())
+}
+
+/// Az elo allapot teljes `MonitorSetting` listakent -- ez a visszaallitas
+/// alapja. Minden mezot kiirunk, mert a visszaallitasnak nem szabad a Hyprland
+/// alapertelmezesere hagyatkoznia.
+fn snapshot_settings(live: &[LiveMonitor]) -> Vec<MonitorSetting> {
+    live.iter()
+        .map(|monitor| MonitorSetting {
+            output: monitor.name.clone(),
+            mode: Some(format!(
+                "{}x{}@{}",
+                monitor.width,
+                monitor.height,
+                monitor.refresh_rate.round() as i64
+            )),
+            position: Some(format!("{}x{}", monitor.x, monitor.y)),
+            scale: Some(if monitor.scale > 0.0 { monitor.scale } else { 1.0 }),
+            transform: Some(monitor.transform),
+            vrr: monitor.vrr.map(u32::from),
+            disabled: monitor.disabled,
+        })
+        .collect()
+}
+
+fn next_token() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(1);
+    let serial = COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("display-{}-{serial}", std::process::id())
+}
+
+fn take_preview(state: &mut HyprState, token: &str) -> Result<Preview> {
+    let Some(preview) = state.preview.take_if(|pending| pending.token == token) else {
+        return Err(ModuleError::not_found(
+            "nincs fuggo kijelzo-elonezet ezzel a tokennel (talan mar lejart)",
+        )
+        .into());
+    };
+    preview.guard.abort();
+    Ok(preview)
+}
+
+fn parse_monitors(params: &Value) -> Result<Vec<MonitorSetting>> {
+    let raw = params
+        .get("monitors")
+        .cloned()
+        .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'monitors' tomb"))?;
+    let monitors: Vec<MonitorSetting> =
+        serde_json::from_value(raw).map_err(|err| ModuleError::invalid_params(err.to_string()))?;
+    if monitors.is_empty() {
+        return Err(ModuleError::invalid_params("ures 'monitors' tomb").into());
+    }
+    Ok(monitors)
+}
+
+fn parse_token(params: &Value) -> Result<String> {
+    params
+        .get("token")
+        .and_then(Value::as_str)
+        .filter(|token| !token.trim().is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| ModuleError::invalid_params("hianyzik a 'token'").into())
 }
 
 fn reset(scope: &str) -> Result<Store> {
@@ -344,6 +619,268 @@ fn reset(scope: &str) -> Result<Store> {
     // a konfigot, amibol mar kikerult a torolt ertek.
     let _ = hyprctl(&["reload"]);
     Ok(store)
+}
+
+// -- ervenyesites ------------------------------------------------------------
+
+/// Egy csatlakoztatott kijelzo elo allapota, annyi mezovel, amennyit az
+/// ervenyesites hasznal.
+#[derive(Debug, Clone, PartialEq)]
+struct LiveMonitor {
+    name: String,
+    width: i64,
+    height: i64,
+    refresh_rate: f64,
+    x: i64,
+    y: i64,
+    scale: f64,
+    transform: u32,
+    vrr: Option<u8>,
+    disabled: bool,
+    available_modes: Vec<String>,
+}
+
+impl LiveMonitor {
+    fn from_value(value: &Value) -> Option<Self> {
+        let object = value.as_object()?;
+        Some(Self {
+            name: object.get("name")?.as_str()?.to_string(),
+            width: object.get("width").and_then(Value::as_i64).unwrap_or(0),
+            height: object.get("height").and_then(Value::as_i64).unwrap_or(0),
+            refresh_rate: object.get("refreshRate").and_then(Value::as_f64).unwrap_or(0.0),
+            x: object.get("x").and_then(Value::as_i64).unwrap_or(0),
+            y: object.get("y").and_then(Value::as_i64).unwrap_or(0),
+            scale: object.get("scale").and_then(Value::as_f64).unwrap_or(1.0),
+            transform: object.get("transform").and_then(Value::as_u64).unwrap_or(0) as u32,
+            vrr: object.get("vrr").and_then(Value::as_bool).map(u8::from),
+            disabled: object.get("disabled").and_then(Value::as_bool).unwrap_or(false),
+            available_modes: object
+                .get("availableModes")
+                .and_then(Value::as_array)
+                .map(|modes| modes.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                .unwrap_or_default(),
+        })
+    }
+}
+
+/// Az elo kijelzok, hibaval, ha nincs Hyprland. A `monitors()` szandekosan
+/// nyeli a hibat (a snapshot udvarias ures listat ad), itt viszont pont az a
+/// kerdes, hogy van-e mihez kepest ervenyesiteni.
+fn live_monitors() -> Result<Vec<LiveMonitor>> {
+    let text = hyprctl(&["-j", "monitors", "all"])?;
+    let list: Vec<Value> =
+        serde_json::from_str(&text).context("a hyprctl monitor-listaja ertelmezhetetlen")?;
+    Ok(list.iter().filter_map(LiveMonitor::from_value).collect())
+}
+
+/// Egy kijelzo helye a kert elrendezes utan, logikai pixelben.
+#[derive(Debug, Clone, PartialEq)]
+struct ResolvedMonitor {
+    name: String,
+    x: i64,
+    y: i64,
+    width: i64,
+    height: i64,
+    disabled: bool,
+}
+
+/// A kert elrendezes ellenorzese az elo kijelzok ismereteben.
+///
+/// Ez a kapu all a sotet kepernyo elott: ami ezen atmegy, azt mar alkalmazzuk.
+/// Az egyes mezoket a Hyprland is ellenorzi, de a *kapcsolatukat* nem: hogy
+/// marad-e bekapcsolt kijelzo, es hogy nem fedik-e egymast.
+fn validate_layout(requested: &[MonitorSetting], live: &[LiveMonitor]) -> Result<(), ModuleError> {
+    let mut seen = BTreeSet::new();
+
+    for setting in requested {
+        let output = setting.output.trim();
+        if output.is_empty() {
+            return Err(ModuleError::invalid_params("ures 'output' a listaban"));
+        }
+        if !seen.insert(output.to_string()) {
+            return Err(ModuleError::invalid_params(format!(
+                "a(z) {output} ketszer szerepel a listaban"
+            )));
+        }
+        let Some(monitor) = live.iter().find(|item| item.name == output) else {
+            return Err(ModuleError::not_found(format!("nincs ilyen kijelzo: {output}")));
+        };
+
+        // Egy kikapcsolt kijelzonek nincs modja, pozicioja vagy skalaja.
+        if setting.disabled {
+            continue;
+        }
+        if let Some(mode) = &setting.mode {
+            validate_mode(mode, monitor)?;
+        }
+        if let Some(position) = &setting.position {
+            validate_position(position)?;
+        }
+        if let Some(scale) = setting.scale
+            && !(MIN_SCALE..=MAX_SCALE).contains(&scale)
+        {
+            return Err(ModuleError::invalid_params(format!(
+                "a skala {MIN_SCALE} es {MAX_SCALE} kozott lehet, nem {scale}"
+            )));
+        }
+        if let Some(transform) = setting.transform
+            && transform > 7
+        {
+            return Err(ModuleError::invalid_params(format!(
+                "a transform 0 es 7 kozott lehet, nem {transform}"
+            )));
+        }
+        if let Some(vrr) = setting.vrr
+            && vrr > 2
+        {
+            return Err(ModuleError::invalid_params(format!("a vrr 0, 1 vagy 2 lehet, nem {vrr}")));
+        }
+    }
+
+    let layout = resolve_layout(requested, live);
+    if !layout.iter().any(|item| !item.disabled) {
+        return Err(ModuleError::invalid_params(
+            "legalabb egy kijelzonek bekapcsolva kell maradnia",
+        ));
+    }
+    if let Some((first, second)) = first_overlap(&layout) {
+        return Err(ModuleError::invalid_params(format!(
+            "a(z) {first} es a(z) {second} atfedne egymast; huzd oket szet"
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_mode(mode: &str, monitor: &LiveMonitor) -> Result<(), ModuleError> {
+    let mode = mode.trim();
+    if matches!(mode, "preferred" | "highres" | "highrr" | "auto" | "") {
+        return Ok(());
+    }
+
+    let (size, rate) = match mode.split_once('@') {
+        Some((size, rate)) => (size, Some(rate)),
+        None => (mode, None),
+    };
+    let Some((width, height)) = parse_size(size) else {
+        return Err(ModuleError::invalid_params(format!("ertelmezhetetlen mod: {mode}")));
+    };
+    if let Some(rate) = rate {
+        let rate = rate.trim().trim_end_matches("Hz").trim();
+        match rate.parse::<f64>() {
+            Ok(hertz) if hertz > 0.0 => {}
+            _ => {
+                return Err(ModuleError::invalid_params(format!(
+                    "ertelmezhetetlen frissitesi rata: {mode}"
+                )));
+            }
+        }
+    }
+
+    // Csak a felbontast vetjuk ossze a panel listajaval. A frissitesi rata
+    // kerekitese kliensenkent elter (59.95 vs 60), a nem tamogatott felbontas
+    // viszont pont az a hiba, ami sotet kepernyot hagy.
+    if !monitor.available_modes.is_empty()
+        && !monitor.available_modes.iter().any(|available| {
+            available.split('@').next().map(parse_size) == Some(Some((width, height)))
+        })
+    {
+        return Err(ModuleError::invalid_params(format!(
+            "a(z) {} nem tamogatja a {width}x{height} felbontast",
+            monitor.name
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_position(position: &str) -> Result<(), ModuleError> {
+    let position = position.trim();
+    // A Hyprland sajat elhelyezo kulcsszavai (`auto`, `auto-right`, ...).
+    if position.is_empty() || position.starts_with("auto") {
+        return Ok(());
+    }
+    match parse_point(position) {
+        Some(_) => Ok(()),
+        None => Err(ModuleError::invalid_params(format!("ertelmezhetetlen pozicio: {position}"))),
+    }
+}
+
+fn parse_size(value: &str) -> Option<(i64, i64)> {
+    let (width, height) = value.trim().split_once('x')?;
+    let width = width.trim().parse::<i64>().ok()?;
+    let height = height.trim().parse::<i64>().ok()?;
+    (width > 0 && height > 0).then_some((width, height))
+}
+
+fn parse_point(value: &str) -> Option<(i64, i64)> {
+    let value = value.trim();
+    // A negativ x-koordinata miatt nem az elso 'x'-nel vagunk, hanem az elso
+    // olyannal, ami nem a szam elojele utan all.
+    let split = value.char_indices().skip(1).find(|(_, ch)| *ch == 'x')?.0;
+    let x = value[..split].trim().parse::<i64>().ok()?;
+    let y = value[split + 1..].trim().parse::<i64>().ok()?;
+    Some((x, y))
+}
+
+/// A kert modositasokat rateritjuk az elo allapotra, es kiszamoljuk, hova
+/// kerulnek a kijelzok logikai pixelben.
+fn resolve_layout(requested: &[MonitorSetting], live: &[LiveMonitor]) -> Vec<ResolvedMonitor> {
+    live.iter()
+        .map(|monitor| {
+            let setting = requested.iter().find(|item| item.output.trim() == monitor.name);
+            let disabled = setting.map(|item| item.disabled).unwrap_or(monitor.disabled);
+
+            let (width, height) = setting
+                .and_then(|item| item.mode.as_deref())
+                .and_then(|mode| parse_size(mode.split('@').next().unwrap_or(mode)))
+                .unwrap_or((monitor.width, monitor.height));
+            let (x, y) = setting
+                .and_then(|item| item.position.as_deref())
+                .and_then(parse_point)
+                .unwrap_or((monitor.x, monitor.y));
+
+            let scale =
+                setting.and_then(|item| item.scale).unwrap_or(monitor.scale).max(f64::MIN_POSITIVE);
+            let transform = setting.and_then(|item| item.transform).unwrap_or(monitor.transform);
+
+            let mut logical_width = (width as f64 / scale).round() as i64;
+            let mut logical_height = (height as f64 / scale).round() as i64;
+            // A paratlan transformok (90 es 270 fok) megforditjak az oldalakat.
+            if transform % 2 == 1 {
+                std::mem::swap(&mut logical_width, &mut logical_height);
+            }
+
+            ResolvedMonitor {
+                name: monitor.name.clone(),
+                x,
+                y,
+                width: logical_width,
+                height: logical_height,
+                disabled,
+            }
+        })
+        .collect()
+}
+
+/// Az elso atfedo par, ha van. Egy pixelnyi erintkezest nem szamitunk
+/// atfedesnek: a kerekites ennyit hozhat.
+fn first_overlap(layout: &[ResolvedMonitor]) -> Option<(String, String)> {
+    let active: Vec<&ResolvedMonitor> =
+        layout.iter().filter(|item| !item.disabled && item.width > 0 && item.height > 0).collect();
+
+    for (index, first) in active.iter().enumerate() {
+        for second in active.iter().skip(index + 1) {
+            let horizontal =
+                (first.x + first.width).min(second.x + second.width) - first.x.max(second.x);
+            let vertical =
+                (first.y + first.height).min(second.y + second.height) - first.y.max(second.y);
+            if horizontal > 1 && vertical > 1 {
+                return Some((first.name.clone(), second.name.clone()));
+            }
+        }
+    }
+    None
 }
 
 // -- olvasas -----------------------------------------------------------------
@@ -442,10 +979,9 @@ fn normalize_option(reply: &Map<String, Value>) -> Option<Value> {
 // -- hyprctl -----------------------------------------------------------------
 
 fn hyprctl(args: &[&str]) -> Result<String> {
-    let output = std::process::Command::new("hyprctl")
-        .args(args)
-        .output()
-        .context("a hyprctl nem futtathato")?;
+    // Idokorlattal: ez a hivas a modul modositasi zarat tartja, es egy beragadt
+    // hyprctl kulonben minden tovabbi kijelzomuveletet befagyasztana.
+    let output = crate::proc::run("hyprctl", args, crate::proc::SHORT)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -785,6 +1321,177 @@ mod tests {
 
         assert_eq!(store.monitors.len(), 2);
         assert_eq!(store.monitors[0].scale, Some(2.0));
+    }
+
+    fn live(name: &str, width: i64, height: i64, x: i64, y: i64) -> LiveMonitor {
+        LiveMonitor {
+            name: name.into(),
+            width,
+            height,
+            refresh_rate: 60.0,
+            x,
+            y,
+            scale: 1.0,
+            transform: 0,
+            vrr: Some(0),
+            disabled: false,
+            available_modes: vec![format!("{width}x{height}@60.00Hz"), "1280x720@60.00Hz".into()],
+        }
+    }
+
+    fn setting(output: &str) -> MonitorSetting {
+        MonitorSetting { output: output.into(), ..MonitorSetting::default() }
+    }
+
+    #[test]
+    fn a_side_by_side_layout_is_accepted() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0), live("HDMI-A-1", 1920, 1080, 1920, 0)];
+        let requested = vec![MonitorSetting {
+            position: Some("1920x0".into()),
+            mode: Some("1920x1080@60".into()),
+            ..setting("HDMI-A-1")
+        }];
+        assert!(validate_layout(&requested, &live).is_ok());
+    }
+
+    #[test]
+    fn an_unknown_output_is_rejected() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0)];
+        let err = validate_layout(&[setting("DP-9")], &live).unwrap_err();
+        assert_eq!(err.code(), "not_found");
+    }
+
+    #[test]
+    fn the_same_output_cannot_appear_twice() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0)];
+        let err = validate_layout(&[setting("DP-1"), setting("DP-1")], &live).unwrap_err();
+        assert_eq!(err.code(), "invalid_params");
+    }
+
+    #[test]
+    fn the_last_display_cannot_be_switched_off() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0), live("HDMI-A-1", 1920, 1080, 1920, 0)];
+
+        let one_off = vec![MonitorSetting { disabled: true, ..setting("DP-1") }];
+        assert!(validate_layout(&one_off, &live).is_ok());
+
+        let all_off = vec![
+            MonitorSetting { disabled: true, ..setting("DP-1") },
+            MonitorSetting { disabled: true, ..setting("HDMI-A-1") },
+        ];
+        let err = validate_layout(&all_off, &live).unwrap_err();
+        assert_eq!(err.code(), "invalid_params");
+        assert!(err.to_string().contains("bekapcsolva"));
+    }
+
+    #[test]
+    fn overlapping_displays_are_rejected() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0), live("HDMI-A-1", 1920, 1080, 1920, 0)];
+        let requested =
+            vec![MonitorSetting { position: Some("960x0".into()), ..setting("HDMI-A-1") }];
+
+        let err = validate_layout(&requested, &live).unwrap_err();
+        assert!(err.to_string().contains("atfedne"), "{err}");
+
+        // Egy pixelnyi erintkezes meg nem atfedes: a skalazas kerekitese ennyit hozhat.
+        let touching =
+            vec![MonitorSetting { position: Some("1919x0".into()), ..setting("HDMI-A-1") }];
+        assert!(validate_layout(&touching, &live).is_ok());
+    }
+
+    #[test]
+    fn a_scaled_display_frees_up_the_space_it_no_longer_uses() {
+        // 1920 logikai szelesseg 1.5-os skalan 1280: ami korabban atfedett
+        // volna, az igy elfer.
+        let live = vec![live("DP-1", 1920, 1080, 0, 0), live("HDMI-A-1", 1920, 1080, 1920, 0)];
+        let requested = vec![
+            MonitorSetting { scale: Some(1.5), ..setting("DP-1") },
+            MonitorSetting { position: Some("1280x0".into()), ..setting("HDMI-A-1") },
+        ];
+        assert!(validate_layout(&requested, &live).is_ok());
+    }
+
+    #[test]
+    fn a_rotated_display_is_measured_on_its_side() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0)];
+        let layout =
+            resolve_layout(&[MonitorSetting { transform: Some(1), ..setting("DP-1") }], &live);
+        assert_eq!(layout[0].width, 1080);
+        assert_eq!(layout[0].height, 1920);
+    }
+
+    #[test]
+    fn an_unsupported_resolution_is_rejected() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0)];
+
+        let bad = vec![MonitorSetting { mode: Some("3840x2160@60".into()), ..setting("DP-1") }];
+        let err = validate_layout(&bad, &live).unwrap_err();
+        assert!(err.to_string().contains("felbontast"), "{err}");
+
+        // A rata kerekitese nem szamit, a felbontas igen.
+        let good = vec![MonitorSetting { mode: Some("1280x720@59".into()), ..setting("DP-1") }];
+        assert!(validate_layout(&good, &live).is_ok());
+
+        let garbage = vec![MonitorSetting { mode: Some("nonsense".into()), ..setting("DP-1") }];
+        assert!(validate_layout(&garbage, &live).is_err());
+    }
+
+    #[test]
+    fn out_of_range_values_are_rejected() {
+        let live = vec![live("DP-1", 1920, 1080, 0, 0)];
+        for bad in [
+            MonitorSetting { scale: Some(0.01), ..setting("DP-1") },
+            MonitorSetting { scale: Some(12.0), ..setting("DP-1") },
+            MonitorSetting { transform: Some(9), ..setting("DP-1") },
+            MonitorSetting { vrr: Some(5), ..setting("DP-1") },
+            MonitorSetting { position: Some("kozepre".into()), ..setting("DP-1") },
+        ] {
+            let err = validate_layout(std::slice::from_ref(&bad), &live).unwrap_err();
+            assert_eq!(err.code(), "invalid_params", "{bad:?}");
+        }
+    }
+
+    #[test]
+    fn a_disabled_display_skips_the_field_checks() {
+        // Kikapcsolva a mod es a pozicio nem szamit -- azokat ugysem irjuk ki.
+        let live = vec![live("DP-1", 1920, 1080, 0, 0), live("HDMI-A-1", 1920, 1080, 1920, 0)];
+        let requested = vec![MonitorSetting {
+            mode: Some("9999x9999@60".into()),
+            disabled: true,
+            ..setting("DP-1")
+        }];
+        assert!(validate_layout(&requested, &live).is_ok());
+    }
+
+    #[test]
+    fn negative_positions_parse() {
+        assert_eq!(parse_point("-1920x0"), Some((-1920, 0)));
+        assert_eq!(parse_point("1920x-1080"), Some((1920, -1080)));
+        assert_eq!(parse_point("0x0"), Some((0, 0)));
+        assert_eq!(parse_point("x0"), None);
+        assert_eq!(parse_point("auto"), None);
+    }
+
+    #[test]
+    fn the_live_snapshot_is_fully_specified() {
+        // A visszaallitasnak nem szabad a Hyprland alapertelmezesere biznia
+        // magat: minden mezot kiirunk.
+        let restored = snapshot_settings(&[live("DP-1", 1920, 1080, 0, 0)]);
+        assert_eq!(restored[0].mode.as_deref(), Some("1920x1080@60"));
+        assert_eq!(restored[0].position.as_deref(), Some("0x0"));
+        assert_eq!(restored[0].scale, Some(1.0));
+        assert_eq!(restored[0].transform, Some(0));
+        assert_eq!(restored[0].vrr, Some(0));
+        assert!(!restored[0].disabled);
+    }
+
+    #[test]
+    fn a_live_monitor_survives_a_sparse_hyprctl_reply() {
+        let parsed = LiveMonitor::from_value(&json!({ "name": "DP-1" })).unwrap();
+        assert_eq!(parsed.name, "DP-1");
+        assert_eq!(parsed.scale, 1.0);
+        assert!(parsed.available_modes.is_empty());
+        assert!(LiveMonitor::from_value(&json!({ "width": 1920 })).is_none());
     }
 
     #[test]

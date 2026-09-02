@@ -384,6 +384,7 @@ ShellRoot {
         vpnCli: vpnController
         aboutPopup: aboutPopup
         notifications: notifications
+        trayMenu: trayMenu
         onCalendarRefreshRequested: shellRoot.calendarNow = new Date()
     }
 
@@ -471,7 +472,7 @@ ShellRoot {
             onAiToggleRequested: popupCoordinator.toggleAi(targetScreen)
             onLaunchCommand: command => launchBarCommand(command)
             onAudioVolumeStepRequested: increase => audioSummaryController.stepVolume(increase)
-            onTrayMenuRequested: (model, globalX) => trayMenu.openFor(targetScreen, model, globalX)
+            onTrayMenuRequested: (model, globalX) => popupCoordinator.openTrayMenu(targetScreen, model, globalX)
         }
     }
 

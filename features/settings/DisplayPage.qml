@@ -6,22 +6,28 @@ import "../../ui" as SharedUi
 // Kijelzo-beallitasok. A monitorvaltas mindig visszaszamlalassal jar: egy rossz
 // mod vagy pozicio sotet kepernyot hagyhat, amit mar nem lehet visszakattintani,
 // ezert megerosites nelkul magatol visszaall.
+//
+// Magat a tranzakciot a backend birtokolja (`hypr.previewMonitors`), ez az
+// oldal csak megjeleniti: igy az oldalvaltas vagy az ablak bezarasa sem
+// hagyhat allva egy meg nem erositett beallitast.
 Item {
     id: page
 
     required property var controller
     property var theme: null
 
-    // Ami a visszaszamlalas alatt visszaallitando, ha a felhasznalo nem erositi meg.
-    property var revertSetting: null
-    property int revertSeconds: 0
     // A vasznon vegzett huzas csak elonezet. Apply utan kerul a backendhez.
     property var pendingArrangement: null
     property bool applyingArrangement: false
+    // A backend legutobbi elutasitasa (ervenytelen mod, atfedes, ...).
+    property string errorMessage: ""
+
+    readonly property bool awaitingConfirmation: controller.previewToken !== ""
 
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
     readonly property string accent: theme ? theme.accent : "#b7372f"
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
+    readonly property string errorColor: "#d7472f"
     readonly property var monitor: controller.selectedMonitor
     readonly property int activeMonitorCount: {
         var count = 0;
@@ -98,32 +104,15 @@ Item {
         return null;
     }
 
-    function applyMonitorWithRevert(next, previous, callback) {
-        if (!next || !previous)
-            return;
-
-        var nextList = Array.isArray(next) ? next : [next];
-        page.controller.applyMonitors(nextList, (success) => {
-            if (callback)
-                callback(success);
-            if (!success)
-                return;
-
-            page.revertSetting = previous;
-            page.revertSeconds = 12;
-            revertTimer.restart();
-        });
-    }
-
-    // Kockazatos valtoztatas: eloszor elmentjuk a jelenlegi allapotot, aztan
-    // alkalmazunk, es inditjuk a visszaszamlalast.
+    // Kockazatos valtoztatas: a backend alkalmazza eloben, elteszi a korabbi
+    // allapotot, es megerosites nelkul visszaallitja.
     function applyWithRevert(overrides) {
-        var previous = settingFor({});
         var next = settingFor(overrides);
         if (!next)
             return ;
 
-        applyMonitorWithRevert(next, previous, null);
+        page.errorMessage = "";
+        page.controller.previewMonitors([next], null);
     }
 
     // A huzas utan az egesz elrendezest ujraszamoljuk, es a bal felso sarkot
@@ -170,14 +159,6 @@ Item {
         if (layout.length === 0)
             return;
 
-        // A visszaallitas is a teljes elrendezes, nem csak a mozgatott kijelzo.
-        var previous = [];
-        for (var i = 0; i < controller.monitors.length; i++) {
-            if (controller.monitors[i].disabled !== true)
-                previous.push(settingForMonitor(controller.monitors[i], {}));
-
-        }
-
         var moved = null;
         for (var j = 0; j < layout.length; j++) {
             if (layout[j].output === output)
@@ -185,10 +166,11 @@ Item {
 
         }
 
+        // A visszaallitando allapotot a backend rogziti, amikor az elonezet
+        // elindul -- itt csak azt tartjuk, amit alkalmazni akarunk.
         pendingArrangement = {
             "output": output,
             "position": moved ? moved.position : x + "x" + y,
-            "previous": previous,
             "next": layout
         };
     }
@@ -204,37 +186,19 @@ Item {
             return;
 
         applyingArrangement = true;
-        applyMonitorWithRevert(pending.next, pending.previous, () => {
+        page.errorMessage = "";
+        page.controller.previewMonitors(pending.next, () => {
             page.applyingArrangement = false;
             page.cancelPendingArrangement();
         });
     }
 
-    function keepChanges() {
-        revertTimer.stop();
-        revertSetting = null;
-        revertSeconds = 0;
-    }
-
-    function revertChanges() {
-        var previous = revertSetting;
-        keepChanges();
-        if (previous)
-            page.controller.applyMonitors(Array.isArray(previous) ? previous : [previous], null);
-
-    }
-
-    Timer {
-        id: revertTimer
-
-        interval: 1000
-        repeat: true
-        onTriggered: {
-            page.revertSeconds--;
-            if (page.revertSeconds <= 0)
-                page.revertChanges();
-
+    Connections {
+        function onPreviewFailed(message) {
+            page.errorMessage = message;
         }
+
+        target: page.controller
     }
 
     Flickable {
@@ -288,15 +252,22 @@ Item {
 
             Text {
                 anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.rightMargin: 190
                 anchors.verticalCenter: parent.verticalCenter
-                text: page.pendingArrangement
-                    ? (page.applyingArrangement
-                        ? "Applying " + page.pendingArrangement.output + " at " + page.pendingArrangement.position + "…"
-                        : page.pendingArrangement.output + " staged at " + page.pendingArrangement.position)
-                    : "Drag a display, then press Apply."
-                color: page.pendingArrangement ? page.foreground : page.muted
+                text: page.errorMessage !== ""
+                    ? page.errorMessage
+                    : (page.pendingArrangement
+                        ? (page.applyingArrangement
+                            ? "Applying " + page.pendingArrangement.output + " at " + page.pendingArrangement.position + "…"
+                            : page.pendingArrangement.output + " staged at " + page.pendingArrangement.position)
+                        : "Drag a display, then press Apply.")
+                color: page.errorMessage !== ""
+                    ? page.errorColor
+                    : (page.pendingArrangement ? page.foreground : page.muted)
                 font.family: "monospace"
                 font.pixelSize: 10
+                elide: Text.ElideRight
             }
 
             Row {
@@ -304,7 +275,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8
 
-                ActionButton {
+                SharedUi.ActionButton {
                     visible: page.pendingArrangement !== null
                     enabled: !page.applyingArrangement
                     opacity: enabled ? 1 : 0.4
@@ -313,7 +284,7 @@ Item {
                     onClicked: page.cancelPendingArrangement()
                 }
 
-                ActionButton {
+                SharedUi.ActionButton {
                     enabled: page.pendingArrangement !== null && !page.applyingArrangement
                     opacity: enabled ? 1 : 0.4
                     theme: page.theme
@@ -476,7 +447,7 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 62
-        visible: page.revertSetting !== null
+        visible: page.awaitingConfirmation
         color: page.theme && page.theme.surface ? page.theme.surface : "#1b1613"
         border.color: page.accent
         border.width: 2
@@ -494,7 +465,7 @@ Item {
             }
 
             Text {
-                text: "Reverting in " + page.revertSeconds + " s"
+                text: "Reverting in " + page.controller.previewSeconds + " s"
                 color: page.muted
                 font.family: "monospace"
                 font.pixelSize: 10
@@ -528,7 +499,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: page.revertChanges()
+                    onClicked: page.controller.revertPreview()
                 }
 
             }
@@ -549,7 +520,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: page.keepChanges()
+                    onClicked: page.controller.confirmPreview()
                 }
 
             }

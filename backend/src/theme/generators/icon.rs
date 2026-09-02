@@ -7,7 +7,6 @@ use crate::theme::palette::Palette;
 use crate::theme::{color, paths};
 use anyhow::Result;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 
 pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     let icon_theme = resolve(palette);
@@ -92,7 +91,7 @@ fn is_installed(name: &str) -> bool {
 }
 
 fn run_quiet(program: &str, args: &[&str]) {
-    let _ = Command::new(program).args(args).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    crate::proc::run_quiet(program, args, crate::proc::SHORT);
 }
 
 #[cfg(test)]

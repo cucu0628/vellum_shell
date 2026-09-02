@@ -17,8 +17,17 @@ ShellRoot {
     property alias accent: themeController.accent
     property alias surface: themeController.surface
     property alias muted: themeController.muted
+    property alias outline: themeController.outline
+    property alias wallpaper: themeController.wallpaper
+    // A megosztott ui/ komponensek egy paletta-objektumot varnak, nem hat
+    // kulon propertyt -- a temavezerlo pont ilyen alaku.
+    readonly property var theme: themeController
     property bool ready: false
     property bool closing: false
+    // A kilepes ket utemu: eloszor a panel tunik el, csak utana enged fel a
+    // dermedt hatter. Ha egyszerre tortenne, a felszabadulasnak nem lenne oka,
+    // es a lap egyben kapcsolna at.
+    property bool thawing: false
     property bool lockOnStartup: false
     property bool quitAfterUnlock: false
 
@@ -44,7 +53,7 @@ ShellRoot {
     readonly property string timeText: two(currentTime.getHours()) + ":" + two(currentTime.getMinutes())
     readonly property string secondsText: two(currentTime.getSeconds())
     readonly property string weekdayText: dayNames[weekdayIndex]
-    readonly property string dateText: monthNames[currentTime.getMonth()] + " " + currentTime.getDate() + "  ·  " + currentTime.getFullYear()
+    readonly property string dateText: monthNames[currentTime.getMonth()] + " " + currentTime.getDate() + " " + currentTime.getFullYear()
     readonly property real dayProgress: (currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds()) / 86400
 
     readonly property string effectiveInputMonitorName: inputMonitorName !== ""
@@ -72,16 +81,19 @@ ShellRoot {
         if (closing) return
         closing = true
         statusText = "Unlocked"
-        unlockAnimationTimer.start()
+        thawTimer.restart()
+        unlockAnimationTimer.restart()
     }
 
     function resetCycleState() {
         introTimer.stop()
         revealTimer.stop()
+        thawTimer.stop()
         unlockAnimationTimer.stop()
         unlockExitTimer.stop()
         ready = false
         closing = false
+        thawing = false
         revealStep = 0
         currentTime = new Date()
         authentication.reset()
@@ -142,27 +154,39 @@ ShellRoot {
 
     Timer {
         id: introTimer
-        interval: 80
+        interval: 60
         onTriggered: {
             root.ready = true
             revealTimer.start()
         }
     }
 
-    // Lépcsőzetes megjelenés: minden ütem egy réteget hoz be a felületen.
+    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = panel,
+    // 4 = beviteli mezo es allapotsor.
     Timer {
         id: revealTimer
-        interval: 130
+        interval: 110
         repeat: true
         onTriggered: {
             root.revealStep += 1
-            if (root.revealStep >= 6) revealTimer.stop()
+            if (root.revealStep >= 4) revealTimer.stop()
         }
     }
 
+    // A panel eltunese utan enged fel a dermedes.
+    Timer {
+        id: thawTimer
+        interval: 130
+        onTriggered: root.thawing = true
+    }
+
+    // A zarolast csak akkor engedjuk el, amikor a felulet mar pontosan az
+    // asztali hatterkep: se fatyol, se vignetta, se vizjel. Igy az utolso kocka
+    // es az asztal kozott nincs ugras -- 130 ms panel + 340 ms felenges + egy
+    // rovid megallapodas.
     Timer {
         id: unlockAnimationTimer
-        interval: 640
+        interval: 500
         onTriggered: {
             root.sessionActive = false
             if (!sessionLock.secure) unlockExitTimer.start()
@@ -218,12 +242,6 @@ ShellRoot {
                     lockRoot: root
                     screenName: lockSurface.surfaceName
                 }
-            }
-
-            LockUi.LockShutter {
-                anchors.fill: parent
-                lockRoot: root
-                z: 100
             }
         }
     }

@@ -21,6 +21,12 @@ const DISK_EVERY: Duration = Duration::from_secs(60);
 
 pub struct SysStats;
 
+impl Default for SysStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SysStats {
     pub fn new() -> Self {
         Self

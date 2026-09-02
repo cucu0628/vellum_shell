@@ -2,6 +2,9 @@
 name = "vellum-shell-backend"
 version = "0.1.0"
 edition = "2024"
+# A kod let-chaineket es `slice::as_chunks`-ot hasznal: mindketto 1.88-ban
+# stabilizalodott. A setup.sh ezt az erteket ellenorzi telepites elott.
+rust-version = "1.88"
 description = "Vellum Shell backend: tema motor es allapot daemon"
 license = "MIT"
 
@@ -39,3 +42,6 @@ panic = "abort"
 
 [dev-dependencies]
 image = { version = "0.25.10", default-features = false, features = ["png"] }
+# A `test-util` adja a virtualis orat: az ujrainditasi backoff igy nem valos
+# masodpercekben telik el a teszteknel.
+tokio = { version = "1", features = ["rt", "macros", "test-util", "time"] }
