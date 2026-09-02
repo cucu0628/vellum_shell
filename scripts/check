@@ -77,8 +77,12 @@ fi
 
 if need shellcheck "ShellCheck"; then
   step "shellcheck"
-  # A scripts/ alatt minden futtathato shell script, plusz a ket telepito.
-  mapfile -t scripts < <(find scripts -maxdepth 1 -type f -perm -u+x)
+  scripts=()
+  for script in scripts/*; do
+    [[ -f $script && -x $script ]] || continue
+    IFS= read -r shebang < "$script" || true
+    [[ $shebang =~ ^#!.*(ba|da|k)?sh([[:space:]]|$) ]] && scripts+=("$script")
+  done
   run "shellcheck" shellcheck setup.sh install.sh "${scripts[@]}"
 fi
 

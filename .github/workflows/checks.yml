@@ -74,5 +74,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
-          mapfile -t scripts < <(find scripts -maxdepth 1 -type f -perm -u+x)
+          scripts=()
+          for script in scripts/*; do
+            [[ -f $script && -x $script ]] || continue
+            IFS= read -r shebang < "$script" || true
+            [[ $shebang =~ ^#!.*(ba|da|k)?sh([[:space:]]|$) ]] && scripts+=("$script")
+          done
           shellcheck setup.sh install.sh "${scripts[@]}"

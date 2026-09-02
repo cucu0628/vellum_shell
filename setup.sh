@@ -250,7 +250,7 @@ fi
 # A sorrend szamit: a generalt modulok a felhasznalo sajat moduljai utan
 # jonnek, hogy az itt beallitott ertekek nyerjenek.
 for module in colors bindings autostart vellum_display vellum_tuning; do
-  if ! grep -Eq "^[[:space:]]*require\\([\"']$module[\"']\\)" "$hypr_main"; then
+  if ! grep -Eq "^[[:space:]]*require\\([\"']${module}[\"']\\)" "$hypr_main"; then
     hypr_additions+=("require(\"$module\")")
   fi
 done
