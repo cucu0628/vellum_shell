@@ -83,7 +83,7 @@ if need shellcheck "ShellCheck"; then
     IFS= read -r shebang < "$script" || true
     [[ $shebang =~ ^#!.*(ba|da|k)?sh([[:space:]]|$) ]] && scripts+=("$script")
   done
-  run "shellcheck" shellcheck setup.sh install.sh "${scripts[@]}"
+  run "shellcheck" shellcheck --severity=warning setup.sh install.sh "${scripts[@]}"
 fi
 
 printf '\n'

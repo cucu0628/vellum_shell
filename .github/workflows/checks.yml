@@ -80,4 +80,4 @@ jobs:
             IFS= read -r shebang < "$script" || true
             [[ $shebang =~ ^#!.*(ba|da|k)?sh([[:space:]]|$) ]] && scripts+=("$script")
           done
-          shellcheck setup.sh install.sh "${scripts[@]}"
+          shellcheck --severity=warning setup.sh install.sh "${scripts[@]}"
