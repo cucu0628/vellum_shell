@@ -58,9 +58,11 @@ Item {
                 Behavior on color { ColorAnimation { duration: 120 } }
             }
 
+            // A savok kozeprol nonek szet, nem az aljukrol: a sor ezert az elem
+            // fuggoleges kozepere all, ugyanoda, ahol media nelkul a hangjegy.
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: clockDisplay.baselineOffset - height
+                anchors.verticalCenter: parent.verticalCenter
                 height: 16
                 spacing: 1
                 visible: root.hasMediaSource
@@ -76,7 +78,7 @@ Item {
 
                         width: 2
                         height: 3 + displayLevel * 13
-                        anchors.bottom: parent.bottom
+                        anchors.verticalCenter: parent.verticalCenter
                         radius: width / 2
                         color: centerMouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
 
