@@ -22,6 +22,7 @@ SharedUi.DashPanel {
     kanji: ""
     trailing: card.today.getFullYear() + "." + two(card.today.getMonth() + 1) + "." + two(card.today.getDate())
     contentSpacing: 10
+    editorial: true
 
     Item {
         id: monthRow
@@ -108,7 +109,7 @@ SharedUi.DashPanel {
         muted: card.muted
         accent: card.accent
         todayForeground: card.background
-        activeBackground: Qt.rgba(1, 1, 1, 0.035)
+        activeBackground: "transparent"
         hoverBackground: Qt.rgba(1, 1, 1, 0.075)
         activeBorder: "transparent"
         hoverEnabled: true

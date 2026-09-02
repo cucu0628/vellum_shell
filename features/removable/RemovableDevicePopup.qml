@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: popup
@@ -32,7 +33,6 @@ PanelWindow {
     onOpenedChanged: {
         if (opened && deviceController) {
             deviceController.errorMessage = ""
-            deviceController.refresh()
         }
     }
 
@@ -55,7 +55,7 @@ PanelWindow {
         anchors.rightMargin: 10
         y: 32
         width: Math.min(410, parent.width - 20)
-        height: popup.opened ? Math.min(500, parent.height - 46, 104 + popup.devices.length * 78
+        height: popup.opened ? Math.min(500, parent.height - 46, 120 + popup.devices.length * 78
             + (deviceController && deviceController.errorMessage !== "" ? 38 : 0)) : 0
         enabled: popup.opened
         opacity: popup.opened ? 1 : 0
@@ -64,12 +64,9 @@ PanelWindow {
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
         Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: popup.panelBg
-            border.color: popup.panelAccent
-            border.width: 1
-            clip: true
+            theme: popup.theme
 
             MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
 
@@ -78,53 +75,16 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 10
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
-
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        color: popup.panelAccent
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰕓"
-                            color: popup.panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Column {
-                        width: parent.width - 46
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-
-                        Text {
-                            width: parent.width
-                            text: "REMOVABLE DEVICES"
-                            color: popup.panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 2.5
-                            font.bold: true
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: popup.devices.length + (popup.devices.length === 1 ? " volume available" : " volumes available")
-                            color: popup.mutedFg
-                            font.pixelSize: 9
-                        }
-                    }
+                    theme: popup.theme
+                    title: "Removable"
+                    subtitle: popup.devices.length + (popup.devices.length === 1 ? " volume available" : " volumes available")
                 }
 
                 Item {
                     width: parent.width
-                    height: parent.height - 46 - (deviceController && deviceController.errorMessage !== "" ? 28 : 0)
+                    height: parent.height - 62 - (deviceController && deviceController.errorMessage !== "" ? 28 : 0)
 
                     Text {
                         anchors.centerIn: parent

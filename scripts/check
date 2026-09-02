@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Minosegkapu: minden statikus ellenorzes egy helyen.
+#
+# Ugyanaz fut itt es a CI-ben, hogy a "nalam mukodik" ne lehessen kerdes. Ami
+# nincs telepitve, azt kihagyjuk es a vegen jelentjuk -- a shell fejlesztesehez
+# nem kell minden eszkoz meglennie.
+#
+# Semmi olyat nem futtat, ami az elo asztalhoz nyul: se telepitot, se
+# temaalkalmazast, se energiakezelest.
+set -euo pipefail
+
+repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$repo"
+
+failed=()
+skipped=()
+
+step() {
+  printf '\n\033[1m== %s\033[0m\n' "$1"
+}
+
+need() {
+  if command -v "$1" >/dev/null 2>&1; then
+    return 0
+  fi
+  skipped+=("$2 (nincs telepitve: $1)")
+  return 1
+}
+
+run() {
+  local name=$1
+  shift
+  if "$@"; then
+    return 0
+  fi
+  failed+=("$name")
+  return 0
+}
+
+if need cargo "Rust ellenorzesek"; then
+  step "cargo fmt"
+  run "cargo fmt" cargo fmt --manifest-path backend/Cargo.toml --check
+
+  step "cargo clippy"
+  run "cargo clippy" cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+
+  step "cargo test"
+  run "cargo test" cargo test --manifest-path backend/Cargo.toml
+fi
+
+# A qmllint a Qt bin mappajaban is lehet, nem csak a PATH-on.
+qmllint_bin=""
+if command -v qmllint >/dev/null 2>&1; then
+  qmllint_bin=qmllint
+elif [[ -x /usr/lib/qt6/bin/qmllint ]]; then
+  qmllint_bin=/usr/lib/qt6/bin/qmllint
+fi
+
+if [[ -n $qmllint_bin ]]; then
+  step "qmllint"
+  # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
+  # figyelmeztetest (uncreatable-type, unqualified access). Csak a hibakon
+  # bukunk el; a figyelmeztetesek szamat kiirjuk, hogy a novekedes latszodjon.
+  qml_output=$("$qmllint_bin" shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml \
+    features/*/*.qml 2>&1 || true)
+
+  if grep -q '^Error:' <<<"$qml_output"; then
+    grep '^Error:' <<<"$qml_output"
+    failed+=("qmllint")
+  fi
+  printf 'figyelmeztetes: %s, hiba: %s\n' \
+    "$(grep -c '^Warning:' <<<"$qml_output" || true)" \
+    "$(grep -c '^Error:' <<<"$qml_output" || true)"
+else
+  skipped+=("qmllint (nincs telepitve)")
+fi
+
+if need shellcheck "ShellCheck"; then
+  step "shellcheck"
+  scripts=()
+  for script in scripts/*; do
+    [[ -f $script && -x $script ]] || continue
+    IFS= read -r shebang < "$script" || true
+    [[ $shebang =~ ^#!.*(ba|da|k)?sh([[:space:]]|$) ]] && scripts+=("$script")
+  done
+  run "shellcheck" shellcheck --severity=warning setup.sh install.sh "${scripts[@]}"
+fi
+
+printf '\n'
+for note in "${skipped[@]}"; do
+  printf '\033[33mkihagyva:\033[0m %s\n' "$note"
+done
+
+if ((${#failed[@]} > 0)); then
+  printf '\033[31mmegbukott:\033[0m %s\n' "${failed[*]}"
+  exit 1
+fi
+
+printf '\033[32mminden ellenorzes rendben\033[0m\n'

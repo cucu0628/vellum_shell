@@ -14,7 +14,7 @@ import "features/clipboard" as ClipboardFeature
 import "features/launcher" as LauncherFeature
 import "features/lock" as LockFeature
 import "features/media" as MediaFeature
-import "features/menu" as MenuFeature
+import "features/settings" as SettingsFeature
 import "features/bluetooth" as BluetoothFeature
 import "features/network" as NetworkFeature
 import "features/notifications" as NotificationFeature
@@ -43,19 +43,39 @@ ShellRoot {
     property var calendarNow: new Date()
     property bool audioOsdReady: false
     readonly property string homeDir: Quickshell.env("HOME")
-    readonly property string shellDir: homeDir + "/.config/quickshell/vellum_shell"
+    // Ugyanaz a szabaly, mint a backend `theme::paths::shell_dir()`-jeben,
+    // hogy a ket oldal ne csusszon szet athelyezett repo eseten.
+    readonly property string shellDir: Quickshell.env("VELLUM_SHELL_DIR")
+        || (homeDir + "/.config/quickshell/vellum_shell")
     readonly property var monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     readonly property var dayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+    // A Rust backend kliense. Legelol jon letre, hogy a tobbi controller mar
+    // atvehesse. Ha a daemon nem fut, a shell degradaltan, de mukodik.
+    Core.Backend {
+        id: backend
+
+        // Az offline parancsokat szandekosan nem jatszuk vissza. A prepare
+        // idempotens startup-muvelet, ezert minden friss kapcsolatnal explicit
+        // ujra kiadjuk.
+        onConnectedChanged: {
+            if (connected) backend.call("hypr", "prepare", {}, null)
+        }
+    }
+    readonly property var shellBackend: backend
+
     Core.ThemeStore {
         id: theme
+        backend: shellRoot.shellBackend
     }
     readonly property var shellTheme: theme
 
     Core.WallpaperController {
         id: wallpaperStore
+        backend: shellRoot.shellBackend
         shellDir: shellRoot.shellDir
         screens: shellRoot.uniqueScreens
+        onDoubleClicked: (targetScreen) => shellRoot.setThemeSwitcherOpen(true, "wallpaper", targetScreen)
     }
 
     Core.WorkspaceController {
@@ -69,11 +89,12 @@ ShellRoot {
 
     Core.VpnController {
         id: vpnController
-        networkController: networkStatusController
+        backend: shellRoot.shellBackend
     }
 
     Core.NetworkStatusController {
         id: networkStatusController
+        backend: shellRoot.shellBackend
     }
 
     Core.BluetoothStatusController {
@@ -86,11 +107,12 @@ ShellRoot {
 
     Core.PrivacyController {
         id: privacyController
-        shellDir: shellRoot.shellDir
+        backend: shellRoot.shellBackend
     }
 
     Core.RemovableDeviceController {
         id: removableDeviceController
+        backend: shellRoot.shellBackend
         onDeviceAdded: popupCoordinator.setRemovableOpen(true, shellRoot.focusedScreen())
     }
 
@@ -103,16 +125,11 @@ ShellRoot {
         active: shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing
     }
 
-    function loadThemeColors() { theme.load() }
-    function loadCurrentWallpaper() { wallpaperStore.load() }
     function setCurrentWallpaper(path) { wallpaperStore.setCurrentWallpaper(path) }
     function wallpaperSource(path) { return wallpaperStore.source(path) }
 
     Component.onCompleted: {
-        loadThemeColors()
-        loadCurrentWallpaper()
         refreshVisibleWorkspaces()
-        refreshVpnStatus()
         audioOsdReadyTimer.start()
     }
 
@@ -162,12 +179,10 @@ ShellRoot {
         return uniqueScreens.length > 0 ? uniqueScreens[0] : null
     }
 
-    function refreshVpnStatus() { vpnController.refresh() }
-
     function toggleCenterPopup(nextScreen) { popupCoordinator.toggleCenterPopup(nextScreen) }
     function toggleNotificationsDnd() { popupCoordinator.toggleNotificationsDnd() }
     function setNotificationsOpen(open, nextScreen) { popupCoordinator.setNotificationsOpen(open, nextScreen) }
-    function setMenuOpen(open, nextScreen) { popupCoordinator.setMenuOpen(open, nextScreen) }
+    function setSettingsOpen(open) { popupCoordinator.setSettingsOpen(open) }
     function setLauncherOpen(open, nextScreen) { popupCoordinator.setLauncherOpen(open, nextScreen) }
     function setClipboardOpen(open, nextScreen) { popupCoordinator.setClipboardOpen(open, nextScreen) }
     function setThemeSwitcherOpen(open, nextMode, nextScreen) { popupCoordinator.setThemeSwitcherOpen(open, nextMode, nextScreen) }
@@ -177,14 +192,39 @@ ShellRoot {
         screenshotController.capture(mode)
     }
 
-    // Popup shells stay lightweight while their full object trees are unloaded.
-    App.LazyPopup {
-        id: omarchyMenu
-        popupComponent: Component {
-            MenuFeature.MenuPopup { theme: shellRoot.shellTheme }
+    // Az xdg-toplevel ablakot Hyprland alapbol csempezne. A backend egy pontos
+    // class/title szabalyt regisztral meg az elso megnyitas elott; regi vagy
+    // hianyzo daemon eseten ez szandekosan hangtalanul degradalodik.
+
+    // A settings app igazi ablak, nem layer-shell overlay, ezert nem az
+    // App.LazyPopup kezeli. A Loader viszont ugyanugy csak akkor epiti fel az
+    // objektumfat, amikor tenyleg kell.
+    Item {
+        id: settingsApp
+
+        property bool opened: false
+
+        width: 0
+        height: 0
+        visible: false
+
+        Loader {
+            id: settingsLoader
+            asynchronous: true
+            active: settingsApp.opened
+            sourceComponent: Component {
+                SettingsFeature.SettingsWindow {
+                    backend: shellRoot.shellBackend
+                    theme: shellRoot.shellTheme
+                    visible: settingsApp.opened
+                    onClosed: settingsApp.opened = false
+                    onCloseRequested: settingsApp.opened = false
+                }
+            }
         }
     }
 
+    // Popup shells stay lightweight while their full object trees are unloaded.
     App.LazyPopup {
         id: appLauncher
         loaded: true
@@ -216,6 +256,7 @@ ShellRoot {
         id: themeSwitcher
         popupComponent: Component {
             AppearanceFeature.AppearanceStudio {
+                backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 wallpaperController: shellRoot
                 mode: themeSwitcher.mode
@@ -309,6 +350,7 @@ ShellRoot {
 
     LockFeature.LockRoot {
         id: lockRoot
+        backend: shellRoot.shellBackend
     }
 
     NotificationFeature.NotificationsHost {
@@ -328,7 +370,7 @@ ShellRoot {
 
     App.PopupCoordinator {
         id: popupCoordinator
-        menu: omarchyMenu
+        settings: settingsApp
         launcher: appLauncher
         clipboard: clipboardHistory
         themeSwitcher: themeSwitcher
@@ -342,6 +384,7 @@ ShellRoot {
         vpnCli: vpnController
         aboutPopup: aboutPopup
         notifications: notifications
+        trayMenu: trayMenu
         onCalendarRefreshRequested: shellRoot.calendarNow = new Date()
     }
 
@@ -389,7 +432,7 @@ ShellRoot {
             activePlayer: shellRoot.activePlayer
             hasMediaSource: Mpris.players.values.length > 0
             cavaValues: cavaController.values
-            menuOpen: omarchyMenu.opened && omarchyMenu.screen === targetScreen
+            settingsOpen: settingsApp.opened
             centerPopupOpen: mediaPopup.opened && mediaPopup.screen === targetScreen
             audioPopupOpen: audioPopup.opened && audioPopup.screen === targetScreen
             audioVolumePercent: shellRoot.audioVolumePercent
@@ -398,7 +441,7 @@ ShellRoot {
             networkType: shellRoot.networkType
             connectivityPopupOpen: connectivityPopup.opened && connectivityPopup.screen === targetScreen
             bluetoothAvailable: bluetoothStatusController.available
-            bluetoothEnabled: bluetoothStatusController.enabled
+            bluetoothEnabled: bluetoothStatusController.adapterEnabled
             bluetoothConnected: bluetoothStatusController.connected
             bluetoothPopupOpen: bluetoothPopup.opened && bluetoothPopup.screen === targetScreen
             removableDeviceCount: removableDeviceController.deviceCount
@@ -417,7 +460,7 @@ ShellRoot {
             cameraActive: privacyController.cameraActive
             privacyPopupOpen: privacyPopup.opened && privacyPopup.screen === targetScreen
 
-            onMenuToggleRequested: popupCoordinator.toggleMenu(targetScreen)
+            onSettingsToggleRequested: popupCoordinator.toggleSettings()
             onCenterToggleRequested: popupCoordinator.toggleCenterPopup(targetScreen)
             onAudioToggleRequested: popupCoordinator.toggleAudio(targetScreen)
             onPrivacyToggleRequested: popupCoordinator.togglePrivacy(targetScreen)
@@ -429,7 +472,7 @@ ShellRoot {
             onAiToggleRequested: popupCoordinator.toggleAi(targetScreen)
             onLaunchCommand: command => launchBarCommand(command)
             onAudioVolumeStepRequested: increase => audioSummaryController.stepVolume(increase)
-            onTrayMenuRequested: (model, globalX) => trayMenu.openFor(targetScreen, model, globalX)
+            onTrayMenuRequested: (model, globalX) => popupCoordinator.openTrayMenu(targetScreen, model, globalX)
         }
     }
 
@@ -439,6 +482,7 @@ ShellRoot {
         property string selectedPlayerDbusName: ""
         popupComponent: Component {
             MediaFeature.MediaPopup {
+                backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 screen: mediaPopup.screen
                 currentTab: mediaPopup.currentTab

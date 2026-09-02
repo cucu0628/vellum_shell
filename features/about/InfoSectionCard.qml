@@ -6,8 +6,11 @@ SharedUi.DashPanel {
     id: sectionCard
 
     property var entries: []
-    property real rowHeight: 32
-    property real rowGap: 6
+    property real rowHeight: 38
+    property real rowGap: 0
+
+    editorial: true
+    contentSpacing: 4
 
     Column {
         anchors.left: parent.left

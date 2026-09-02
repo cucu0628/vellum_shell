@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base="$HOME/.config/quickshell/vellum_shell"
+base=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
 file="$base/current-weather-location"
 current="Budapest"
 

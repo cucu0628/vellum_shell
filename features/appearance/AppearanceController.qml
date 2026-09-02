@@ -1,28 +1,46 @@
 import QtQuick
-import Quickshell.Io
 
+// A Studio allapota.
+//
+// Bongeszes kozben semmi nem kerul lemezre: a ThemeStore ratolja a jelolt
+// szineket az elo palettara, a WallpaperController pedig atallitja a valodi
+// hatterkep-ablakokat. Igy a kepernyon a sajat asztal latszik az uj temaban --
+// nincs szukseg mock feluletre.
+//
+// A `theme apply` (nyolc generator, portal ujrainditas) csak Enterre fut le.
 Item {
     id: controller
 
+    required property var backend
     property var theme: null
     property var wallpaperController: null
     property bool opened: false
+    // Csak azt jelzi, melyik sav miatt nyilt meg a felulet (`style wallpaper`
+    // vs `style theme`). Mindket sav mindig mukodik, nincs szekciovaltas.
     property string mode: "wallpaper"
-    property string activeSection: "wallpaper"
     property var themeItems: []
     property var wallpaperItems: []
     property int selectedThemeIndex: 0
     property int selectedWallpaperIndex: 0
     property bool applying: false
-    property bool sceneApplied: false
     property int loadGeneration: 0
+    property int previewGeneration: 0
+
+    // Amivel a felulet nyilt. Escape ide all vissza.
+    property string originalSlug: ""
+    property string originalWallpaper: ""
 
     readonly property var selectedTheme: themeItems.length > 0 ? themeItems[Math.max(0, Math.min(selectedThemeIndex, themeItems.length - 1))] : null
     readonly property var selectedWallpaper: wallpaperItems.length > 0 ? wallpaperItems[Math.max(0, Math.min(selectedWallpaperIndex, wallpaperItems.length - 1))] : null
 
+    // A ketto fuggetlenul is valtozhat. Korabban mindketto meglete kellett,
+    // ezert ures `~/Pictures/wallpapers` mappaval a temavaltas nemaan
+    // elnyelodott -- pont a friss telepites allapotaban.
+    readonly property bool dirty: (!!selectedTheme && selectedTheme.slug !== originalSlug)
+        || (!!selectedWallpaper && selectedWallpaper.path !== originalWallpaper)
+
     signal focusRequested
-    signal themeScrollRequested
-    signal wallpaperScrollRequested
+    signal dockToggleRequested
 
     width: 0
     height: 0
@@ -30,12 +48,15 @@ Item {
 
     onOpenedChanged: {
         if (opened) {
-            closeTimer.stop()
-            activeSection = mode === "theme" ? "theme" : "wallpaper"
-            sceneApplied = false
             applying = false
+            originalSlug = theme && theme.slug ? theme.slug : ""
+            originalWallpaper = wallpaperController ? wallpaperController.currentWallpaper : ""
             loadItems()
             focusRequested()
+        } else if (!applying) {
+            // A PopupCoordinator kivulrol is zarhat (masik felulet nyilik).
+            // Olyankor sem maradhat az asztalon egy sosem commitolt elonezet.
+            restoreOriginal()
         }
     }
 
@@ -43,61 +64,55 @@ Item {
         loadGeneration++
         themeItems = []
         wallpaperItems = []
-        themeLoader.generation = loadGeneration
-        wallpaperLoader.generation = loadGeneration
-        themeLoader.command = ["sh", "-c", "sh \"$HOME/.config/quickshell/vellum_shell/scripts/theme-list\""]
-        wallpaperLoader.command = ["sh", "-c", "base=\"$HOME/.config/quickshell/vellum_shell\"; bgdir=\"$HOME/Pictures/wallpapers\"; current_bg=\"\"; [ -r \"$base/current-wallpaper\" ] && current_bg=$(cat \"$base/current-wallpaper\"); [ -d \"$bgdir\" ] || exit 0; find \"$bgdir\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.gif' \\) 2>/dev/null | sort | while IFS= read -r path; do name=$(basename \"$path\"); clean=${name%.*}; clean=${clean#vellum-}; title=$(printf '%s\\n' \"$clean\" | tr '_-' ' ' | awk '{for (i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}'); marker=''; [ \"$path\" = \"$current_bg\" ] && marker='current'; printf '%s|%s|%s\\n' \"$title\" \"$path\" \"$marker\"; done"]
-        themeLoader.running = true
-        wallpaperLoader.running = true
+
+        var generation = loadGeneration
+        backend.call("theme", "list", {}, (result, error) => {
+            if (generation !== controller.loadGeneration || !controller.opened) return
+            if (error) {
+                console.warn("Appearance: a temak nem olvashatoak:", error.message)
+                return
+            }
+            controller.applyThemes(result || [])
+        })
+        backend.call("theme", "wallpapers", {}, (result, error) => {
+            if (generation !== controller.loadGeneration || !controller.opened) return
+            if (error) {
+                console.warn("Appearance: a hatterkepek nem olvashatoak:", error.message)
+                return
+            }
+            controller.applyWallpapers(result || [])
+        })
     }
 
     function releaseResources() {
         loadGeneration++
-        themeLoader.running = false
-        wallpaperLoader.running = false
+        previewGeneration++
         themeItems = []
         wallpaperItems = []
     }
 
-    function parseThemes(output) {
-        var lines = (output || "").trim().split("\n")
-        var parsed = []
+    function applyThemes(items) {
         var currentIndex = 0
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i].trim() === "") continue
-            var parts = lines[i].split("|")
-            parsed.push({
-                name: parts[0] || "",
-                slug: parts[1] || "",
-                meta: parts[2] || "",
-                background: parts[3] || "#1e1e2e",
-                foreground: parts[4] || "#cdd6f4",
-                accent: parts[5] || "#89b4fa",
-                surface: parts[6] || "#181825",
-                muted: parts[7] || "#9399b2",
-                kind: parts[8] || "static",
-                iconTheme: parts[9] || "Yaru-dark"
-            })
-            if ((parts[2] || "") === "current") currentIndex = parsed.length - 1
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].current) {
+                currentIndex = i
+                if (originalSlug === "") originalSlug = items[i].slug
+            }
         }
         selectedThemeIndex = currentIndex
-        themeItems = parsed
-        themeScrollRequested()
+        themeItems = items
     }
 
-    function parseWallpapers(output) {
-        var lines = (output || "").trim().split("\n")
-        var parsed = []
+    function applyWallpapers(items) {
         var currentIndex = 0
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i].trim() === "") continue
-            var parts = lines[i].split("|")
-            parsed.push({ name: parts[0] || "", path: parts[1] || "", meta: parts[2] || "" })
-            if ((parts[2] || "") === "current") currentIndex = parsed.length - 1
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].current) {
+                currentIndex = i
+                if (originalWallpaper === "") originalWallpaper = items[i].path
+            }
         }
         selectedWallpaperIndex = currentIndex
-        wallpaperItems = parsed
-        wallpaperScrollRequested()
+        wallpaperItems = items
     }
 
     function imageSource(path) {
@@ -106,128 +121,153 @@ Item {
         return path.startsWith("/") ? "file://" + path : ""
     }
 
-    function shellQuote(value) {
-        return "'" + value.replace(/'/g, "'\\''") + "'"
+    function selectWallpaper(index) {
+        if (wallpaperItems.length === 0) return
+        selectedWallpaperIndex = Math.max(0, Math.min(index, wallpaperItems.length - 1))
     }
 
-    function setSection(section) {
-        activeSection = section
-        if (section === "theme") themeScrollRequested()
-        else wallpaperScrollRequested()
+    function selectPalette(index) {
+        if (themeItems.length === 0) return
+        selectedThemeIndex = Math.max(0, Math.min(index, themeItems.length - 1))
     }
 
-    function moveSelection(delta) {
-        if (activeSection === "theme") {
-            selectedThemeIndex = Math.max(0, Math.min(selectedThemeIndex + delta, themeItems.length - 1))
-            themeScrollRequested()
-        } else {
-            selectedWallpaperIndex = Math.max(0, Math.min(selectedWallpaperIndex + delta, wallpaperItems.length - 1))
-            wallpaperScrollRequested()
-        }
-    }
+    function moveWallpaper(delta) { selectWallpaper(selectedWallpaperIndex + delta) }
+    function movePalette(delta) { selectPalette(selectedThemeIndex + delta) }
 
     function selectDynamicTheme() {
         for (var i = 0; i < themeItems.length; i++) {
             if (themeItems[i].kind === "dynamic") {
-                selectedThemeIndex = i
-                setSection("theme")
+                selectPalette(i)
                 return
             }
         }
     }
 
-    function applyScene() {
-        if (!selectedTheme || !selectedWallpaper || applying) return
-        applying = true
-        sceneApplied = false
+    // A valasztas latvanya: csak a shell sajat szinei es a hatterkep-ablakok.
+    // Minden in-process, semmi lemez, semmi kulso alkalmazas.
+    function previewNow() {
+        if (selectedWallpaper && wallpaperController)
+            wallpaperController.setCurrentWallpaper(selectedWallpaper.path)
+        if (!theme || !selectedTheme) return
 
-        // Dynamic colours do not exist until Matugen has processed the selected
-        // wallpaper. Avoid briefly applying the palette from the previous image.
-        if (theme && selectedTheme.kind !== "dynamic") {
-            theme.background = selectedTheme.background
-            theme.foreground = selectedTheme.foreground
-            theme.accent = selectedTheme.accent
-            theme.surface = selectedTheme.surface
-            theme.muted = selectedTheme.muted
+        if (selectedTheme.kind === "dynamic") {
+            // A dinamikus paletta a kepbol szuletik: a backend szamolja ki,
+            // iras nelkul. Addig nem villantjuk fel a regi szineket. Kep nelkul
+            // nincs mibol szamolni, olyankor marad az elozo elonezet.
+            if (!selectedWallpaper) return
+            dynamicPreviewTimer.restart()
+            return
         }
-        if (wallpaperController) wallpaperController.setCurrentWallpaper(selectedWallpaper.path)
 
-        var command = "base=\"$HOME/.config/quickshell/vellum_shell\"; slug=" + shellQuote(selectedTheme.slug)
-            + "; path=" + shellQuote(selectedWallpaper.path)
-            + "; printf '%s\\n' \"$slug\" > \"$base/current-theme\""
-            + "; printf '%s\\n' \"$path\" > \"$base/current-wallpaper\""
-            + "; [ \"$slug\" = dynamic-matugen ] && sh \"$base/scripts/matugen-theme\" \"$path\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/kitty-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/gtk-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/icon-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/hyprland-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/zen-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/btop-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/fastfetch-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/sddm-theme\" >/dev/null 2>&1 || true"
-            + "; sh \"$base/scripts/theme-read\""
-        applyProcess.command = ["sh", "-c", command]
-        applyProcess.running = true
+        previewGeneration++
+        dynamicPreviewTimer.stop()
+        theme.setPreview({
+            BACKGROUND: selectedTheme.background,
+            FOREGROUND: selectedTheme.foreground,
+            ACCENT: selectedTheme.accent,
+            SURFACE: selectedTheme.surface,
+            LIGHT_FOREGROUND: selectedTheme.muted
+        })
+    }
+
+    function requestDynamicPreview() {
+        if (!theme || !selectedWallpaper || !selectedTheme || selectedTheme.kind !== "dynamic") return
+
+        previewGeneration++
+        var generation = previewGeneration
+        backend.call("theme", "preview", { wallpaper: selectedWallpaper.path }, (result, error) => {
+            if (generation !== controller.previewGeneration) return
+            if (error) {
+                console.warn("Appearance: a dinamikus paletta nem szamolhato:", error.message)
+                return
+            }
+            if (controller.theme && result && result.colors) controller.theme.setPreview(result.colors)
+        })
+    }
+
+    // Az elonezet elengedese: a ThemeStore visszaall a backend palettajara, a
+    // hatterkep pedig arra, amivel a felulet nyilt.
+    function restoreOriginal() {
+        previewGeneration++
+        dynamicPreviewTimer.stop()
+        if (theme) theme.setPreview({})
+        if (wallpaperController && originalWallpaper !== "") wallpaperController.setCurrentWallpaper(originalWallpaper)
+    }
+
+    // Enter: a tema rakerul mindenre (GTK, kitty, btop, ikonok, Zen, SDDM...),
+    // a felulet pedig bezarul. Az elonezet a helyen marad, amig a backend ki nem
+    // tolja az igazi palettat, igy a shell nem villan.
+    function applyAndClose() {
+        if (applying) return
+
+        if (!dirty || !selectedTheme) {
+            opened = false
+            return
+        }
+
+        applying = true
+        var previousSlug = originalSlug
+        var previousWallpaper = originalWallpaper
+
+        // Hatterkep nelkul a `wallpaper` kulcsot el sem kuldjuk: a backend
+        // olyankor a mar rogzitett kepnel marad, ahelyett hogy torolne.
+        var params = { slug: selectedTheme.slug }
+        if (selectedWallpaper) params.wallpaper = selectedWallpaper.path
+
+        backend.call("theme", "apply", params, (result, error) => {
+            controller.applying = false
+            if (!error) return
+
+            // Bezarva mar nincs hova kiirni a hibat, ezert legalabb ne hagyjuk
+            // az asztalt hazug allapotban: vissza az eredetire.
+            console.warn("Appearance: a tema nem alkalmazhato:", error.message)
+            controller.originalSlug = previousSlug
+            controller.originalWallpaper = previousWallpaper
+            controller.restoreOriginal()
+        })
+
+        opened = false
+    }
+
+    function cancelAndClose() {
+        restoreOriginal()
+        opened = false
     }
 
     function handleKey(event) {
         if (event.key === Qt.Key_Escape) {
-            opened = false
+            cancelAndClose()
             event.accepted = true
-        } else if (event.key === Qt.Key_Tab) {
-            setSection(activeSection === "wallpaper" ? "theme" : "wallpaper")
+        } else if (event.key === Qt.Key_Left || (event.key === Qt.Key_H && event.modifiers === Qt.ControlModifier)) {
+            moveWallpaper(-1)
             event.accepted = true
-        } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up || (event.key === Qt.Key_K && event.modifiers === Qt.ControlModifier)) {
-            moveSelection(-1)
+        } else if (event.key === Qt.Key_Right || (event.key === Qt.Key_L && event.modifiers === Qt.ControlModifier)) {
+            moveWallpaper(1)
             event.accepted = true
-        } else if (event.key === Qt.Key_Right || event.key === Qt.Key_Down || (event.key === Qt.Key_J && event.modifiers === Qt.ControlModifier)) {
-            moveSelection(1)
+        } else if (event.key === Qt.Key_Up || (event.key === Qt.Key_K && event.modifiers === Qt.ControlModifier)) {
+            movePalette(-1)
+            event.accepted = true
+        } else if (event.key === Qt.Key_Down || (event.key === Qt.Key_J && event.modifiers === Qt.ControlModifier)) {
+            movePalette(1)
             event.accepted = true
         } else if (event.key === Qt.Key_D) {
             selectDynamicTheme()
             event.accepted = true
+        } else if (event.key === Qt.Key_Space) {
+            dockToggleRequested()
+            event.accepted = true
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            applyScene()
+            applyAndClose()
             event.accepted = true
         }
     }
 
-    Timer { id: closeTimer; interval: 520; onTriggered: controller.opened = false }
+    onSelectedThemeChanged: if (opened) previewNow()
+    onSelectedWallpaperChanged: if (opened) previewNow()
 
-    Process {
-        id: themeLoader
-        property int generation: 0
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (themeLoader.generation === controller.loadGeneration && controller.opened)
-                    controller.parseThemes(this.text || "")
-            }
-        }
-    }
-    Process {
-        id: wallpaperLoader
-        property int generation: 0
-        stdout: StdioCollector {
-            onStreamFinished: {
-                if (wallpaperLoader.generation === controller.loadGeneration && controller.opened)
-                    controller.parseWallpapers(this.text || "")
-            }
-        }
-    }
-    Process {
-        id: applyProcess
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var palette = (this.text || "").trim()
-                if (palette !== "" && controller.theme && controller.theme.updateColors)
-                    controller.theme.updateColors(palette)
-            }
-        }
-        onExited: {
-            controller.applying = false
-            controller.sceneApplied = true
-            if (controller.wallpaperController) controller.wallpaperController.loadThemeColors()
-            closeTimer.restart()
-        }
+    Timer {
+        id: dynamicPreviewTimer
+        interval: 180
+        onTriggered: controller.requestDynamicPreview()
     }
 }

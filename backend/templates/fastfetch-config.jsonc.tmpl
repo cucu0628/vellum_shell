@@ -1,0 +1,80 @@
+// Vellum Shell fastfetch theme.
+//
+// Generated from this template by the Vellum backend: every @KEY@ marker is
+// replaced with the active palette's colour. Do not edit the generated
+// ~/.config/fastfetch/config.jsonc -- it is rewritten on every theme change.
+// To customise, copy this file to ~/.config/fastfetch/config.template.jsonc
+// and edit that; the generator prefers it over this one.
+//
+// The four colour slots are fastfetch's only named ones, so they are mapped by
+// the role they play in *this* layout rather than by their names:
+//
+//   title      -> ACCENT      the header and the section labels
+//   keys       -> MUTED       the secondary key labels
+//   output     -> FOREGROUND  the values, the one thing you actually read
+//   separator  -> SURFACE     the hairline rules
+//
+// The layout mirrors the shell's popup header: an accent headline, a quiet
+// spaced eyebrow beneath it, one hairline, then sections introduced by accent
+// labels -- the same restraint the panels use, no rule per section.
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  // The ensō is regenerated next to this config on every theme change, so it
+  // always carries the current foreground colour. `kitty-direct` is the sharp
+  // path in kitty, the shell's bundled terminal; in another terminal switch
+  // this to "chafa" (ASCII art) or "none".
+  "logo": {
+    "type": "kitty-direct",
+    "source": "~/.config/fastfetch/vellum.png",
+    "width": 30,
+    "height": 15,
+    "padding": { "top": 4, "left": 1, "right": 4 }
+  },
+
+  "display": {
+    // No colon: the shell labels its values by position, not punctuation.
+    "separator": "  ",
+    "key": { "width": 10 },
+    "color": {
+      "title": "@ACCENT@",
+      "keys": "@MUTED@",
+      "output": "@FOREGROUND@",
+      "separator": "@SURFACE@"
+    }
+  },
+
+  "modules": [
+    // A single-space key is Fastfetch's documented way to hide a module key.
+    { "type": "title", "key": " ", "format": "{user-name}@{host-name}" },
+    { "type": "custom", "format": "{#keys}V E L L U M   S H E L L{#}" },
+    { "type": "custom", "format": "{#separator}────────────────────────────────{#}" },
+    "break",
+
+    { "type": "custom", "format": "{#title}SYSTEM{#}" },
+    { "type": "os", "key": "os", "format": "{pretty-name} {arch}" },
+    { "type": "kernel", "key": "kernel", "format": "{release}" },
+    { "type": "uptime", "key": "uptime" },
+    { "type": "packages", "key": "packages" },
+    "break",
+
+    { "type": "custom", "format": "{#title}DESKTOP{#}" },
+    { "type": "wm", "key": "wm", "format": "{pretty-name} {version}" },
+    { "type": "terminal", "key": "terminal", "format": "{pretty-name}" },
+    { "type": "shell", "key": "shell", "format": "{pretty-name} {version}" },
+    // Keep multiple monitors on one line instead of repeating the same key.
+    { "type": "display", "key": "display", "compactType": "original-with-refresh-rate" },
+    "break",
+
+    { "type": "custom", "format": "{#title}HARDWARE{#}" },
+    { "type": "cpu", "key": "cpu", "format": "{name}" },
+    { "type": "gpu", "key": "gpu", "format": "{name}" },
+    { "type": "memory", "key": "memory" },
+    { "type": "disk", "key": "disk", "folders": "/" },
+    "break",
+
+    // The palette rail: these sixteen come from the same theme the shell wears,
+    // through the generated kitty-theme.conf.
+    { "type": "colors", "symbol": "square", "paddingLeft": 2 }
+  ]
+}

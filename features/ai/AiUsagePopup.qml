@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: aiWindow
@@ -65,7 +66,7 @@ PanelWindow {
         return count > 0 ? 58 + count * 63 : 104
     }
 
-    readonly property real panelContentHeight: 110 + providerHeight(claude) + providerHeight(codex)
+    readonly property real panelContentHeight: 126 + providerHeight(claude) + providerHeight(codex)
 
     onOpenedChanged: if (opened) refresh(false)
     visible: opened || content.opacity > 0
@@ -93,12 +94,9 @@ PanelWindow {
         clip: true
         opacity: opened ? 1 : 0
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            clip: true
+            theme: aiWindow.theme
 
             MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
 
@@ -107,49 +105,15 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 10
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
-
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        color: panelAccent
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰚩"
-                            color: panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Column {
-                        width: parent.width - 116
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-                        Text {
-                            width: parent.width
-                            text: "AI ALLOWANCES"
-                            color: panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 3
-                            font.bold: true
-                        }
-                        Text {
-                            width: parent.width
-                            text: refreshing ? "Updating provider limits..." : "Subscription windows and reset times"
-                            color: mutedFg
-                            font.pixelSize: 9
-                            elide: Text.ElideRight
-                        }
-                    }
+                    theme: aiWindow.theme
+                    title: "AI Allowances"
+                    subtitle: refreshing ? "Updating provider limits..." : "Subscription windows and reset times"
+                    trailingWidth: 70
 
                     Text {
-                        width: 70
-                        height: parent.height
+                        anchors.fill: parent
                         text: refreshing ? "WAIT" : "Refresh"
                         color: refreshMouse.containsMouse && !refreshing ? panelAccent : mutedFg
                         horizontalAlignment: Text.AlignRight
@@ -234,10 +198,11 @@ PanelWindow {
                                     required property var modelData
                                     property real displayedRemaining: 0
                                     property bool initialized: false
+                                    readonly property int segmentCount: 18
                                     readonly property real targetRemaining: Math.max(0, Math.min(1, Number(modelData.remaining) || 0))
                                     width: parent.width
                                     height: 53
-                                    spacing: 4
+                                    spacing: 3
 
                                     Component.onCompleted: {
                                         initialized = true
@@ -264,46 +229,93 @@ PanelWindow {
 
                                     Row {
                                         width: parent.width
-                                        height: 16
+                                        height: 19
+
                                         Text {
-                                            width: parent.width - 80
-                                            text: modelData.label || "Limit"
-                                            color: mutedFg
-                                            font.pixelSize: 10
+                                            width: parent.width - 92
+                                            height: parent.height
+                                            text: (modelData.label || "Limit").toUpperCase()
+                                            color: panelFg
+                                            font.pixelSize: 9
+                                            font.letterSpacing: 1.3
+                                            font.bold: true
+                                            verticalAlignment: Text.AlignVCenter
                                             elide: Text.ElideRight
                                         }
+
                                         Text {
-                                            width: 80
-                                            text: percent(modelData.remaining) + "% left"
-                                            color: panelFg
+                                            width: 66
+                                            height: parent.height
+                                            text: percent(modelData.remaining) + "%"
+                                            color: panelAccent
+                                            horizontalAlignment: Text.AlignRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.family: "serif"
+                                            font.pixelSize: 16
+                                            font.weight: Font.Medium
+                                        }
+
+                                        Text {
+                                            width: 26
+                                            height: parent.height
+                                            text: "LEFT"
+                                            color: mutedFg
+                                            horizontalAlignment: Text.AlignRight
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 7
+                                            font.letterSpacing: 1
+                                        }
+                                    }
+
+                                    Row {
+                                        id: usageRuler
+
+                                        width: parent.width
+                                        height: 9
+                                        spacing: 3
+
+                                        Repeater {
+                                            model: usageRow.segmentCount
+
+                                            Rectangle {
+                                                required property int index
+
+                                                width: (usageRuler.width - usageRuler.spacing * (usageRow.segmentCount - 1)) / usageRow.segmentCount
+                                                height: index % 6 === 5 ? 9 : 6
+                                                anchors.bottom: parent.bottom
+                                                color: panelAccent
+                                                opacity: usageRow.displayedRemaining * usageRow.segmentCount >= index + 1 ? 0.92 : 0.12
+
+                                                Behavior on opacity {
+                                                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Item {
+                                        width: parent.width
+                                        height: 13
+
+                                        Text {
+                                            anchors.left: parent.left
+                                            text: "USED  " + percent(modelData.used) + "%"
+                                            color: mutedFg
+                                            font.family: "monospace"
+                                            font.pixelSize: 8
+                                            font.letterSpacing: 0.8
+                                        }
+
+                                        Text {
+                                            anchors.right: parent.right
+                                            width: parent.width - 82
+                                            text: resetText(modelData.resetsAt)
+                                            color: mutedFg
                                             horizontalAlignment: Text.AlignRight
                                             font.family: "monospace"
-                                            font.pixelSize: 10
-                                            font.bold: true
+                                            font.pixelSize: 8
+                                            elide: Text.ElideRight
                                         }
-                                    }
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 5
-                                        color: panelBg
-                                        border.color: Qt.rgba(1, 1, 1, 0.12)
-                                        border.width: 1
-                                        Rectangle {
-                                            anchors.left: parent.left
-                                            anchors.top: parent.top
-                                            anchors.bottom: parent.bottom
-                                            anchors.margins: 1
-                                            width: Math.max(0, (parent.width - 2) * usageRow.displayedRemaining)
-                                            color: panelAccent
-                                        }
-                                    }
-                                    Text {
-                                        width: parent.width
-                                        text: percent(modelData.used) + "% used  ·  " + resetText(modelData.resetsAt)
-                                        color: mutedFg
-                                        font.family: "monospace"
-                                        font.pixelSize: 8
-                                        elide: Text.ElideRight
                                     }
                                 }
                             }

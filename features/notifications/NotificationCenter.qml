@@ -1,5 +1,6 @@
 import QtQuick
 import "." as NotificationUi
+import "../../ui" as SharedUi
 
 Item {
     id: center
@@ -63,12 +64,9 @@ Item {
         enabled: center.opened
         clip: true
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: center.panelBg
-            border.color: center.panelAccent
-            border.width: 1
-            clip: true
+            theme: center.theme
 
             MouseArea {
                 anchors.fill: parent
@@ -93,52 +91,16 @@ Item {
                     width: parent.width
                     spacing: 10
 
-                    Row {
+                    SharedUi.PopupHeader {
                         width: parent.width
-                        height: 36
-                        spacing: 10
+                        theme: center.theme
+                        title: "Notifications"
+                        subtitle: center.history.length + (center.history.length === 1 ? " recent item" : " recent items")
+                        trailingWidth: 80
 
                         Rectangle {
-                            width: 36
-                            height: 36
-                            color: center.panelAccent
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "󰂚"
-                                color: center.panelBg
-                                font.family: "Symbols Nerd Font Mono"
-                                font.pixelSize: 20
-                                font.weight: Font.DemiBold
-                            }
-
-                        }
-
-                        Column {
-                            width: parent.width - 136
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
-
-                            Text {
-                                text: "NOTIFICATIONS"
-                                color: center.panelFg
-                                font.pixelSize: 12
-                                font.letterSpacing: 3
-                                font.bold: true
-                            }
-
-                            Text {
-                                text: "Notification center"
-                                color: center.mutedFg
-                                font.pixelSize: 9
-                            }
-
-                        }
-
-                        Rectangle {
-                            width: 80
-                            height: 28
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.fill: parent
+                            anchors.bottomMargin: 6
                             color: center.dnd ? center.panelAccent : center.inkBg
                             border.color: center.panelAccent
                             border.width: 1
@@ -160,13 +122,6 @@ Item {
 
                         }
 
-                    }
-
-                    Rectangle {
-                        width: parent.width
-                        height: 1
-                        color: center.mutedFg
-                        opacity: 0.35
                     }
 
                     Row {

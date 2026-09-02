@@ -21,10 +21,7 @@ Item {
     }
 
     function openMediaTab(tab) {
-        var screen = focusedScreenProvider()
-        if (screen) coordinator.mediaPopup.screen = screen
-        coordinator.mediaPopup.currentTab = tab
-        coordinator.mediaPopup.opened = true
+        coordinator.openMediaTab(tab, focusedScreenProvider())
     }
 
     Timer {
@@ -40,21 +37,31 @@ Item {
     }
 
     IpcHandler {
+        target: "settings"
+
+        function toggle(): void { coordinator.toggleSettings() }
+        function open(): void { coordinator.setSettingsOpen(true) }
+        function close(): void { coordinator.setSettingsOpen(false) }
+    }
+
+    // A `menu` es `power` nev kompatibilitasi szerzodes (layout.md): a menu
+    // palettat a settings app valtotta ki, de a regi hivasok tovabbra is mukodnek.
+    IpcHandler {
         target: "menu"
 
-        function toggle(): void { coordinator.toggleMenu(focusedScreenProvider()) }
-        function open(): void { coordinator.setMenuOpen(true, focusedScreenProvider()) }
-        function close(): void { coordinator.setMenuOpen(false) }
+        function toggle(): void { coordinator.toggleSettings() }
+        function open(): void { coordinator.setSettingsOpen(true) }
+        function close(): void { coordinator.setSettingsOpen(false) }
     }
 
     IpcHandler {
         target: "launcher"
 
         function toggle(): void {
-            coordinator.toggleLauncher(coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.toggleLauncher(focusedScreenProvider())
         }
         function open(): void {
-            coordinator.setLauncherOpen(true, coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.setLauncherOpen(true, focusedScreenProvider())
         }
         function close(): void { coordinator.setLauncherOpen(false) }
     }
@@ -63,10 +70,10 @@ Item {
         target: "clipboard"
 
         function toggle(): void {
-            coordinator.toggleClipboard(coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.toggleClipboard(focusedScreenProvider())
         }
         function open(): void {
-            coordinator.setClipboardOpen(true, coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.setClipboardOpen(true, focusedScreenProvider())
         }
         function close(): void { coordinator.setClipboardOpen(false) }
     }
@@ -75,10 +82,10 @@ Item {
         target: "style"
 
         function theme(): void {
-            coordinator.setThemeSwitcherOpen(true, "theme", coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.setThemeSwitcherOpen(true, "theme", focusedScreenProvider())
         }
         function wallpaper(): void {
-            coordinator.setThemeSwitcherOpen(true, "wallpaper", coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider())
+            coordinator.setThemeSwitcherOpen(true, "wallpaper", focusedScreenProvider())
         }
         function close(): void { coordinator.closeThemeSwitcher() }
     }
@@ -86,13 +93,9 @@ Item {
     IpcHandler {
         target: "power"
 
-        function toggle(): void {
-            coordinator.toggleMenu(focusedScreenProvider())
-        }
-        function open(): void {
-            coordinator.setMenuOpen(true, focusedScreenProvider())
-        }
-        function close(): void { coordinator.setMenuOpen(false) }
+        function toggle(): void { coordinator.toggleSettings() }
+        function open(): void { coordinator.setSettingsOpen(true) }
+        function close(): void { coordinator.setSettingsOpen(false) }
     }
 
     IpcHandler {
@@ -116,8 +119,11 @@ Item {
     IpcHandler {
         target: "audio"
 
-        function toggle(): void { coordinator.toggleAudioScreenAgnostic() }
-        function open(): void { coordinator.setAudioOpen(true) }
+        // Ugyanaz a monitorvalasztas, mint a tobbi IPC utvonalon: a panel ott
+        // nyilik, ahol a felhasznalo epp dolgozik. (A `toggleAudioScreenAgnostic`
+        // annak maradt, aki tenyleg nem tudja a kepernyot.)
+        function toggle(): void { coordinator.toggleAudio(focusedScreenProvider()) }
+        function open(): void { coordinator.setAudioOpen(true, focusedScreenProvider()) }
         function close(): void { coordinator.setAudioOpen(false) }
     }
 
@@ -129,7 +135,7 @@ Item {
         function overview(): void { root.openMediaTab(0) }
         function player(): void { root.openMediaTab(1) }
         function weather(): void { root.openMediaTab(2) }
-        function close(): void { coordinator.mediaPopup.opened = false }
+        function close(): void { coordinator.setMediaOpen(false) }
     }
 
     IpcHandler {
@@ -143,8 +149,8 @@ Item {
     IpcHandler {
         target: "bluetooth"
 
-        function toggle(): void { coordinator.toggleBluetooth(coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider()) }
-        function open(): void { coordinator.setBluetoothOpen(true, coordinator.menu.loaded ? coordinator.menu.screen : focusedScreenProvider()) }
+        function toggle(): void { coordinator.toggleBluetooth(focusedScreenProvider()) }
+        function open(): void { coordinator.setBluetoothOpen(true, focusedScreenProvider()) }
         function close(): void { coordinator.setBluetoothOpen(false) }
     }
 

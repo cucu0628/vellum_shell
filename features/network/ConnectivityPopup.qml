@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../vpn" as VpnFeature
+import "../../ui" as SharedUi
 
 // Wi-Fi and VPN share one bar module, so they also share one panel: the tabs
 // swap the body while the window, its size animation and its focus stay put.
@@ -55,12 +56,9 @@ PanelWindow {
         clip: true
         opacity: opened ? 1 : 0
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            clip: true
+            theme: connectivityWindow.theme
 
             MouseArea {
                 anchors.fill: parent
@@ -96,12 +94,20 @@ PanelWindow {
                             required property int index
                             required property var modelData
                             readonly property bool selected: connectivityWindow.currentTab === index
-                            readonly property string labelColor: selected ? panelBg : (tabMouse.containsMouse ? panelFg : mutedFg)
+                            readonly property string labelColor: selected ? panelAccent : (tabMouse.containsMouse ? panelFg : mutedFg)
 
                             width: (tabs.width - tabs.spacing) / 2
                             height: tabs.height
-                            color: selected ? panelAccent : inkBg
-                            border.color: selected ? panelAccent : (tabMouse.containsMouse ? mutedFg : "transparent")
+                            color: tabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: tab.selected ? 2 : 1
+                                color: tab.selected ? panelAccent : mutedFg
+                                opacity: tab.selected ? 1 : 0.22
+                            }
 
                             Row {
                                 anchors.centerIn: parent
@@ -135,7 +141,7 @@ PanelWindow {
                                     visible: tab.index === 0
                                         ? (statusController && statusController.connected)
                                         : (vpnCli && vpnCli.protonActive)
-                                    color: tab.selected ? panelBg : panelAccent
+                                    color: panelAccent
                                 }
 
                             }

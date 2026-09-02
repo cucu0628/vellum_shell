@@ -2,11 +2,18 @@
 
 set -eu
 
-base=${XDG_CONFIG_HOME:-"$HOME/.config"}/quickshell/vellum_shell
+base=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "$0")/.." && pwd)}
 config="$base/lockscreen-monitor"
 
 monitors() {
     hyprctl monitors -j 2>/dev/null | jq -r '.[].name'
+}
+
+# Egy `monitors | while ... exit 0` szerkezet ures listara IGAZAT ad (a torzs
+# le sem fut), ezert hyprctl nelkul barmit elfogadott. A grep ures bemenetre
+# helyesen bukik.
+has_monitor() {
+    monitors | grep -qxF -- "$1"
 }
 
 current() {
@@ -15,9 +22,7 @@ current() {
         IFS= read -r saved < "$config" || true
     fi
 
-    if [ -n "$saved" ] && monitors | while IFS= read -r monitor; do
-        [ "$monitor" = "$saved" ] && exit 0
-    done; then
+    if [ -n "$saved" ] && has_monitor "$saved"; then
         printf '%s\n' "$saved"
         return
     fi
@@ -45,13 +50,8 @@ case ${1:-list} in
     set)
         requested=${2:-}
         [ -n "$requested" ] || exit 2
-        if monitors | while IFS= read -r monitor; do
-            [ "$monitor" = "$requested" ] && exit 0
-        done; then
-            printf '%s\n' "$requested" > "$config"
-        else
-            exit 2
-        fi
+        has_monitor "$requested" || exit 2
+        printf '%s\n' "$requested" > "$config"
         ;;
     *)
         exit 2

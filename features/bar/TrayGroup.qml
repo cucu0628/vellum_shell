@@ -46,8 +46,8 @@ Item {
                 id: trayArrow
                 anchors.centerIn: parent
                 anchors.verticalCenterOffset: -1
-                width: 12
-                height: 12
+                width: 14
+                height: 14
                 property color iconColor: trayMouse.containsMouse && root.hasItems ? root.theme.accent : (root.hasItems ? root.theme.foreground : "#9f8f7c")
                 onIconColorChanged: requestPaint()
                 onPaint: {
@@ -58,9 +58,9 @@ Item {
                     ctx.lineCap = "round"
                     ctx.lineJoin = "round"
                     ctx.beginPath()
-                    ctx.moveTo(root.expanded ? 3 : 9, 2)
-                    ctx.lineTo(root.expanded ? 9 : 3, 6)
-                    ctx.lineTo(root.expanded ? 3 : 9, 10)
+                    ctx.moveTo(root.expanded ? 3 : 11, 2)
+                    ctx.lineTo(root.expanded ? 11 : 3, 7)
+                    ctx.lineTo(root.expanded ? 3 : 11, 12)
                     ctx.stroke()
                 }
                 Connections {
@@ -91,10 +91,10 @@ Item {
                     Image {
                         anchors.centerIn: parent
                         anchors.verticalCenterOffset: -1
-                        width: 16
-                        height: 16
+                        width: 14
+                        height: 14
                         source: trayItem.modelData.icon || ""
-                        sourceSize: Qt.size(16, 16)
+                        sourceSize: Qt.size(14, 14)
                         visible: source !== ""
                         fillMode: Image.PreserveAspectFit
                         smooth: true
@@ -105,7 +105,7 @@ Item {
                         anchors.verticalCenterOffset: -1
                         text: "󰀻"
                         font.family: "Symbols Nerd Font Mono"
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         color: root.theme.foreground
                         visible: !trayItem.modelData.icon || trayItem.modelData.icon === ""
                     }

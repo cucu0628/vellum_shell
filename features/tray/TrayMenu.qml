@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Widgets
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 PanelWindow {
     id: trayMenu
@@ -22,6 +23,8 @@ PanelWindow {
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
+    readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
+    readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
 
     function openFor(targetScreen, targetMenu, globalX) {
         screen = targetScreen
@@ -49,22 +52,10 @@ PanelWindow {
         height: menuColumn.implicitHeight + 18
         clip: true
 
-        Rectangle {
+        SharedUi.PopupFrame {
             anchors.fill: parent
             anchors.topMargin: -2
-            color: panelBg
-            border.color: panelAccent
-            border.width: 1
-            radius: 0
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                height: 2
-                color: panelAccent
-                opacity: 0.9
-            }
+            theme: trayMenu.theme
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
@@ -79,7 +70,7 @@ PanelWindow {
                     Rectangle {
                         width: parent.width
                         height: modelData.isSeparator ? 9 : 31
-                        color: !modelData.isSeparator && itemMouse.containsMouse ? panelAccent : "transparent"
+                        color: !modelData.isSeparator && itemMouse.containsMouse ? inkBg : "transparent"
                         radius: 0
                         opacity: modelData.enabled === false ? 0.45 : 1
 
@@ -90,7 +81,7 @@ PanelWindow {
                             width: 3
                             height: parent.height
                             anchors.left: parent.left
-                            color: itemMouse.containsMouse ? panelBg : panelAccent
+                            color: panelAccent
                             opacity: itemMouse.containsMouse ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
                         }
@@ -99,15 +90,15 @@ PanelWindow {
                             visible: modelData.isSeparator
                             width: parent.width - 10
                             height: 1
-                            color: panelAccent
-                            opacity: 0.35
+                            color: mutedFg
+                            opacity: 0.2
                             anchors.centerIn: parent
                         }
 
                         Text {
                             visible: !modelData.isSeparator
                             text: modelData.text ? modelData.text.replace(/&/g, "") : ""
-                            color: itemMouse.containsMouse ? panelBg : panelFg
+                            color: itemMouse.containsMouse ? panelAccent : panelFg
                             font.pixelSize: 12
                             font.weight: itemMouse.containsMouse ? Font.DemiBold : Font.Normal
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }

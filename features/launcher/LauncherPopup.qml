@@ -16,250 +16,29 @@ PanelWindow {
     property bool suppressHoverSelection: false
     property var applications: []
     property var projects: []
+    property string delayedActionCommand: ""
+    // A visszafordithatatlan muveletek elso Enterre csak kijelolodnek; a
+    // masodik inditja el oket. -1, ha nincs ilyen fuggoben.
+    property int pendingConfirmIndex: -1
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
-    readonly property bool calcMode: query.trim().startsWith("=")
+    // Az egyetlen megmaradt prefix. A projektek azert kulon mod, mert a talalat
+    // egy konyvtar, nem inditando muvelet -- kulonben minden mappanev
+    // beleszolna az alkalmazaskeresesbe.
     readonly property bool projectMode: query.trim().startsWith(">")
-    readonly property bool webMode: query.trim().startsWith("?")
-    readonly property bool emojiMode: query.trim().startsWith(":")
     readonly property bool hasQuery: query.trim() !== ""
-    readonly property string calcExpression: calcMode ? query.trim().slice(1).trim() : ""
     readonly property string projectQuery: projectMode ? query.trim().slice(1).trim() : ""
-    readonly property string webQuery: webMode ? query.trim().slice(1).trim() : ""
-    readonly property string emojiQuery: emojiMode ? query.trim().slice(1).trim() : ""
-    readonly property string modeTitle: calcMode ? "CALCULATOR" : (projectMode ? "PROJECTS" : (webMode ? "WEB SEARCH" : (emojiMode ? "EMOJI" : "APPLICATIONS")))
-    readonly property var appResults: buildAppResults(query)
-    readonly property var visibleItems: calcMode ? calcItems() : (projectMode ? projectItems() : (webMode ? webItems() : (emojiMode ? emojiItems() : appResults)))
+    // Prefix helyett alakfelismeres: ami matek kifejezesnek nez ki, az a qalc-hoz
+    // megy. Igy a szamolas nem kulon mod, csak egy talalat a kozos listaban.
+    readonly property string calcExpression: projectMode ? "" : mathExpression(query)
+    readonly property string modeTitle: projectMode ? "PROJECTS" : (hasQuery ? "SEARCH" : "APPLICATIONS")
+    readonly property var searchResults: buildResults(query)
+    readonly property var visibleItems: projectMode ? projectItems() : searchResults
+    readonly property bool listVisible: hasQuery || visibleItems.length > 0
     readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 50 - 4 : 46
-    readonly property var aliases: [{
-        "name": "browser",
-        "terms": ["web", "internet"],
-        "command": "xdg-open https://www.google.com",
-        "icon": "󰖟",
-        "subtitle": "Open default browser"
-    }, {
-        "name": "terminal",
-        "terms": ["term", "shell"],
-        "command": "kitty",
-        "icon": "",
-        "subtitle": "Open terminal"
-    }, {
-        "name": "files",
-        "terms": ["file", "folder", "nautilus"],
-        "command": "xdg-open $HOME",
-        "icon": "",
-        "subtitle": "Open home folder"
-    }, {
-        "name": "settings",
-        "terms": ["control", "preferences", "menu"],
-        "command": "quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call menu toggle",
-        "icon": "",
-        "subtitle": "Open shell menu"
-    }]
-    readonly property var emojis: [{
-        "emoji": "😀",
-        "name": "grinning face",
-        "keywords": "smile happy grin"
-    }, {
-        "emoji": "😄",
-        "name": "smiling eyes",
-        "keywords": "smile happy laugh"
-    }, {
-        "emoji": "😂",
-        "name": "tears of joy",
-        "keywords": "laugh lol joy funny"
-    }, {
-        "emoji": "🤣",
-        "name": "rolling laughing",
-        "keywords": "laugh rofl funny"
-    }, {
-        "emoji": "🙂",
-        "name": "slightly smiling",
-        "keywords": "smile"
-    }, {
-        "emoji": "😉",
-        "name": "wink",
-        "keywords": "flirt joke"
-    }, {
-        "emoji": "😊",
-        "name": "blush",
-        "keywords": "smile happy cute"
-    }, {
-        "emoji": "😍",
-        "name": "heart eyes",
-        "keywords": "love heart"
-    }, {
-        "emoji": "😘",
-        "name": "kiss",
-        "keywords": "love kiss"
-    }, {
-        "emoji": "😎",
-        "name": "cool",
-        "keywords": "sunglasses awesome"
-    }, {
-        "emoji": "🤔",
-        "name": "thinking",
-        "keywords": "think hmm question"
-    }, {
-        "emoji": "🙃",
-        "name": "upside down",
-        "keywords": "sarcasm silly"
-    }, {
-        "emoji": "😅",
-        "name": "sweat smile",
-        "keywords": "nervous relief"
-    }, {
-        "emoji": "😭",
-        "name": "loudly crying",
-        "keywords": "cry sad tears"
-    }, {
-        "emoji": "😡",
-        "name": "angry",
-        "keywords": "mad rage"
-    }, {
-        "emoji": "😴",
-        "name": "sleeping",
-        "keywords": "sleep tired"
-    }, {
-        "emoji": "🤯",
-        "name": "mind blown",
-        "keywords": "shock wow"
-    }, {
-        "emoji": "🥳",
-        "name": "party",
-        "keywords": "celebrate birthday"
-    }, {
-        "emoji": "👍",
-        "name": "thumbs up",
-        "keywords": "yes ok good approve"
-    }, {
-        "emoji": "👎",
-        "name": "thumbs down",
-        "keywords": "no bad reject"
-    }, {
-        "emoji": "👏",
-        "name": "clapping",
-        "keywords": "clap applause"
-    }, {
-        "emoji": "🙏",
-        "name": "folded hands",
-        "keywords": "please thanks pray"
-    }, {
-        "emoji": "💪",
-        "name": "flexed biceps",
-        "keywords": "strong muscle"
-    }, {
-        "emoji": "🔥",
-        "name": "fire",
-        "keywords": "hot lit flame"
-    }, {
-        "emoji": "✨",
-        "name": "sparkles",
-        "keywords": "shine magic clean"
-    }, {
-        "emoji": "💯",
-        "name": "hundred",
-        "keywords": "100 perfect"
-    }, {
-        "emoji": "✅",
-        "name": "check mark",
-        "keywords": "done yes complete"
-    }, {
-        "emoji": "❌",
-        "name": "cross mark",
-        "keywords": "no fail error"
-    }, {
-        "emoji": "⚠️",
-        "name": "warning",
-        "keywords": "alert caution"
-    }, {
-        "emoji": "❤️",
-        "name": "red heart",
-        "keywords": "love heart"
-    }, {
-        "emoji": "💔",
-        "name": "broken heart",
-        "keywords": "sad heartbreak"
-    }, {
-        "emoji": "🎉",
-        "name": "party popper",
-        "keywords": "celebrate party"
-    }, {
-        "emoji": "🚀",
-        "name": "rocket",
-        "keywords": "launch fast ship"
-    }, {
-        "emoji": "💡",
-        "name": "light bulb",
-        "keywords": "idea tip"
-    }, {
-        "emoji": "🐛",
-        "name": "bug",
-        "keywords": "bug issue error"
-    }, {
-        "emoji": "📌",
-        "name": "pushpin",
-        "keywords": "pin mark"
-    }, {
-        "emoji": "📎",
-        "name": "paperclip",
-        "keywords": "attach clip"
-    }, {
-        "emoji": "📅",
-        "name": "calendar",
-        "keywords": "date schedule"
-    }, {
-        "emoji": "⏰",
-        "name": "alarm clock",
-        "keywords": "time reminder"
-    }, {
-        "emoji": "☕",
-        "name": "coffee",
-        "keywords": "drink cafe"
-    }, {
-        "emoji": "🍕",
-        "name": "pizza",
-        "keywords": "food"
-    }, {
-        "emoji": "🍺",
-        "name": "beer",
-        "keywords": "drink cheers"
-    }, {
-        "emoji": "🌙",
-        "name": "moon",
-        "keywords": "night dark"
-    }, {
-        "emoji": "☀️",
-        "name": "sun",
-        "keywords": "day light"
-    }, {
-        "emoji": "⭐",
-        "name": "star",
-        "keywords": "favorite rating"
-    }, {
-        "emoji": "⚡",
-        "name": "zap",
-        "keywords": "fast power lightning"
-    }, {
-        "emoji": "🔒",
-        "name": "lock",
-        "keywords": "secure private"
-    }, {
-        "emoji": "🔓",
-        "name": "unlock",
-        "keywords": "open"
-    }, {
-        "emoji": "🧠",
-        "name": "brain",
-        "keywords": "think smart ai"
-    }, {
-        "emoji": "🤖",
-        "name": "robot",
-        "keywords": "bot ai"
-    }]
 
     function refreshApplications() {
         applications = DesktopEntries.applications.values.slice();
@@ -299,6 +78,7 @@ PanelWindow {
         calcResult = "";
         resultsList.contentY = 0;
         calcTimer.stop();
+        clearConfirm();
     }
 
     function normalize(value) {
@@ -337,19 +117,32 @@ PanelWindow {
         return score;
     }
 
-    function buildAppResults(value) {
-        if (calcMode || projectMode || webMode || emojiMode)
+    // Az egyetlen osszefesulo pont: alkalmazas, muvelet, emoji es szamolas
+    // ugyanabba a pontszamozott listaba kerul, es egyszer rendezodik.
+    function buildResults(value) {
+        if (projectMode)
             return [];
 
         var queryWords = words(value);
-        if (queryWords.length === 0)
-            return [];
+        var browsingApps = queryWords.length === 0;
+
+        var matches = [];
+        // A szamolas eredmenye mindig legfelul all: ha a lekerdezes egyaltalan
+        // matek volt, akkor azt kerestuk.
+        if (calcResult !== "")
+            matches.push({
+            "item": {
+                "type": "calc",
+                "title": calcResult,
+                "subtitle": calcExpression
+            },
+            "score": 100000
+        });
 
         var apps = applications;
-        var matches = [];
         for (var i = 0; i < apps.length; i++) {
             var app = apps[i];
-            var score = scoreApp(app, queryWords);
+            var score = browsingApps ? appStatScore(app) + 1 : scoreApp(app, queryWords);
             if (score > 0)
                 matches.push({
                 "app": app,
@@ -357,15 +150,45 @@ PanelWindow {
             });
 
         }
-        for (var a = 0; a < aliases.length; a++) {
-            var aliasScore = scoreAlias(aliases[a], queryWords);
-            if (aliasScore > 0)
+        if (browsingApps) {
+            matches.sort((a, b) => {
+                return b.score - a.score || itemSortName(a).localeCompare(itemSortName(b));
+            });
+            var browsingResult = [];
+            for (var b = 0; b < matches.length && b < 50; b++) browsingResult.push({
+                "type": "app",
+                "app": matches[b].app
+            })
+            var browsingActions = launcherActions.items;
+            for (var ba = 0; ba < browsingActions.length; ba++) browsingResult.push({
+                "type": "action",
+                "action": browsingActions[ba]
+            })
+            return browsingResult;
+        }
+        var actions = launcherActions.items;
+        for (var a = 0; a < actions.length; a++) {
+            var actionScore = scoreAction(actions[a], queryWords);
+            if (actionScore > 0)
                 matches.push({
                 "item": {
-                    "type": "alias",
-                    "alias": aliases[a]
+                    "type": "action",
+                    "action": actions[a]
                 },
-                "score": aliasScore
+                "score": actionScore
+            });
+
+        }
+        var emojis = emojiData.items;
+        for (var e = 0; e < emojis.length; e++) {
+            var emojiScore = scoreEmoji(emojis[e], queryWords);
+            if (emojiScore > 0)
+                matches.push({
+                "item": {
+                    "type": "emoji",
+                    "emoji": emojis[e]
+                },
+                "score": emojiScore
             });
 
         }
@@ -380,6 +203,25 @@ PanelWindow {
         return result;
     }
 
+    // Prefix nelkul kell eldonteni, hogy a beirt szoveg szamolas-e. Csak akkor
+    // az, ha szammal, zarojellel vagy ismert fuggvennyel kezdodik, ES van benne
+    // operator vagy zarojel -- egy puszta "2024" evszam igy nem lesz talalat.
+    function mathExpression(value) {
+        var text = (value || "").trim();
+        if (text.length < 3)
+            return "";
+
+        if (!/^[0-9(.+-]/.test(text) && !/^(sqrt|sin|cos|tan|log|ln|abs|exp|pow)\b/i.test(text))
+            return "";
+
+        if (!/[+\-*\/^%()]/.test(text))
+            return "";
+
+        // Betuk csak fuggveny- vagy mertekegysegnevkent fordulhatnak elo; egy
+        // "grep -r foo/bar" alaku szoveg igy nem megy at a qalc-on.
+        return /^[0-9a-z\s.,+\-*\/^%()]+$/i.test(text) ? text : "";
+    }
+
     function appStatScore(app) {
         return frecencyStore.score(app);
     }
@@ -388,23 +230,27 @@ PanelWindow {
         if (match.app)
             return match.app.name;
 
-        if (match.item && match.item.type === "alias")
-            return match.item.alias.name;
+        if (match.item && match.item.type === "action")
+            return match.item.action.name;
+
+        if (match.item && match.item.type === "emoji")
+            return match.item.emoji.name;
 
         return "";
     }
 
-    function scoreAlias(alias, queryWords) {
+    function scoreAction(action, queryWords) {
         if (queryWords.length === 0)
             return 0;
 
-        var haystack = normalize(alias.name + " " + alias.terms.join(" "));
+        var name = normalize(action.name);
+        var haystack = normalize(action.name + " " + action.terms.join(" "));
         var score = 15;
         for (var i = 0; i < queryWords.length; i++) {
             var word = queryWords[i];
-            if (alias.name === word)
+            if (name === word)
                 score += 140;
-            else if (alias.name.startsWith(word))
+            else if (name.startsWith(word))
                 score += 100;
             else if (haystack.indexOf(word) >= 0)
                 score += 45;
@@ -414,26 +260,31 @@ PanelWindow {
         return score;
     }
 
-    function calcItems() {
-        if (calcExpression === "")
-            return [{
-            "type": "hint",
-            "title": "Type an expression",
-            "subtitle": "Example: =sqrt(144) + 8"
-        }];
+    // Szandekosan szigorubb az alkalmazas-pontozasnal: laza reszszo-egyezesre
+    // nem adunk talalatot, kulonben minden "fi" kezdetu keresesbe beleszolna
+    // egy emoji. Csak egesz szavas vagy erteles prefix egyezes szamit.
+    function scoreEmoji(emoji, queryWords) {
+        if (queryWords.length === 0)
+            return 0;
 
-        if (calcResult === "")
-            return [{
-            "type": "hint",
-            "title": "Calculating...",
-            "subtitle": calcExpression
-        }];
-
-        return [{
-            "type": "calc",
-            "title": calcResult,
-            "subtitle": calcExpression
-        }];
+        var name = normalize(emoji.name);
+        var nameWords = name === "" ? [] : name.split(" ");
+        var keywords = words(emoji.keywords);
+        var score = 0;
+        for (var i = 0; i < queryWords.length; i++) {
+            var word = queryWords[i];
+            if (name === word)
+                score += 120;
+            else if (nameWords.indexOf(word) >= 0)
+                score += 90;
+            else if (word.length >= 3 && name.startsWith(word))
+                score += 80;
+            else if (keywords.indexOf(word) >= 0)
+                score += 60;
+            else
+                return 0;
+        }
+        return score;
     }
 
     function projectItems() {
@@ -455,66 +306,6 @@ PanelWindow {
         return result;
     }
 
-    function webItems() {
-        if (webQuery === "")
-            return [{
-            "type": "hint",
-            "title": "Search the web",
-            "subtitle": "Example: ?quickshell widgets"
-        }];
-
-        return [{
-            "type": "web",
-            "title": webQuery,
-            "subtitle": "Search with default browser"
-        }];
-    }
-
-    function emojiItems() {
-        var queryWords = words(emojiQuery);
-        var result = [];
-        if (queryWords.length === 0) {
-            for (var i = 0; i < emojis.length && i < 40; i++) result.push({
-                "type": "emoji",
-                "emoji": emojis[i]
-            })
-            return result;
-        }
-        var matches = [];
-        for (var j = 0; j < emojis.length; j++) {
-            var emoji = emojis[j];
-            var haystack = normalize(emoji.name + " " + emoji.keywords);
-            var score = 0;
-            for (var k = 0; k < queryWords.length; k++) {
-                var word = queryWords[k];
-                if (normalize(emoji.name) === word) {
-                    score += 100;
-                } else if (normalize(emoji.name).startsWith(word)) {
-                    score += 70;
-                } else if (haystack.indexOf(word) >= 0) {
-                    score += 35;
-                } else {
-                    score = 0;
-                    break;
-                }
-            }
-            if (score > 0)
-                matches.push({
-                "emoji": emoji,
-                "score": score
-            });
-
-        }
-        matches.sort((a, b) => {
-            return b.score - a.score || a.emoji.name.localeCompare(b.emoji.name);
-        });
-        for (var m = 0; m < matches.length && m < 40; m++) result.push({
-            "type": "emoji",
-            "emoji": matches[m].emoji
-        })
-        return result;
-    }
-
     function itemTitle(item) {
         if (!item)
             return "";
@@ -522,8 +313,8 @@ PanelWindow {
         if (item.type === "app")
             return item.app ? (item.app.name || item.app.id || "Application") : "Application";
 
-        if (item.type === "alias")
-            return item.alias ? item.alias.name : "";
+        if (item.type === "action")
+            return item.action ? item.action.name : "";
 
         if (item.type === "emoji")
             return item.emoji ? item.emoji.emoji + "  " + item.emoji.name : "";
@@ -538,11 +329,11 @@ PanelWindow {
         if (item.type === "app")
             return item.app ? (item.app.genericName || item.app.comment || item.app.id || "") : "";
 
-        if (item.type === "alias")
-            return item.alias ? item.alias.subtitle : "";
+        if (item.type === "action")
+            return item.action ? item.action.subtitle : "";
 
         if (item.type === "emoji")
-            return item.emoji ? ":" + item.emoji.keywords : "";
+            return item.emoji ? "Copy " + item.emoji.name : "";
 
         return item.subtitle || "";
     }
@@ -560,11 +351,8 @@ PanelWindow {
         if (item.type === "project")
             return "󰉋";
 
-        if (item.type === "web")
-            return "󰖟";
-
-        if (item.type === "alias")
-            return item.alias ? item.alias.icon : "";
+        if (item.type === "action")
+            return item.action ? item.action.icon : "";
 
         if (item.type === "emoji")
             return item.emoji ? item.emoji.emoji : "";
@@ -576,7 +364,8 @@ PanelWindow {
         if (visibleItems.length === 0)
             return ;
 
-        var item = visibleItems[Math.max(0, Math.min(selectedIndex, visibleItems.length - 1))];
+        var index = Math.max(0, Math.min(selectedIndex, visibleItems.length - 1));
+        var item = visibleItems[index];
         if (item.type === "app") {
             item.app.execute();
             frecencyStore.record(item.app.id || item.app.name);
@@ -589,14 +378,24 @@ PanelWindow {
             runProcess.command = ["code", item.path];
             runProcess.running = true;
             opened = false;
-        } else if (item.type === "web" && webQuery !== "") {
-            runProcess.command = ["xdg-open", "https://www.google.com/search?q=" + encodeURIComponent(webQuery)];
-            runProcess.running = true;
-            opened = false;
-        } else if (item.type === "alias") {
-            runProcess.command = ["sh", "-c", item.alias.command];
-            runProcess.running = true;
-            opened = false;
+        } else if (item.type === "action") {
+            // A kikapcsolas-jellegu muveleteknel az elso Enter csak felvillantja
+            // a sort; a masodik inditja el. A varakozas 2.2 masodperc utan jar le.
+            if (item.action.confirm === true && pendingConfirmIndex !== index) {
+                pendingConfirmIndex = index;
+                confirmTimer.restart();
+                return ;
+            }
+            clearConfirm();
+            if (item.action.delay === true) {
+                delayedActionCommand = item.action.command;
+                opened = false;
+                delayedActionTimer.restart();
+            } else {
+                runProcess.command = ["sh", "-c", item.action.command];
+                runProcess.running = true;
+                opened = false;
+            }
         } else if (item.type === "emoji") {
             copyProcess.command = ["sh", "-c", "printf %s " + shellQuote(item.emoji.emoji) + " | wl-copy"];
             copyProcess.running = true;
@@ -604,24 +403,17 @@ PanelWindow {
         }
     }
 
+    function clearConfirm() {
+        confirmTimer.stop();
+        pendingConfirmIndex = -1;
+    }
+
     function shellQuote(value) {
         return "'" + value.replace(/'/g, "'\\''") + "'";
     }
 
     function modeActive(prefix) {
-        if (prefix === "=")
-            return calcMode;
-
-        if (prefix === ">")
-            return projectMode;
-
-        if (prefix === "?")
-            return webMode;
-
-        if (prefix === ":")
-            return emojiMode;
-
-        return !calcMode && !projectMode && !webMode && !emojiMode;
+        return prefix === ">" ? projectMode : !projectMode;
     }
 
     function selectMode(prefix) {
@@ -631,7 +423,7 @@ PanelWindow {
     }
 
     function cycleMode(reverse) {
-        var prefixes = ["", ":", "=", "?", ">"];
+        var prefixes = ["", ">"];
         var current = 0;
         for (var i = 0; i < prefixes.length; i++) {
             if (modeActive(prefixes[i])) {
@@ -693,13 +485,24 @@ PanelWindow {
         suppressHoverSelection = false;
         selectedIndex = 0;
         resultsList.contentY = 0;
-        if (calcMode && calcExpression !== "") {
-            calcTimer.restart();
-        } else {
-            calcTimer.stop();
-            calcResult = "";
-        }
+        clearConfirm();
     }
+    // A szamolast a kifejezes valtozasa inditja, nem a nyers lekerdezese. Az
+    // `onQueryChanged`-ben olvasva a `calcExpression` meg a korabbi erteket adna:
+    // a szarmaztatott binding ujraertekelese es a valtozaskezelo sorrendje nem
+    // garantalt.
+    onCalcExpressionChanged: {
+        // A regi eredmeny nem tartozik az uj kifejezeshez, ezert azonnal megy.
+        calcResult = "";
+        if (calcExpression === "") {
+            calcTimer.stop();
+            return ;
+        }
+        calcTimer.restart();
+    }
+    // A megerositesre varo sorrol ellepve a varakozas ervenyet veszti: kulonben
+    // a kijeloles mar mashol lenne, de a regi sor meg "AGAIN"-t mutatna.
+    onSelectedIndexChanged: clearConfirm()
     onVisibleItemsChanged: {
         selectedIndex = Math.max(0, Math.min(selectedIndex, Math.max(visibleItems.length - 1, 0)));
         clampResultsScroll();
@@ -726,12 +529,33 @@ PanelWindow {
     }
 
     Timer {
+        id: confirmTimer
+
+        interval: 2200
+        onTriggered: launcherWindow.pendingConfirmIndex = -1
+    }
+
+    Timer {
         id: calcTimer
 
         interval: 120
         onTriggered: {
             calcProcess.command = ["qalc", "-t", calcExpression];
             calcProcess.running = true;
+        }
+    }
+
+    Timer {
+        id: delayedActionTimer
+
+        interval: 260
+        onTriggered: {
+            if (launcherWindow.delayedActionCommand === "")
+                return;
+
+            runProcess.command = ["sh", "-c", launcherWindow.delayedActionCommand];
+            launcherWindow.delayedActionCommand = "";
+            runProcess.running = true;
         }
     }
 
@@ -760,6 +584,14 @@ PanelWindow {
         }
     }
 
+    LauncherUi.LauncherActions {
+        id: launcherActions
+    }
+
+    LauncherUi.EmojiData {
+        id: emojiData
+    }
+
     LauncherUi.FrecencyStore {
         id: frecencyStore
     }
@@ -779,12 +611,12 @@ PanelWindow {
 
         anchors.centerIn: parent
         enabled: opened
-        width: Math.min(840, launcherWindow.width - 32)
-        height: hasQuery ? Math.min(500, launcherWindow.height - 40, 215 + Math.max(46, resultsHeight)) : 154
+        width: Math.min(760, launcherWindow.width - 32)
+        height: listVisible ? Math.min(520, launcherWindow.height - 40, 238 + Math.max(46, resultsHeight)) : 182
         opacity: opened ? 1 : 0
-        scale: opened ? 1 : 0.96
+        scale: opened ? 1 : 0.985
         transform: Translate {
-            y: launcherWindow.opened ? 0 : 12
+            y: launcherWindow.opened ? 0 : 18
 
             Behavior on y {
                 NumberAnimation {
@@ -797,10 +629,29 @@ PanelWindow {
         Rectangle {
             anchors.fill: parent
             color: panelBg
-            border.color: panelAccent
+            border.color: Qt.rgba(1, 1, 1, 0.12)
             border.width: 1
             radius: 0
             clip: true
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 1
+                height: 2
+                color: panelAccent
+            }
+
+            SharedUi.ShellLogo {
+                anchors.right: parent.right
+                anchors.rightMargin: -34
+                anchors.top: parent.top
+                anchors.topMargin: -54
+                size: 190
+                color: panelFg
+                opacity: 0.025
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -811,51 +662,69 @@ PanelWindow {
 
             Column {
                 anchors.fill: parent
-                anchors.leftMargin: 22
-                anchors.rightMargin: 22
-                anchors.topMargin: 18
-                anchors.bottomMargin: 14
-                spacing: 8
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
+                anchors.topMargin: 20
+                anchors.bottomMargin: 16
+                spacing: 10
 
-                Row {
+                Item {
                     width: parent.width
-                    height: 30
-                    spacing: 10
+                    height: 44
 
-                    Rectangle {
-                        width: 30
-                        height: 30
+                    SharedUi.ShellLogo {
+                        id: launcherMark
+
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        size: 38
                         color: panelAccent
+                    }
+
+                    Column {
+                        anchors.left: launcherMark.right
+                        anchors.leftMargin: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 0
 
                         Text {
-                            anchors.centerIn: parent
-                            text: "󰀻"
-                            color: panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 18
-                            font.weight: Font.DemiBold
+                            text: "Vellum"
+                            color: panelFg
+                            font.family: "serif"
+                            font.pixelSize: 22
+                            font.weight: Font.Medium
+                        }
+
+                        Text {
+                            text: "SEARCH  ·  COMMAND  ·  OPEN"
+                            color: mutedFg
+                            font.pixelSize: 8
+                            font.letterSpacing: 1.8
                         }
 
                     }
 
                     Column {
+                        anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
+                        spacing: 3
 
                         Text {
-                            text: "VELLUM SHELL"
-                            color: panelFg
-                            font.pixelSize: 12
+                            anchors.right: parent.right
+                            text: projectMode ? "PROJECTS" : "UNIFIED SEARCH"
+                            color: panelAccent
+                            font.pixelSize: 8
                             font.bold: true
-                            font.letterSpacing: 3
+                            font.letterSpacing: 1.8
                         }
 
                         Text {
-                            text: "Application launcher"
+                            anchors.right: parent.right
+                            text: "TAB CHANGES MODE"
                             color: mutedFg
-                            font.pixelSize: 9
+                            font.family: "monospace"
+                            font.pixelSize: 8
                         }
-
                     }
 
                 }
@@ -864,10 +733,10 @@ PanelWindow {
                     id: searchField
 
                     width: parent.width
-                    height: 48
+                    height: 52
                     opened: launcherWindow.opened
-                    indicator: calcMode ? "=" : (projectMode ? ">" : (webMode ? "?" : (emojiMode ? ":" : "⌕")))
-                    placeholder: projectMode ? "Search projects in ~/Projects..." : "Search applications..."
+                    indicator: projectMode ? ">" : "⌕"
+                    placeholder: projectMode ? "Search projects in ~/Projects..." : "Search apps, actions and emoji..."
                     inputLeftMargin: 44
                     inputVerticalPadding: 12
                     surface: inkBg
@@ -885,22 +754,13 @@ PanelWindow {
                 Grid {
                     width: parent.width
                     height: 28
-                    columns: 5
+                    columns: 2
                     columnSpacing: 6
 
                     Repeater {
                         model: [{
-                            "label": "APPS",
+                            "label": "SEARCH",
                             "prefix": ""
-                        }, {
-                            "label": "EMOJI",
-                            "prefix": ":"
-                        }, {
-                            "label": "CALC",
-                            "prefix": "="
-                        }, {
-                            "label": "WEB",
-                            "prefix": "?"
                         }, {
                             "label": "PROJECTS",
                             "prefix": ">"
@@ -909,29 +769,29 @@ PanelWindow {
                         Rectangle {
                             readonly property bool activeMode: modeActive(modelData.prefix)
 
-                            width: (parent.width - 24) / 5
+                            width: (parent.width - 6) / 2
                             height: 27
-                            color: activeMode || modeMouse.containsMouse ? inkBg : "transparent"
-                            border.color: activeMode ? panelAccent : mutedFg
-                            border.width: 1
+                            color: modeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: activeMode ? 2 : 1
+                                color: activeMode ? panelAccent : mutedFg
+                                opacity: activeMode ? 1 : 0.22
+                            }
 
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 7
-
-                                Text {
-                                    text: (index + 1).toString().padStart(2, "0")
-                                    color: panelAccent
-                                    font.family: "monospace"
-                                    font.pixelSize: 8
-                                }
+                                spacing: 8
 
                                 Text {
                                     text: modelData.label
-                                    color: activeMode ? panelFg : mutedFg
-                                    font.family: "monospace"
-                                    font.pixelSize: 8
-                                    font.letterSpacing: 1
+                                    color: activeMode ? panelAccent : mutedFg
+                                    font.pixelSize: 9
+                                    font.bold: activeMode
+                                    font.letterSpacing: 1.8
                                 }
 
                             }
@@ -952,13 +812,13 @@ PanelWindow {
                 }
 
                 Item {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
                     height: 18
 
                     Text {
                         anchors.left: parent.left
-                        text: modeTitle + "  /  " + visibleItems.length
+                        text: modeTitle + "  ·  " + visibleItems.length + (visibleItems.length === 1 ? " RESULT" : " RESULTS")
                         color: panelAccent
                         font.pixelSize: 8
                         font.letterSpacing: 2
@@ -967,7 +827,7 @@ PanelWindow {
 
                     Text {
                         anchors.right: parent.right
-                        text: "TAB  MODE    ↑↓  SELECT    ENTER  RUN    ESC  CLOSE"
+                        text: "↑↓  SELECT     ENTER  OPEN     ESC  CLOSE"
                         color: mutedFg
                         font.family: "monospace"
                         font.pixelSize: 8
@@ -976,17 +836,17 @@ PanelWindow {
                 }
 
                 Rectangle {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
                     height: 1
-                    color: panelAccent
-                    opacity: 0.45
+                    color: mutedFg
+                    opacity: 0.2
                 }
 
                 Item {
-                    visible: hasQuery
+                    visible: listVisible
                     width: parent.width
-                    height: parent.height - 173
+                    height: parent.height - 195
 
                     Text {
                         visible: visibleItems.length === 0
@@ -1014,6 +874,7 @@ PanelWindow {
                                     result: modelData
                                     resultIndex: index
                                     selected: index === selectedIndex
+                                    pendingConfirm: index === pendingConfirmIndex
                                     hoverSelectionEnabled: !suppressHoverSelection
                                     title: itemTitle(modelData)
                                     subtitle: itemSubtitle(modelData)
@@ -1025,7 +886,7 @@ PanelWindow {
                                     mutedColor: mutedFg
                                     selectionColor: inkBg
                                     onHoverRequested: (rowIndex) => {
-                                        return selectedIndex = rowIndex;
+                                        selectedIndex = rowIndex;
                                     }
                                     onActivationRequested: (rowIndex) => {
                                         suppressHoverSelection = false;

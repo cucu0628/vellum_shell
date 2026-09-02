@@ -1,42 +1,36 @@
 import QtQuick
-import Quickshell.Io
 
+// A zarolokepernyo palettaja es hatterkepe a backend `theme` topicjabol.
+//
+// Korabban ez a fajl a `scripts/theme-read` kimenetet parsolta. Ha a backend
+// nem elerheto, a lenti alapertekek maradnak -- a zarolas ilyenkor is mukodik,
+// csak semleges szinekkel es hatterkep nelkul.
 QtObject {
     id: root
 
-    property string background: "#1e1e2e"
-    property string foreground: "#cdd6f4"
-    property string accent: "#89b4fa"
-    property string surface: "#181825"
-    property string muted: "#bac2de"
-    property string outline: "#9399b2"
+    required property var backend
 
-    function updateColors(text) {
-        var lines = text.split("\n")
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].trim()
-            if (line === "" || line.startsWith("#")) continue
-            if (line.startsWith("env = BACKGROUND,")) background = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("env = FOREGROUND,")) foreground = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("env = BORDER_FOREGROUND,")) accent = line.split(",")[1].replace("##", "#")
-            else if (line.startsWith("BACKGROUND=")) background = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("FOREGROUND=")) foreground = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("ACCENT=")) accent = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("BORDER_FOREGROUND=")) accent = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("SURFACE=")) surface = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("MUTED=")) outline = line.split("=")[1].replace("##", "#")
-            else if (line.startsWith("LIGHT_FOREGROUND=")) muted = line.split("=")[1].replace("##", "#")
-        }
-    }
+    readonly property var themeTopic: backend && backend.topics.theme ? backend.topics.theme : null
 
-    function loadThemeColors() {
-        themeLoader.command = ["sh", "-c", "sh \"$HOME/.config/quickshell/vellum_shell/scripts/theme-read\""]
-        themeLoader.running = true
-    }
+    readonly property var colors: themeTopic && themeTopic.colors ? themeTopic.colors : ({})
 
-    property Process themeLoader: Process {
-        stdout: StdioCollector {
-            onStreamFinished: root.updateColors(this.text || "")
-        }
-    }
+    // Ugyanaz a hatterkep, amit a core/WallpaperController rak az asztalra: a
+    // zarolas igy nem egy masik kepernyo, hanem ugyanannak a lapnak a
+    // befagyasztasa.
+    readonly property string wallpaper: themeTopic && themeTopic.wallpaper ? themeTopic.wallpaper : ""
+
+    // FIGYELEM: a lekepezes szandekosan "kereszt", ugyanugy, mint a
+    // core/ThemeStore-ban: a MUTED kulcs az `outline`-ba megy, a
+    // LIGHT_FOREGROUND pedig a `muted`-be.
+    readonly property string background: colors.BACKGROUND || "#1e1e2e"
+    readonly property string foreground: colors.FOREGROUND || "#cdd6f4"
+    readonly property string accent: colors.ACCENT || "#89b4fa"
+    readonly property string surface: colors.SURFACE || "#181825"
+    readonly property string muted: colors.LIGHT_FOREGROUND || "#bac2de"
+    readonly property string outline: colors.MUTED || "#9399b2"
+
+    // Sajat feliratkozas kell: az onallo LockShell.qml-ben nincs ThemeStore, ami
+    // helyettunk megtenne. A szamlalt feliratkozas miatt a beagyazott esetben
+    // ez nem jelent masodik kerest a daemon fele.
+    Component.onCompleted: if (backend) backend.subscribe("theme")
 }

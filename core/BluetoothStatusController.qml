@@ -8,7 +8,8 @@ Item {
 
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property bool available: adapter !== null
-    readonly property bool enabled: adapter ? adapter.enabled : false
+    // Nem `enabled`: az elfedne a QQuickItem sajat propertyjet.
+    readonly property bool adapterEnabled: adapter ? adapter.enabled : false
     readonly property bool discovering: adapter ? adapter.discovering : false
 
     readonly property var devices: Bluetooth.devices ? Bluetooth.devices.values : []

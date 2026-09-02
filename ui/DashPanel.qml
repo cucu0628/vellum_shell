@@ -8,6 +8,7 @@ Rectangle {
     property string kanji: ""
     property string trailing: ""
     property real contentSpacing: 10
+    property bool editorial: false
     default property alias content: body.data
 
     readonly property string background: theme ? theme.background : "#11130f"
@@ -19,7 +20,7 @@ Rectangle {
 
     radius: 0
     color: surface
-    border.color: Qt.rgba(1, 1, 1, 0.07)
+    border.color: Qt.rgba(1, 1, 1, editorial ? 0.09 : 0.07)
     border.width: 1
     clip: true
 
@@ -37,14 +38,22 @@ Rectangle {
         Row {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 7
+            spacing: panel.editorial ? 9 : 7
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 12
+                height: 2
+                color: panel.accent
+                visible: panel.editorial
+            }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: panel.title
-                color: panel.accent
+                color: panel.editorial ? panel.foreground : panel.accent
                 font.pixelSize: 9
-                font.letterSpacing: 3
+                font.letterSpacing: panel.editorial ? 2 : 3
                 font.bold: true
             }
 
@@ -80,8 +89,8 @@ Rectangle {
         anchors.rightMargin: 14
         anchors.topMargin: 9
         height: 1
-        color: panel.accent
-        opacity: 0.26
+        color: panel.editorial ? panel.muted : panel.accent
+        opacity: panel.editorial ? 0.18 : 0.26
     }
 
     Item {

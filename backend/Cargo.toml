@@ -1,0 +1,47 @@
+[package]
+name = "vellum-shell-backend"
+version = "0.1.0"
+edition = "2024"
+# A kod let-chaineket es `slice::as_chunks`-ot hasznal: mindketto 1.88-ban
+# stabilizalodott. A setup.sh ezt az erteket ellenorzi telepites elott.
+rust-version = "1.88"
+description = "Vellum Shell backend: tema motor es allapot daemon"
+license = "MIT"
+
+[lib]
+name = "vellum_shell_backend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vellum"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+async-trait = "0.1"
+clap = { version = "4", features = ["derive"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
+libc = "0.2"
+material-colors = { version = "0.4.2", features = ["image"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt", "macros", "net", "io-util", "sync", "time", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+
+[dev-dependencies]
+image = { version = "0.25.10", default-features = false, features = ["png"] }
+# A `test-util` adja a virtualis orat: az ujrainditasi backoff igy nem valos
+# masodpercekben telik el a teszteknel.
+tokio = { version = "1", features = ["rt", "macros", "test-util", "time"] }

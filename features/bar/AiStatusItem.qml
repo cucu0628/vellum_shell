@@ -11,11 +11,11 @@ Item {
 
     Text {
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: -3
+        anchors.verticalCenterOffset: -1
         text: "󰚩"
         color: mouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
         font.family: "Symbols Nerd Font Mono"
-        font.pixelSize: 24
+        font.pixelSize: 15
         Behavior on color { ColorAnimation { duration: 120 } }
     }
 

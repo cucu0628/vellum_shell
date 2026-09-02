@@ -12,6 +12,10 @@ command -v pacman >/dev/null 2>&1 || {
 }
 
 # Runtime tools for every built-in shell feature and bundled integration.
+#
+# A `rust` is itt van, nem opcionalisan: a setup.sh a backendet forrasbol epiti,
+# es a temazas mar csak abban letezik. Korabban a telepito nem hozta be, a setup
+# viszont megkovetelte -- egy friss gepen ezen allt meg elsore.
 repo_packages=(
   base-devel
   bash
@@ -35,7 +39,6 @@ repo_packages=(
   grep
   grim
   hyprland
-  hyprlauncher
   imagemagick
   inetutils
   iproute2
@@ -44,7 +47,6 @@ repo_packages=(
   kitty
   libnotify
   libqalculate
-  matugen
   network-manager-applet
   networkmanager
   noto-fonts-emoji
@@ -59,6 +61,7 @@ repo_packages=(
   python
   qt6ct
   quickshell
+  rust
   satty
   sddm
   sed

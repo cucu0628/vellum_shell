@@ -29,7 +29,7 @@ Rectangle {
     Component.onCompleted: requestPreview()
 
     Rectangle {
-        width: 3
+        width: 2
         height: parent.height
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
@@ -40,26 +40,17 @@ Rectangle {
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: 13
+        anchors.leftMargin: 12
         anchors.rightMargin: 12
         spacing: 12
-
-        Text {
-            width: 24
-            anchors.verticalCenter: parent.verticalCenter
-            text: (resultRow.resultIndex + 1).toString().padStart(2, "0")
-            color: resultRow.selected ? resultRow.panelAccent : resultRow.mutedFg
-            font.family: "monospace"
-            font.pixelSize: 8
-        }
 
         Rectangle {
             width: resultRow.entry && resultRow.entry.isImage ? 52 : 28
             height: resultRow.entry && resultRow.entry.isImage ? 44 : 28
             radius: 0
             color: resultRow.panelBg
-            border.color: "transparent"
-            border.width: 0
+            border.color: resultRow.entry && resultRow.entry.isImage ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+            border.width: resultRow.entry && resultRow.entry.isImage ? 1 : 0
             anchors.verticalCenter: parent.verticalCenter
             clip: true
 
@@ -89,12 +80,25 @@ Rectangle {
         }
 
         Column {
-            width: parent.width - 120 - (resultRow.entry && resultRow.entry.isImage ? 52 : 28)
+            width: parent.width - 100 - (resultRow.entry && resultRow.entry.isImage ? 52 : 28)
             spacing: 3
             anchors.verticalCenter: parent.verticalCenter
 
             Text {
-                text: resultRow.entry && resultRow.controller ? resultRow.controller.entryTypeLabel(resultRow.entry) + "  /  " + (resultRow.entry.isImage ? resultRow.entry.title : resultRow.entry.subtitle) : ""
+                text: resultRow.entry ? (resultRow.entry.isImage ? resultRow.entry.subtitle : resultRow.entry.title) : ""
+                color: resultRow.selected ? resultRow.panelAccent : resultRow.panelFg
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+                maximumLineCount: resultRow.entry && resultRow.entry.isImage ? 1 : 2
+                width: parent.width
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                text: resultRow.entry && resultRow.controller
+                    ? resultRow.controller.entryTypeLabel(resultRow.entry) + "  ·  CLIPBOARD HISTORY"
+                    : ""
                 color: resultRow.mutedFg
                 font.family: "monospace"
                 font.pixelSize: 8
@@ -105,27 +109,20 @@ Rectangle {
                 width: parent.width
             }
 
-            Text {
-                text: resultRow.entry ? (resultRow.entry.isImage ? resultRow.entry.subtitle : resultRow.entry.title) : ""
-                color: resultRow.panelFg
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-                maximumLineCount: resultRow.entry && resultRow.entry.isImage ? 1 : 2
-                width: parent.width
-                wrapMode: Text.WordWrap
-            }
-
         }
 
         Text {
-            width: 60
+            width: 72
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight
-            text: resultRow.selected ? "ENTER  ↵" : "PASTE  ↗"
+            text: resultRow.selected
+                ? "PASTE  ↵"
+                : (resultRow.entry && resultRow.controller ? resultRow.controller.entryTypeLabel(resultRow.entry) : "")
             color: resultRow.selected ? resultRow.panelAccent : resultRow.mutedFg
             font.family: "monospace"
             font.pixelSize: 8
+            font.letterSpacing: resultRow.selected ? 0 : 1.1
+            opacity: resultRow.selected ? 1 : 0.65
         }
 
     }

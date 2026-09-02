@@ -1,28 +1,51 @@
 #!/usr/bin/env bash
+# Ember altal olvashato osszefoglalo az aktiv temarol. A menu "Current Theme"
+# pontja inditja egy lebego terminalban.
+#
+# A tema-generatorok a Rust backendbe koltoztek, ezert ez a script mar nem
+# parsol theme.conf-ot: a `vellum theme read` JSON valaszabol dolgozik.
 set -euo pipefail
-base="$HOME/.config/quickshell/vellum_shell"
-theme_name=""
-background=""
-[[ -r "$base/current-theme" ]] && theme_name=$(<"$base/current-theme")
-[[ -r "$base/current-wallpaper" ]] && background=$(<"$base/current-wallpaper")
-printf 'Current theme\n-------------\n'
-if [[ -n $theme_name && -d "$base/themes/$theme_name" ]]; then
-  printf '%s\n' "$base/themes/$theme_name"
-else
-  printf 'No local quickshell theme selected.\n'
-fi
-printf '\nCurrent background\n------------------\n'
-if [[ -n $background ]]; then
-  printf '%s\n' "$background"
-else
-  printf 'No local wallpaper selected.\n'
-fi
-printf '\nColors\n------\n'
-conf="$base/themes/$theme_name/theme.conf"
-if [[ -r $conf ]]; then
-  grep -E 'BACKGROUND|FOREGROUND|ACCENT|SURFACE|MUTED' "$conf" || true
-else
-  printf 'No theme.conf found. Default shell colors are active.\n'
-fi
+
+vellum="$HOME/.local/bin/vellum"
+command -v vellum >/dev/null 2>&1 && vellum=$(command -v vellum)
+
 pause() { printf '\nPress Enter to close...'; read -r _ || true; }
+
+if [[ ! -x $vellum ]]; then
+  printf 'A Vellum backend nincs telepitve. Futtasd: scripts/backend-install\n' >&2
+  pause
+  exit 1
+fi
+
+if ! payload=$("$vellum" theme read 2>/dev/null); then
+  printf 'A backend nem valaszol. Allapot: systemctl --user status vellum-shelld\n' >&2
+  pause
+  exit 1
+fi
+
+python3 - "$payload" <<'PY'
+import json, sys
+
+data = json.loads(sys.argv[1])
+colors = data.get("colors", {})
+
+print("Current theme")
+print("-------------")
+print(data.get("slug") or "No theme selected.")
+
+print("\nCurrent background")
+print("------------------")
+print(data.get("wallpaper") or "No wallpaper selected.")
+
+print("\nColors")
+print("------")
+if colors:
+    # Ugyanaz a valogatas, amit a korabbi valtozat mutatott.
+    for key in ("BACKGROUND", "FOREGROUND", "ACCENT", "SURFACE", "MUTED"):
+        if key in colors:
+            print(f"{key}={colors[key]}")
+else:
+    print("No palette loaded. Default shell colors are active.")
+PY
+
 pause

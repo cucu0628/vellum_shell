@@ -1,16 +1,20 @@
 import QtQuick
 import "." as LockUi
+import "../../ui" as SharedUi
 
+// A beviteli monitor nezete: nagy ora a lap felett, alatta a shell panel-
+// nyelven megirt kartya (eles sarkok, akcentcsik felul, ensō vizjel).
 FocusScope {
     id: focusScope
 
     required property var lockRoot
     property string screenName: ""
 
-    readonly property bool opened: lockRoot.revealStep >= 2 && !lockRoot.closing
-    readonly property int panelHeight: 244
-    readonly property int panelWidth: Math.max(460, Math.min(focusScope.width - 160, 720))
-    readonly property color baseColor: lockRoot.background
+    readonly property bool clockShown: lockRoot.revealStep >= 2 && !lockRoot.closing
+    readonly property bool cardShown: lockRoot.revealStep >= 3 && !lockRoot.closing
+    readonly property bool bodyShown: lockRoot.revealStep >= 4 && !lockRoot.closing
+    readonly property int cardWidth: Math.round(Math.max(340, Math.min(focusScope.width - 96, 440)))
+    readonly property color surfaceColor: lockRoot.surface
 
     focus: true
 
@@ -21,40 +25,58 @@ FocusScope {
         }
     }
 
-    Item {
-        id: panelClip
-
+    Column {
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: -4
-        width: focusScope.panelWidth
-        height: focusScope.opened ? focusScope.panelHeight : 0
-        clip: true
+        anchors.verticalCenterOffset: -Math.round(focusScope.height * 0.03)
+        width: focusScope.cardWidth
+        spacing: 52
 
-        Behavior on height {
-            NumberAnimation { duration: focusScope.lockRoot.closing ? 200 : 480; easing.type: Easing.OutCubic }
+        LockUi.LockClock {
+            anchors.horizontalCenter: parent.horizontalCenter
+            lockRoot: focusScope.lockRoot
+            centered: true
+            timeSize: Math.round(Math.max(76, Math.min(118, focusScope.height * 0.11)))
+            barWidth: focusScope.cardWidth
+            opacity: focusScope.clockShown ? 1 : 0
+
+            transform: Translate {
+                y: focusScope.clockShown ? 0 : 14
+                Behavior on y {
+                    NumberAnimation { duration: focusScope.lockRoot.closing ? 160 : 520; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation { duration: focusScope.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
+            }
         }
 
         Rectangle {
-            id: panel
+            id: card
 
             width: parent.width
-            height: focusScope.panelHeight
-            y: (parent.height - height) / 2
+            height: cardBody.height + 44
             radius: 0
-            color: Qt.rgba(focusScope.baseColor.r, focusScope.baseColor.g, focusScope.baseColor.b, 0.88)
-            border.color: focusScope.lockRoot.failed ? focusScope.lockRoot.alertColor : focusScope.lockRoot.accent
+            clip: true
+            color: Qt.rgba(focusScope.surfaceColor.r, focusScope.surfaceColor.g, focusScope.surfaceColor.b, 0.93)
+            border.color: focusScope.lockRoot.failed
+                ? focusScope.lockRoot.alertColor
+                : Qt.rgba(1, 1, 1, 0.12)
             border.width: 1
+            opacity: focusScope.cardShown ? 1 : 0
+
+            transform: Translate {
+                y: focusScope.cardShown ? 0 : 16
+                Behavior on y {
+                    NumberAnimation { duration: focusScope.lockRoot.closing ? 160 : 520; easing.type: Easing.OutCubic }
+                }
+            }
+
+            Behavior on opacity {
+                NumberAnimation { duration: focusScope.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
+            }
 
             Behavior on border.color { ColorAnimation { duration: 160 } }
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                color: "transparent"
-                border.color: focusScope.lockRoot.accent
-                border.width: 1
-                opacity: 0.2
-            }
 
             Rectangle {
                 anchors.left: parent.left
@@ -62,101 +84,99 @@ FocusScope {
                 anchors.top: parent.top
                 anchors.margins: 1
                 height: 2
-                color: focusScope.lockRoot.accent
-                opacity: 0.75
+                color: focusScope.lockRoot.failed
+                    ? focusScope.lockRoot.alertColor
+                    : focusScope.lockRoot.accent
+
+                Behavior on color { ColorAnimation { duration: 160 } }
             }
 
-            Item {
-                id: body
+            SharedUi.ShellLogo {
+                anchors.right: parent.right
+                anchors.rightMargin: -26
+                anchors.top: parent.top
+                anchors.topMargin: -42
+                size: 150
+                color: focusScope.lockRoot.foreground
+                opacity: 0.022
+            }
 
-                anchors.fill: parent
-                anchors.leftMargin: 30
-                anchors.rightMargin: 30
-                anchors.topMargin: 26
-                anchors.bottomMargin: 26
+            Column {
+                id: cardBody
 
-                readonly property int leftWidth: Math.round(width * 0.42)
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.leftMargin: 22
+                anchors.rightMargin: 22
+                anchors.topMargin: 24
+                spacing: 16
 
-                LockUi.LockClock {
-                    id: clockView
+                Row {
+                    width: parent.width
+                    spacing: 12
 
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: body.leftWidth - 26
-                    lockRoot: focusScope.lockRoot
-                    timeSize: 68
-                    barWidth: width * 0.84
-                    opacity: focusScope.lockRoot.revealStep >= 3 ? 1 : 0
-
-                    transform: Translate {
-                        x: focusScope.lockRoot.revealStep >= 3 ? 0 : -12
-                        Behavior on x { NumberAnimation { duration: 460; easing.type: Easing.OutCubic } }
+                    SharedUi.ShellLogo {
+                        anchors.verticalCenter: parent.verticalCenter
+                        size: 28
+                        color: focusScope.lockRoot.accent
                     }
 
-                    Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - 40
+                        spacing: 2
+
+                        Text {
+                            width: parent.width
+                            text: focusScope.lockRoot.userName
+                            color: focusScope.lockRoot.foreground
+                            font.family: "serif"
+                            font.pixelSize: 18
+                            font.weight: Font.Medium
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+                            text: (focusScope.screenName !== "" ? focusScope.screenName + " · " : "")
+                                + focusScope.lockRoot.powerText.toUpperCase()
+                            color: focusScope.lockRoot.muted
+                            font.pixelSize: 8
+                            font.letterSpacing: 1.3
+                            elide: Text.ElideRight
+                        }
+                    }
                 }
 
                 Rectangle {
-                    id: divider
-
-                    x: body.leftWidth
-                    width: 1
-                    height: parent.height
-                    color: focusScope.lockRoot.accent
-                    opacity: 0.16
+                    width: parent.width
+                    height: 1
+                    color: focusScope.lockRoot.muted
+                    opacity: 0.2
                 }
 
                 Item {
-                    anchors.left: divider.right
-                    anchors.leftMargin: 28
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: authColumn.height
-                    opacity: focusScope.lockRoot.revealStep >= 4 ? 1 : 0
+                    width: parent.width
+                    height: inputColumn.height
+                    opacity: focusScope.bodyShown ? 1 : 0
 
                     transform: Translate {
-                        y: focusScope.lockRoot.revealStep >= 4 ? 0 : 10
-                        Behavior on y { NumberAnimation { duration: 460; easing.type: Easing.OutCubic } }
+                        y: focusScope.bodyShown ? 0 : 8
+                        Behavior on y {
+                            NumberAnimation { duration: focusScope.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
+                        }
                     }
 
-                    Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+                    Behavior on opacity {
+                        NumberAnimation { duration: focusScope.lockRoot.closing ? 110 : 420; easing.type: Easing.OutCubic }
+                    }
 
                     Column {
-                        id: authColumn
+                        id: inputColumn
 
                         width: parent.width
-                        spacing: 15
-
-                        Row {
-                            spacing: 15
-
-                            LockUi.LockSeal {
-                                diameter: 56
-                                lockRoot: focusScope.lockRoot
-                                busy: focusScope.lockRoot.unlockInProgress
-                                alert: focusScope.lockRoot.failed
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 4
-
-                                Text {
-                                    text: focusScope.lockRoot.userName
-                                    color: focusScope.lockRoot.foreground
-                                    font.pixelSize: 20
-                                    font.weight: Font.DemiBold
-                                }
-
-                                Text {
-                                    text: focusScope.lockRoot.powerText
-                                    color: focusScope.lockRoot.muted
-                                    font.pixelSize: 10
-                                    font.letterSpacing: 1
-                                }
-                            }
-                        }
+                        spacing: 12
 
                         LockUi.PasswordField {
                             id: passwordField
@@ -165,17 +185,41 @@ FocusScope {
                             lockRoot: focusScope.lockRoot
                         }
 
-                        Text {
+                        Item {
                             width: parent.width
-                            text: focusScope.lockRoot.statusText
-                            color: focusScope.lockRoot.failed ? focusScope.lockRoot.alertColor : focusScope.lockRoot.muted
-                            font.pixelSize: 11
-                            font.letterSpacing: 0.6
-                            elide: Text.ElideRight
-                            opacity: focusScope.lockRoot.revealStep >= 5 ? 1 : 0
+                            height: statusText.implicitHeight
 
-                            Behavior on color { ColorAnimation { duration: 140 } }
-                            Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+                            Text {
+                                id: statusText
+
+                                anchors.left: parent.left
+                                anchors.right: hintText.left
+                                anchors.rightMargin: 10
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: focusScope.lockRoot.statusText.toUpperCase()
+                                color: focusScope.lockRoot.failed
+                                    ? focusScope.lockRoot.alertColor
+                                    : focusScope.lockRoot.muted
+                                font.pixelSize: 9
+                                font.letterSpacing: 1.6
+                                elide: Text.ElideRight
+
+                                Behavior on color { ColorAnimation { duration: 140 } }
+                            }
+
+                            Text {
+                                id: hintText
+
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "ESC CLEARS"
+                                color: focusScope.lockRoot.muted
+                                opacity: focusScope.lockRoot.password.length > 0 ? 0.6 : 0
+                                font.pixelSize: 9
+                                font.letterSpacing: 1.6
+
+                                Behavior on opacity { NumberAnimation { duration: 160 } }
+                            }
                         }
                     }
                 }

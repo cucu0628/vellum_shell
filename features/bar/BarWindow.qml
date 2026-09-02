@@ -13,7 +13,7 @@ PanelWindow {
     property var activePlayer: null
     property bool hasMediaSource: false
     property var cavaValues: [0, 0, 0, 0, 0, 0]
-    property bool menuOpen: false
+    property bool settingsOpen: false
     property bool centerPopupOpen: false
     property bool audioPopupOpen: false
     property int audioVolumePercent: 0
@@ -41,7 +41,7 @@ PanelWindow {
     property int mountedRemovableCount: 0
     property bool removablePopupOpen: false
 
-    signal menuToggleRequested()
+    signal settingsToggleRequested()
     signal centerToggleRequested()
     signal audioToggleRequested()
     signal privacyToggleRequested()
@@ -82,8 +82,8 @@ PanelWindow {
                 theme: root.theme
                 visibleWorkspaceIds: root.visibleWorkspaceIds
                 occupiedWorkspaceIds: root.occupiedWorkspaceIds
-                menuOpen: root.menuOpen
-                onMenuClicked: root.menuToggleRequested()
+                settingsOpen: root.settingsOpen
+                onSettingsClicked: root.settingsToggleRequested()
             }
 
             PrivacyStatusItem {
@@ -132,7 +132,7 @@ PanelWindow {
             BluetoothStatusItem {
                 theme: root.theme
                 available: root.bluetoothAvailable
-                enabled: root.bluetoothEnabled
+                adapterEnabled: root.bluetoothEnabled
                 connected: root.bluetoothConnected
                 popupOpen: root.bluetoothPopupOpen
                 onClicked: root.bluetoothToggleRequested()

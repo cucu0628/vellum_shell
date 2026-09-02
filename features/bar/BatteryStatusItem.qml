@@ -38,7 +38,7 @@ Item {
             text: root.batteryIcon()
             color: root.charging || root.percentage <= 15 ? root.theme.accent : root.theme.foreground
             font.family: "Symbols Nerd Font Mono"
-            font.pixelSize: 17
+            font.pixelSize: 14
         }
 
         Text {
