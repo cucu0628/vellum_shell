@@ -302,21 +302,12 @@ Item {
                 description: "Mode and output-specific rendering controls"
             }
 
-        Text {
-            width: parent.width
-            visible: page.monitor !== null && page.monitor.edid !== undefined
-            text: page.monitor && page.monitor.edid ? page.monitor.edid.manufacturer + " " + page.monitor.edid.model + "  ·  " + page.monitor.edid.serial : ""
-            color: page.muted
-            font.family: "monospace"
-            font.pixelSize: 9
-            bottomPadding: 6
-        }
-
             SharedUi.SettingRow {
             theme: page.theme
             enabled: page.monitor !== null
             label: "Resolution and refresh rate"
             description: "Applied immediately; reverts on its own unless you confirm."
+            showDescription: true
 
             SharedUi.SettingSelect {
                 anchors.right: parent.right
@@ -337,6 +328,7 @@ Item {
             enabled: page.monitor !== null
             label: "Scale"
             description: "Fractional scales can blur applications that do not support them."
+            showDescription: true
 
             SharedUi.SettingSelect {
                 anchors.right: parent.right
@@ -404,6 +396,7 @@ Item {
             enabled: page.monitor !== null
             label: "Variable refresh rate"
             description: "Lets the display follow the render rate. Can flicker on some panels."
+            showDescription: true
 
             SharedUi.SettingToggle {
                 anchors.right: parent.right

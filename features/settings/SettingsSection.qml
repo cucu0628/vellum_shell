@@ -7,12 +7,13 @@ Item {
     property var theme: null
     property string title: ""
     property string description: ""
+    property bool showDescription: false
 
     readonly property string accent: theme ? theme.accent : "#b7372f"
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
 
-    height: description === "" ? 52 : 66
+    height: section.showDescription && section.description !== "" ? 66 : 52
 
     Rectangle {
         anchors.left: parent.left
@@ -43,7 +44,7 @@ Item {
 
         Text {
             width: parent.width
-            visible: section.description !== ""
+            visible: section.showDescription && section.description !== ""
             text: section.description.toUpperCase()
             color: section.muted
             font.pixelSize: 7

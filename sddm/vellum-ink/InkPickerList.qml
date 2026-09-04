@@ -9,11 +9,11 @@ Item {
     property var entries: []
     property int currentIndex: 0
     property bool open: false
-    property int maxHeight: 262
+    property int maxHeight: 246
 
     signal picked(int index)
 
-    width: 260
+    width: 240
     height: Math.min(maxHeight, Math.max(entries.length, 1) * 34 + 2)
     visible: opacity > 0.01
     enabled: open
@@ -26,8 +26,8 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(dropdown.greeter.background.r, dropdown.greeter.background.g, dropdown.greeter.background.b, 0.96)
-        border.color: dropdown.greeter.accent
+        color: Qt.rgba(dropdown.greeter.surface.r, dropdown.greeter.surface.g, dropdown.greeter.surface.b, 0.97)
+        border.color: Qt.rgba(1, 1, 1, 0.12)
         border.width: 1
         radius: 0
 
@@ -38,7 +38,6 @@ Item {
             anchors.margins: 1
             height: 2
             color: dropdown.greeter.accent
-            opacity: 0.75
         }
 
         ListView {
@@ -66,7 +65,7 @@ Item {
                 Rectangle {
                     anchors.fill: parent
                     color: dropdown.greeter.accent
-                    opacity: entry.current ? 0.14 : (entryMouse.containsMouse ? 0.08 : 0)
+                    opacity: entry.current ? 0.12 : (entryMouse.containsMouse ? 0.07 : 0)
 
                     Behavior on opacity { NumberAnimation { duration: 120 } }
                 }
@@ -81,7 +80,7 @@ Item {
 
                 Text {
                     anchors.left: parent.left
-                    anchors.leftMargin: 14
+                    anchors.leftMargin: 13
                     anchors.right: parent.right
                     anchors.rightMargin: 12
                     anchors.verticalCenter: parent.verticalCenter
@@ -96,6 +95,7 @@ Item {
 
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: dropdown.picked(entry.index)
                 }
             }

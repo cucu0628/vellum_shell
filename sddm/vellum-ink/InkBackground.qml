@@ -1,13 +1,23 @@
 import QtQuick
+import QtQuick.Effects
 import "." as Ink
 
+// A greeter hattere ugyanaz, mint a zarolokepernyoe: az asztal hatterkepe
+// elhomalyositva, temaszinu fatyol alatt.
+//
+// A kep a tema mappajaban ul (`background.jpg`), mert a `/home` tipikusan
+// 0700: az `sddm` felhasznalo nem erne el az eredetit. A masolatot a
+// temamotor irja oda minden temavaltaskor. Ha hianyzik, a temaszin es a
+// halvany ensō marad -- a greeter attol meg mukodik.
 Item {
     id: backgroundView
 
     required property var greeter
 
-    readonly property bool alive: greeter.ready && !greeter.closing
-    readonly property real ensoSize: Math.min(width, height) * 0.62
+    readonly property bool frosted: greeter.ready && !greeter.thawing
+    readonly property bool hasWallpaper: wallpaperImage.status === Image.Ready
+    readonly property real ensoSize: Math.min(width, height) * 0.56
+    readonly property int settleDuration: greeter.closing ? 340 : 560
 
     Rectangle {
         id: paper
@@ -18,81 +28,109 @@ Item {
         Behavior on color { ColorAnimation { duration: 180 } }
     }
 
-    // Enso: nyitott tuskor, alig lathatoan, lassan lelegezve.
+    // Az eles kep lathato marad a blur alatt: ha a MultiEffect barmiert nem all
+    // elo (pl. szoftveres renderelo a greeterben), ez latszik, nem ures lap.
+    Image {
+        id: wallpaperImage
+
+        anchors.fill: parent
+        source: backgroundView.greeter.wallpaper
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: true
+        smooth: true
+        visible: backgroundView.hasWallpaper
+        opacity: status === Image.Ready ? 1 : 0
+
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    }
+
+    MultiEffect {
+        anchors.fill: parent
+        source: wallpaperImage
+        visible: backgroundView.hasWallpaper
+        autoPaddingEnabled: false
+        blurEnabled: true
+        blurMax: 48
+        blur: backgroundView.frosted ? 1 : 0
+        brightness: backgroundView.frosted ? -0.1 : 0
+        saturation: backgroundView.frosted ? -0.3 : 0
+
+        Behavior on blur { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
+        Behavior on brightness { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
+        Behavior on saturation { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
+    }
+
+    // Fatyol a temaszinbol: ettol lesz olvashato a szoveg barmilyen kepen, es
+    // ettol tartozik a greeter a shellhez, nem a hatterkephez.
+    Rectangle {
+        anchors.fill: parent
+        color: backgroundView.greeter.background
+        opacity: backgroundView.hasWallpaper ? (backgroundView.frosted ? 0.5 : 0) : 0
+
+        Behavior on opacity { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
+    }
+
+    // Vizjel es vignetta egy retegben: a bejelentkezeskor egyutt kell
+    // felengedniuk a homallyal, kulonben a kepernyo szele ugrik egyet.
     Item {
-        width: backgroundView.ensoSize
-        height: backgroundView.ensoSize
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: -backgroundView.height * 0.04
-        opacity: backgroundView.alive ? 1 : 0
+        anchors.fill: parent
+        opacity: backgroundView.frosted ? 1 : 0
 
-        Behavior on opacity { NumberAnimation { duration: 1400; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
 
-        Item {
+        Ink.InkLogo {
+            anchors.centerIn: parent
+            anchors.verticalCenterOffset: -backgroundView.height * 0.03
+            size: backgroundView.ensoSize
+            color: backgroundView.greeter.foreground
+            opacity: backgroundView.hasWallpaper ? 0.02 : 0.05
+        }
+
+        Rectangle {
             anchors.fill: parent
-            rotation: -14
 
-            Rectangle {
-                anchors.fill: parent
-                radius: width / 2
-                color: "transparent"
-                border.color: backgroundView.greeter.foreground
-                border.width: 2
-                opacity: 0.07
-
-                SequentialAnimation on opacity {
-                    running: true
-                    loops: Animation.Infinite
-                    NumberAnimation { to: 0.045; duration: 7000; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 0.07; duration: 7000; easing.type: Easing.InOutSine }
-                }
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.14) }
+                GradientStop { position: 0.45; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.38) }
             }
+        }
 
-            // Az ecsetvonas nyitott vege.
-            Rectangle {
-                width: parent.width * 0.3
-                height: parent.height * 0.17
-                radius: height / 2
-                color: paper.color
-                anchors.right: parent.right
-                anchors.rightMargin: parent.width * -0.04
-                anchors.top: parent.top
-                anchors.topMargin: parent.height * 0.1
+        Rectangle {
+            anchors.fill: parent
+
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.22) }
+                GradientStop { position: 0.36; color: "transparent" }
+                GradientStop { position: 0.64; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.22) }
             }
         }
     }
 
-    Ink.InkGlow {
-        width: Math.min(backgroundView.width * 0.9, 1100)
-        height: width * 0.7
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.horizontalCenterOffset: backgroundView.width * 0.08
-        y: -height * 0.42
-        glowColor: backgroundView.greeter.foreground
-        intensity: backgroundView.alive ? 0.05 : 0
+    // Hibas jelszo: egyetlen halvany villanas minden kijelzon.
+    Rectangle {
+        id: alertFlash
 
-        Behavior on intensity { NumberAnimation { duration: 1400; easing.type: Easing.OutCubic } }
+        anchors.fill: parent
+        color: backgroundView.greeter.alertColor
+        opacity: 0
     }
 
-    Rectangle {
-        anchors.fill: parent
+    Connections {
+        target: backgroundView.greeter
 
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.16) }
-            GradientStop { position: 0.45; color: "transparent" }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.42) }
+        function onFailedChanged() {
+            if (backgroundView.greeter.failed) alertAnimation.restart()
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
+    SequentialAnimation {
+        id: alertAnimation
 
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.24) }
-            GradientStop { position: 0.36; color: "transparent" }
-            GradientStop { position: 0.64; color: "transparent" }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.24) }
-        }
+        NumberAnimation { target: alertFlash; property: "opacity"; to: 0.06; duration: 90 }
+        NumberAnimation { target: alertFlash; property: "opacity"; to: 0; duration: 430; easing.type: Easing.OutCubic }
     }
 }

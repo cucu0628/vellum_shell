@@ -1,7 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
-shell_dir=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
+
+self_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+self="$self_dir/$(basename -- "${BASH_SOURCE[0]}")"
+shell_dir=${VELLUM_SHELL_DIR:-$(cd -- "$self_dir/.." && pwd)}
 shell_path="$shell_dir/shell.qml"
-quickshell kill --path "$shell_path" 2>/dev/null || true
-MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000' \
-  quickshell --path "$shell_path" --daemonize
+
+# A frissitest legtobbszor maga a futo shell inditja (launcher "refresh shell"),
+# es a Quickshell a sajat gyerekfolyamatait is elviszi leallaskor: a script a
+# `kill` utan meghalt, mielott az uj peldanyt elinditotta volna. Ezert eloszor
+# egy sajat munkamenetbe lepunk at, es elengedjuk a hivo csoveit is, hogy a
+# kesobbi kiiratasok ne kapjanak SIGPIPE-ot.
+if [[ -z ${VELLUM_REFRESH_DETACHED:-} ]] && command -v setsid >/dev/null 2>&1; then
+  export VELLUM_REFRESH_DETACHED=1
+  if [[ -t 1 ]]; then
+    exec setsid --fork -- "$self"
+  fi
+  exec setsid --fork -- "$self" >/dev/null 2>&1
+fi
+
+# Ketszer megnyomott "refresh shell" eseten a masodik futas kilone az elso mar
+# elindult peldanyat. Egyszerre egy frissites fusson.
+lock_file="${XDG_RUNTIME_DIR:-/tmp}/vellum-refresh.lock"
+if command -v flock >/dev/null 2>&1 && : >"$lock_file" 2>/dev/null; then
+  exec 9>"$lock_file"
+  flock -n 9 || exit 0
+fi
+
+# A `kill` nem varja meg a tenyleges leallast, es korabbi felig sikerult
+# frissitesek utan tobb peldany is futhat ugyanarrol az utvonalrol. Addig
+# olunk, amig egy is lathato: igy az uj peldany nem fedi a regi layer-shell
+# feluleteit.
+for _ in $(seq 1 50); do
+  # Nem csovezzuk grep-be: `pipefail` alatt a korai grep-kilepes SIGPIPE-ja
+  # hamis "mar leallt" eredmenyt adna.
+  running=$(quickshell list --all 2>/dev/null || true)
+  case $running in
+    *"Config path: $shell_path"*) ;;
+    *) break ;;
+  esac
+  quickshell kill --path "$shell_path" >/dev/null 2>&1 || true
+  sleep 0.1
+done
+
+export MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000'
+# A 9-es fd-t zarjuk: kulonben az uj peldany oroklene a zarat, es tobbe egy
+# frissites sem jutna at rajta.
+exec quickshell --path "$shell_path" --daemonize 9>&-

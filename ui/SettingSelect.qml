@@ -20,6 +20,9 @@ Item {
     property string placeholder: "--"
     property bool expanded: false
     property int maxVisibleRows: 8
+    property bool searchable: false
+    property bool dropUp: false
+    property string searchText: ""
     // Amit a kepernyoolvaso mond. A SettingRow magatol atadja a sor cimket.
     property string accessibleName: ""
     property string accessibleDescription: ""
@@ -33,6 +36,27 @@ Item {
     readonly property string surface: theme && theme.surface ? theme.surface : "#1b1613"
     readonly property string background: theme ? theme.background : "#11130f"
     readonly property string currentLabel: labelFor(value)
+    readonly property var visibleModel: {
+        var needle = searchText.trim().toLowerCase();
+        if (!searchable || needle === "")
+            return model;
+
+        var terms = needle.split(/\s+/);
+        var result = [];
+        for (var i = 0; i < model.length; i++) {
+            var haystack = (entryLabel(model[i]) + " " + entryValue(model[i])).toLowerCase();
+            var matches = true;
+            for (var j = 0; j < terms.length; j++) {
+                if (haystack.indexOf(terms[j]) < 0) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches)
+                result.push(model[i]);
+        }
+        return result;
+    }
 
     signal activated(string value)
 
@@ -60,14 +84,26 @@ Item {
         return -1
     }
 
+    function visibleIndexOfValue(wanted) {
+        for (var i = 0; i < visibleModel.length; i++) {
+            if (entryValue(visibleModel[i]) === wanted) return i
+        }
+        return -1
+    }
+
     function open() {
         if (!select.enabled || select.model.length === 0) return
-        select.highlightedIndex = Math.max(0, select.indexOfValue(select.value))
+        select.searchText = ""
+        select.highlightedIndex = Math.max(0, select.visibleIndexOfValue(select.value))
         select.expanded = true
+        if (select.searchable)
+            Qt.callLater(function() { searchInput.forceActiveFocus(); })
     }
 
     function close() {
         select.expanded = false
+        select.searchText = ""
+        select.forceActiveFocus()
     }
 
     // Lepes a listaban. Zarva ez azonnal valaszt is: igy a nyilakkal vegig
@@ -82,13 +118,14 @@ Item {
             return
         }
 
-        var from = select.highlightedIndex < 0 ? select.indexOfValue(select.value) : select.highlightedIndex
-        select.highlightedIndex = Math.max(0, Math.min(select.model.length - 1, (from < 0 ? 0 : from) + delta))
+        if (select.visibleModel.length === 0) return
+        var from = select.highlightedIndex < 0 ? select.visibleIndexOfValue(select.value) : select.highlightedIndex
+        select.highlightedIndex = Math.max(0, Math.min(select.visibleModel.length - 1, (from < 0 ? 0 : from) + delta))
     }
 
     function chooseHighlighted() {
-        if (select.highlightedIndex < 0 || select.highlightedIndex >= select.model.length) return
-        var chosen = select.entryValue(select.model[select.highlightedIndex])
+        if (select.highlightedIndex < 0 || select.highlightedIndex >= select.visibleModel.length) return
+        var chosen = select.entryValue(select.visibleModel[select.highlightedIndex])
         select.close()
         select.activated(chosen)
     }
@@ -101,6 +138,12 @@ Item {
 
     onValueChanged: if (!expanded) highlightedIndex = indexOfValue(value)
     onExpandedChanged: if (!expanded) highlightedIndex = indexOfValue(value)
+    onVisibleModelChanged: {
+        if (!expanded)
+            return;
+
+        highlightedIndex = visibleModel.length > 0 ? 0 : -1;
+    }
 
     implicitWidth: 240
     implicitHeight: 30
@@ -185,22 +228,108 @@ Item {
     Rectangle {
         id: dropdown
 
-        anchors.top: box.bottom
-        anchors.topMargin: 2
+        anchors.top: select.dropUp ? undefined : box.bottom
+        anchors.topMargin: select.dropUp ? 0 : 2
+        anchors.bottom: select.dropUp ? box.top : undefined
+        anchors.bottomMargin: select.dropUp ? 2 : 0
         anchors.right: box.right
         width: box.width
-        height: Math.min(select.maxVisibleRows, Math.max(1, select.model.length)) * 26 + 2
+        height: (select.searchable ? 34 : 0)
+            + Math.min(select.maxVisibleRows, Math.max(1, select.visibleModel.length)) * 26 + 2
         visible: select.expanded && select.model.length > 0
         color: select.background
         border.color: select.accent
         border.width: 1
         z: 50
 
-        ListView {
-            anchors.fill: parent
+        Rectangle {
+            id: searchBox
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
             anchors.margins: 1
+            height: select.searchable ? 33 : 0
+            visible: select.searchable
+            color: select.surface
+
+            Text {
+                anchors.left: parent.left
+                anchors.leftMargin: 9
+                anchors.verticalCenter: parent.verticalCenter
+                text: "⌕"
+                color: select.accent
+                font.pixelSize: 13
+            }
+
+            TextInput {
+                id: searchInput
+
+                anchors.left: parent.left
+                anchors.leftMargin: 30
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                height: parent.height
+                verticalAlignment: TextInput.AlignVCenter
+                text: select.searchText
+                color: select.foreground
+                font.pixelSize: 11
+                onTextEdited: select.searchText = text
+                Keys.onUpPressed: (event) => {
+                    select.step(-1);
+                    event.accepted = true;
+                }
+                Keys.onDownPressed: (event) => {
+                    select.step(1);
+                    event.accepted = true;
+                }
+                Keys.onReturnPressed: (event) => {
+                    select.chooseHighlighted();
+                    event.accepted = true;
+                }
+                Keys.onEnterPressed: (event) => {
+                    select.chooseHighlighted();
+                    event.accepted = true;
+                }
+                Keys.onEscapePressed: (event) => {
+                    if (select.searchText !== "")
+                        select.searchText = "";
+                    else
+                        select.close();
+                    event.accepted = true;
+                }
+
+                Text {
+                    anchors.fill: parent
+                    visible: searchInput.text === ""
+                    verticalAlignment: Text.AlignVCenter
+                    text: "Search applications..."
+                    color: select.muted
+                    font.pixelSize: 11
+                }
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 1
+                color: select.muted
+                opacity: 0.18
+            }
+        }
+
+        ListView {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: searchBox.bottom
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 1
+            anchors.rightMargin: 1
+            anchors.bottomMargin: 1
             clip: true
-            model: select.model
+            model: select.visibleModel
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height
 
@@ -241,13 +370,26 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        select.expanded = false;
+                        select.close();
                         select.activated(select.entryValue(option.modelData));
                     }
                 }
 
             }
 
+        }
+
+        Text {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: searchBox.bottom
+            anchors.bottom: parent.bottom
+            visible: select.visibleModel.length === 0
+            text: "No matching applications."
+            color: select.muted
+            font.pixelSize: 10
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
 
     }

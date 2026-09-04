@@ -48,6 +48,7 @@ vellum_shell/
 │   │   │   │   ├── kitty.rs          # kitty színséma
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── neovim.rs         # Neovim colorscheme (LazyVim)
+│   │   │   │   ├── qt6ct.rs           # Qt6/portal színpaletta
 │   │   │   │   ├── sddm.rs           # SDDM greeter theme.conf
 │   │   │   │   └── zen.rs            # Zen Browser stíluslapok és profil-bekötés
 │   │   │   ├── color.rs              # Színműveletek (mix, luminancia, árnyalat)
@@ -69,6 +70,7 @@ vellum_shell/
 │   │   ├── hyprland-colors.lua.tmpl
 │   │   ├── kitty.conf.tmpl
 │   │   ├── nvim-colors.lua.tmpl
+│   │   ├── qt6ct-colors.conf.tmpl
 │   │   ├── sddm-theme.conf.tmpl
 │   │   ├── zen-content-theme.css.tmpl
 │   │   └── zen-theme.css.tmpl
@@ -82,6 +84,7 @@ vellum_shell/
 │   └── rustfmt.toml                  # A fa stílusához rögzített formázás
 ├── core/                             # UI-független shell szolgáltatások
 │   ├── AudioSummaryController.qml    # Panel hangerőállapot
+│   ├── BarLayoutController.qml       # Topbar modulzónák és perzisztens sorrend
 │   ├── Backend.qml
 │   ├── BatteryStatusController.qml   # Opcionális rendszerakku állapot
 │   ├── BluetoothStatusController.qml # Bluez adapter és eszközlista nézete
@@ -185,6 +188,13 @@ vellum_shell/
 │   │   └── ScreenshotController.qml  # Képernyőkép-módok indítása
 │   ├── settings/
 │   │   ├── ActionButton.qml          # Beállítások gomb
+│   │   ├── AutostartController.qml   # XDG autostart és systemd user service állapot
+│   │   ├── AutostartPage.qml         # Autostart és szolgáltatáskezelő
+│   │   ├── BarLayoutLane.qml         # Drag-and-drop célzóna
+│   │   ├── BarLayoutPage.qml         # Topbar elrendezésszerkesztő
+│   │   ├── BarModuleCard.qml         # Mozgatható modul-kártya
+│   │   ├── DefaultAppsController.qml # MIME-alapú alapértelmezett alkalmazások
+│   │   ├── DefaultAppsPage.qml       # Alapértelmezett alkalmazások oldala
 │   │   ├── DisplayPage.qml           # Monitorok, visszaszámlálós megerősítéssel
 │   │   ├── InputPage.qml             # Bevitel oldal
 │   │   ├── KeybindingsController.qml # Gyorsbillentyűk beolvasása
@@ -233,6 +243,7 @@ vellum_shell/
 │   ├── screenshot-capture
 │   ├── sddm-install
 │   ├── sddm-layout
+│   ├── settings-autostart
 │   ├── shell-start
 │   ├── theme-current
 │   ├── theme-refresh
@@ -244,19 +255,17 @@ vellum_shell/
 ├── sddm/                             # Vellum Ink greeter téma
 │   └── vellum-ink/
 │       ├── InkAmbient.qml            # Greeter ambient nézet
-│       ├── InkBackground.qml         # Greeter háttér
+│       ├── InkBackground.qml         # Elhomályosuló háttérkép, fátyol, ensō vízjel
 │       ├── InkCard.qml               # Greeter bejelentkező kártya
 │       ├── InkClock.qml              # Greeter óra
-│       ├── InkGlow.qml               # Greeter fényudvar
+│       ├── InkLogo.qml               # Az ensō jegy (ui/ShellLogo.qml másolata)
 │       ├── InkPasswordField.qml      # Greeter jelszómező
-│       ├── InkPicker.qml             # Greeter választó
+│       ├── InkPicker.qml             # Felhasználó- / munkamenet-választó
 │       ├── InkPickerList.qml         # Greeter választólista
-│       ├── InkPowerButton.qml        # Greeter energiagomb
-│       ├── InkSeal.qml               # Greeter pecsét
-│       ├── InkShutter.qml            # Greeter shoji animáció
+│       ├── InkPowerButton.qml        # Kiosztás- és energiagomb
 │       ├── Main.qml                  # SDDM greeter belépési pont
 │       ├── metadata.desktop
-│       └── theme.conf
+│       └── theme.conf                # Generált: paletta, monitor, háttérkép neve
 ├── systemd/                          # A backend user service-e
 │   └── vellum-shelld.service
 ├── themes/                           # Deklaratív színpaletták
@@ -399,6 +408,10 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
   enged fel a homály, a fátyol, a vignetta és a vízjel. A `WlSessionLock`-ot csak
   akkor engedjük el, amikor a felület már pontosan az asztali háttérkép, így az
   utolsó képkocka és az asztal között nincs ugrás.
+- Az SDDM greeter ugyanezt a nyelvet kapta, a greeter-többlettel együtt
+  (felhasználó- és munkamenet-választó, kiosztás, energia). A háttérképet a
+  téma-generátor másolja a téma mappájába (`background.jpg`, 1280 px JPEG), mert
+  a `/home` 0700: az `sddm` felhasználó az eredetit nem éri el.
 - Rust backend: protokoll, hub, lazy topicok és a `core/Backend.qml` kliens
   automatikus újracsatlakozással.
 - Téma-motor: paletta, színmatek és a nyolc generátor egy helyen, natív Material
@@ -408,7 +421,8 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
 - Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, oldalsávos
-  navigációval: Display, Windows, Input, System és Keybindings oldal. A menü
+  navigációval: Display, Windows, Input, Top bar, Default applications,
+  System / Diagnostics, Autostart / Services és Keybindings oldal. A menü
   paletta megszűnt; a műveletei, köztük a csomagkezelő workflow-k a launcherbe,
   a beállításai ide kerültek.
 - `hypr` backend modul: monitorok és kompozitor-opciók olvasása `hyprctl`-lel,

@@ -1,13 +1,13 @@
 import QtQuick
 
-// Valaszto gomb (felhasznalo / munkamenet). A legordulo listat az InkCard
-// rajzolja fololtetkent, hogy az egerkattintas ne akadjon el a szuloi hataron.
+// Valaszto mezo (felhasznalo / munkamenet) a kartyan belul. A legordulo listat
+// az InkCard rajzolja fololtetkent, hogy az egerkattintas ne akadjon el a
+// szuloi hataron.
 Item {
     id: picker
 
     required property var greeter
     property string pickerId: ""
-    property string kanji: ""
     property string label: ""
     property var entries: []
     property int currentIndex: 0
@@ -17,83 +17,85 @@ Item {
     readonly property string currentLabel: (currentIndex >= 0 && currentIndex < entries.length)
         ? entries[currentIndex].label
         : "—"
+    readonly property color edgeColor: picker.open ? greeter.accent : greeter.outline
 
-    implicitWidth: row.implicitWidth
-    implicitHeight: 30
+    implicitHeight: 42
 
     Rectangle {
         anchors.fill: parent
-        anchors.leftMargin: -10
-        anchors.rightMargin: -10
+        color: Qt.rgba(0, 0, 0, 0.22)
+        border.color: picker.edgeColor
+        border.width: picker.open ? 2 : 1
+
+        Behavior on border.color { ColorAnimation { duration: 140 } }
+        Behavior on border.width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: 1
         color: picker.greeter.accent
-        opacity: picker.open ? 0.12 : (mouse.containsMouse && picker.selectable ? 0.07 : 0)
+        opacity: picker.open ? 0.1 : (mouse.containsMouse && picker.selectable ? 0.06 : 0)
 
         Behavior on opacity { NumberAnimation { duration: 140 } }
     }
 
     Rectangle {
+        width: 2
+        height: parent.height
         anchors.left: parent.left
-        anchors.leftMargin: -10
-        anchors.bottom: parent.bottom
-        width: picker.open ? parent.width + 20 : 0
-        height: 1
-        color: picker.greeter.accent
+        color: picker.edgeColor
+        opacity: picker.open ? 1 : 0.5
 
-        Behavior on width { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+        Behavior on color { ColorAnimation { duration: 140 } }
     }
 
-    Row {
-        id: row
-
+    Column {
+        anchors.left: parent.left
+        anchors.leftMargin: 13
+        anchors.right: chevron.left
+        anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 8
-
-        Text {
-            text: picker.kanji
-            visible: picker.kanji !== ""
-            color: picker.greeter.accent
-            font.pixelSize: 11
-            anchors.verticalCenter: parent.verticalCenter
-        }
+        spacing: 2
 
         Text {
             text: picker.label
             color: picker.greeter.muted
-            font.pixelSize: 9
-            font.letterSpacing: 2.4
-            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: 8
+            font.letterSpacing: 1.6
         }
 
         Text {
+            width: parent.width
             text: picker.currentLabel
             color: picker.greeter.foreground
             font.pixelSize: 12
-            font.letterSpacing: 0.6
             elide: Text.ElideRight
-            width: Math.min(implicitWidth, 220)
-            anchors.verticalCenter: parent.verticalCenter
         }
+    }
 
-        Text {
-            text: "▾"
-            visible: picker.selectable
-            color: picker.open ? picker.greeter.accent : picker.greeter.muted
-            font.pixelSize: 9
-            rotation: picker.open ? 180 : 0
-            anchors.verticalCenter: parent.verticalCenter
+    Text {
+        id: chevron
 
-            Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-        }
+        text: "▾"
+        visible: picker.selectable
+        color: picker.open ? picker.greeter.accent : picker.greeter.muted
+        font.pixelSize: 9
+        anchors.right: parent.right
+        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        rotation: picker.open ? 180 : 0
+
+        Behavior on rotation { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
     }
 
     MouseArea {
         id: mouse
 
         anchors.fill: parent
-        anchors.leftMargin: -10
-        anchors.rightMargin: -10
         hoverEnabled: true
         enabled: picker.selectable
+        cursorShape: Qt.PointingHandCursor
         onClicked: picker.greeter.openPicker = picker.open ? "" : picker.pickerId
     }
 }

@@ -163,7 +163,9 @@ fn generators_match_bash_baseline() {
             Palette::load(&sandbox.shell_dir.join("themes").join(slug).join("theme.conf"))
                 .unwrap_or_else(|err| panic!("{slug}: a paletta nem olvashato: {err:#}"));
 
-        generators::run_all(&palette, true);
+        // A golden baseline nem tartalmaz hatterkepet: a greeter masolata igy
+        // ki is marad, ahogy egy hatterkep nelkuli rendszeren.
+        generators::run_all(&palette, None, true);
 
         for (golden_name, relative) in outputs {
             let expected_path = golden.join(golden_name);

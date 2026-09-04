@@ -12,6 +12,10 @@ Flickable {
     required property var systemController
     property var theme: null
 
+    readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
+    readonly property string accent: theme ? theme.accent : "#b7372f"
+    readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
+
     contentWidth: width
     contentHeight: column.height
     clip: true
@@ -52,6 +56,7 @@ Flickable {
             enabled: page.systemController.powerProfilesAvailable
             label: "Power profile"
             description: page.systemController.powerProfilesAvailable ? "Balances performance against battery life." : "power-profiles-daemon is not installed."
+            showDescription: !page.systemController.powerProfilesAvailable
 
             SharedUi.SettingSelect {
                 anchors.right: parent.right
@@ -81,6 +86,120 @@ Flickable {
                 onActivated: (value) => page.systemController.setLockscreenMonitor(value)
             }
 
+        }
+
+        SettingsSection {
+            width: parent.width
+            theme: page.theme
+            title: "System diagnostics"
+            description: "A current snapshot of the session and Vellum backend"
+        }
+
+        Item {
+            width: parent.width
+            height: 36
+
+            Text {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                text: page.systemController.diagnosticsLoading ? "Collecting diagnostics..." : page.systemController.diagnosticsMessage
+                color: page.systemController.diagnosticsMessage.indexOf("could not") >= 0 ? page.accent : page.muted
+                font.pixelSize: 10
+            }
+
+            Row {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 8
+
+                SharedUi.ActionButton {
+                    enabled: page.systemController.clipboardAvailable
+                    height: 26
+                    theme: page.theme
+                    label: "Copy report"
+                    onClicked: page.systemController.copyDiagnostics()
+                }
+
+                SharedUi.ActionButton {
+                    height: 26
+                    theme: page.theme
+                    label: "Refresh"
+                    onClicked: page.systemController.reloadDiagnostics()
+                }
+            }
+        }
+
+        Repeater {
+            model: page.systemController.diagnosticFacts
+
+            SharedUi.SettingRow {
+                id: factRow
+
+                required property var modelData
+
+                theme: page.theme
+                label: modelData.label
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    text: factRow.modelData.value
+                    color: factRow.modelData.label === "Failed user services" && factRow.modelData.value !== "None" ? page.accent : page.foreground
+                    font.family: "monospace"
+                    font.pixelSize: 11
+                    horizontalAlignment: Text.AlignRight
+                    elide: Text.ElideLeft
+                }
+            }
+        }
+
+        SharedUi.SettingRow {
+            theme: page.theme
+            label: "Vellum backend"
+            description: page.systemController.backendSummary
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: 82
+                height: 24
+                color: "transparent"
+                border.color: page.systemController.backendHealthy ? page.accent : page.muted
+                border.width: 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: page.systemController.backendHealthy ? "healthy" : "offline"
+                    color: page.systemController.backendHealthy ? page.accent : page.muted
+                    font.pixelSize: 9
+                    font.bold: true
+                }
+            }
+        }
+
+        Repeater {
+            model: page.systemController.backendModules
+
+            SharedUi.SettingRow {
+                id: moduleRow
+
+                required property var modelData
+
+                theme: page.theme
+                label: "Backend module · " + modelData.name
+                description: modelData.error
+                showDescription: modelData.error !== ""
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: moduleRow.modelData.state
+                    color: moduleRow.modelData.state === "restarting" ? page.accent : page.muted
+                    font.family: "monospace"
+                    font.pixelSize: 10
+                }
+            }
         }
 
         SettingsSection {
@@ -131,6 +250,7 @@ Flickable {
             theme: page.theme
             label: "Reset Hyprland settings"
             description: "Discards everything this app wrote and falls back to your own config."
+            showDescription: true
 
             SharedUi.ActionButton {
                 anchors.right: parent.right

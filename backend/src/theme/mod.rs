@@ -133,21 +133,24 @@ pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<A
         anyhow::bail!("a hatterkep nem letezik: {wallpaper}");
     }
 
+    // Hatterkep nelkul a mar rogzitett allapotra esunk vissza; ez meg a regi
+    // ertek, mert a commit csak a vegen jon. Ezt a generatoroknak is atadjuk:
+    // maguktol a regi kepet olvasnak ki.
+    let source = wallpaper
+        .map(str::to_string)
+        .or_else(|| paths::read_line_file(&paths::current_wallpaper_file()));
+
     let palette = if slug == DYNAMIC_SLUG {
         // A dinamikus paletta a hatterkepbol szuletik, ezert eloszor azt kell
         // eloallitani -- kulonben a generatorok az elozo kep szineit irnak ki.
-        // Hatterkep nelkul a mar rogzitett allapotra esunk vissza; ez meg a
-        // regi ertek, mert a commit csak a vegen jon.
-        let source = wallpaper
-            .map(str::to_string)
-            .or_else(|| paths::read_line_file(&paths::current_wallpaper_file()))
-            .context("a dinamikus temahoz hatterkep kell")?;
-        material::generate(std::path::Path::new(&source))?
+        let source = source.as_deref().context("a dinamikus temahoz hatterkep kell")?;
+        material::generate(std::path::Path::new(source))?
     } else {
         Palette::load(&conf)?
     };
 
-    let outcomes = generators::run_all(&palette, include_zen);
+    let outcomes =
+        generators::run_all(&palette, source.as_deref().map(std::path::Path::new), include_zen);
 
     // Egy hianyzo Zen profil vagy a root nelkuli SDDM nem hiba. Egy sajat
     // fajlunk kiirhatatlansaga viszont igen: olyankor a tema nem lett
@@ -199,7 +202,15 @@ pub fn set_wallpaper(path: &str) -> Result<()> {
     if !std::path::Path::new(path).is_file() {
         anyhow::bail!("a hatterkep nem letezik: {path}");
     }
-    write_state(&paths::current_wallpaper_file(), path)
+    write_state(&paths::current_wallpaper_file(), path)?;
+
+    // A greeter sajat masolatot tart a hatterkeprol, mert a `/home` 0700 alatt
+    // nem eri el az eredetit. Enelkul a bejelentkezo kepernyo csak a kovetkezo
+    // temavaltaskor kovetne a valtozast. Ha nincs paletta, nincs mit frissiteni.
+    if let Ok(palette) = load_current() {
+        let _ = generators::sddm::generate(&palette, Some(std::path::Path::new(path)));
+    }
+    Ok(())
 }
 
 #[derive(Debug, serde::Serialize)]

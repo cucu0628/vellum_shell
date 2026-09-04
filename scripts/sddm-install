@@ -59,11 +59,22 @@ install -d -m 755 "$dest"
 find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 install -m 644 "$src"/*.qml "$src"/theme.conf "$src"/metadata.desktop "$dest/"
 
-# Csak a theme.conf kerul a felhasznalo tulajdonaba, hogy a temavaltas root
-# nelkul frissithesse a paletta szineit. A QML root tulajdonu marad.
+# A greeter sajat hatterkep-peldanya. A /home tipikusan 0700, tehat az sddm
+# felhasznalo nem eri el az eredetit -- a temamotor ide ir egy kicsinyitett
+# JPEG-et. Ha meg nincs, ures helyorzot teszunk le: a mappa root tulajdonu,
+# tehat a backend csak egy mar letezo, ra chownolt fajlt tud felulirni.
+if [[ -f $src/background.jpg ]]; then
+  install -m 644 "$src/background.jpg" "$dest/"
+else
+  : > "$dest/background.jpg"
+  chmod 644 "$dest/background.jpg"
+fi
+
+# Csak a theme.conf es a hatterkep kerul a felhasznalo tulajdonaba, hogy a
+# temavaltas root nelkul frissithesse oket. A QML root tulajdonu marad.
 owner=${SUDO_USER:-$(stat -c %U "$src")}
 if [[ -n $owner ]] && id "$owner" >/dev/null 2>&1; then
-  chown "$owner" "$dest/theme.conf"
+  chown "$owner" "$dest/theme.conf" "$dest/background.jpg"
   printf 'palette owner: %s (%s)\n' "$owner" "$dest/theme.conf"
 fi
 

@@ -12,6 +12,7 @@ FloatingWindow {
     id: window
 
     property var backend: null
+    property var barLayout: null
     property var theme: null
     property alias activePage: settingsController.activePage
 
@@ -22,38 +23,35 @@ FloatingWindow {
     readonly property var pages: [{
         "id": "display",
         "label": "Display",
-        "icon": "󰍹",
-        "description": "Outputs, scale and physical arrangement",
-        "group": "WORKSPACE",
-        "startsGroup": true
+        "icon": "󰍹"
     }, {
         "id": "windows",
         "label": "Windows",
-        "icon": "󰖯",
-        "description": "Tiling geometry, borders and visual effects",
-        "group": "WORKSPACE",
-        "startsGroup": false
+        "icon": "󰖯"
     }, {
         "id": "input",
         "label": "Input",
-        "icon": "󰌌",
-        "description": "Keyboard, pointer and touchpad behaviour",
-        "group": "WORKSPACE",
-        "startsGroup": false
+        "icon": "󰌌"
+    }, {
+        "id": "topbar",
+        "label": "Top bar",
+        "icon": "󰍜"
+    }, {
+        "id": "defaults",
+        "label": "Default applications",
+        "icon": "󰏖"
     }, {
         "id": "system",
-        "label": "System",
-        "icon": "󰒓",
-        "description": "Shell services, power and external tools",
-        "group": "SHELL",
-        "startsGroup": true
+        "label": "System / Diagnostics",
+        "icon": "󰒓"
+    }, {
+        "id": "autostart",
+        "label": "Autostart / Services",
+        "icon": "󰑓"
     }, {
         "id": "keybindings",
         "label": "Keybindings",
-        "icon": "󰌆",
-        "description": "A searchable index of active shortcuts",
-        "group": "SHELL",
-        "startsGroup": false
+        "icon": "󰌆"
     }]
     readonly property var currentPage: {
         for (var i = 0; i < pages.length; i++) {
@@ -62,33 +60,31 @@ FloatingWindow {
         }
         return pages[0];
     }
-    readonly property int currentPageIndex: {
-        for (var i = 0; i < pages.length; i++) {
-            if (pages[i].id === settingsController.activePage)
-                return i;
-        }
-        return 0;
-    }
-
     signal closeRequested()
 
-    // A `settingsController` sajat `opened` bindingjere ujratolt, a masik ketto
-    // viszont nem figyeli az ablakot -- azokat itt inditjuk. Igy a shell.qml-nek
-    // nem kell az ablak eletciklusaba nyulnia.
+    // A `settingsController` sajat `opened` bindingjere ujratolt, a tobbi
+    // controller viszont nem figyeli az ablakot -- azokat itt inditjuk. Igy a
+    // shell.qml-nek nem kell az ablak eletciklusaba nyulnia.
     function reload() {
         settingsController.reload();
         systemState.reload();
+        defaultAppsState.reload();
+        autostartState.reload();
         keybindingsState.reload();
     }
 
     Component.onCompleted: {
         systemState.reload();
+        defaultAppsState.reload();
+        autostartState.reload();
         keybindingsState.reload();
     }
 
     onVisibleChanged: {
         if (visible) {
             systemState.reload();
+            defaultAppsState.reload();
+            autostartState.reload();
             keybindingsState.reload();
         }
     }
@@ -109,6 +105,16 @@ FloatingWindow {
 
     SystemController {
         id: systemState
+
+        backend: window.backend
+    }
+
+    DefaultAppsController {
+        id: defaultAppsState
+    }
+
+    AutostartController {
+        id: autostartState
     }
 
     KeybindingsController {
@@ -167,18 +173,7 @@ FloatingWindow {
             anchors.topMargin: 20
             theme: window.theme
             title: window.currentPage.label
-            subtitle: window.currentPage.description
-            trailingWidth: 58
-
-            Text {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                text: (window.currentPageIndex + 1).toString().padStart(2, "0") + " / " + window.pages.length.toString().padStart(2, "0")
-                color: window.muted
-                font.family: "monospace"
-                font.pixelSize: 9
-                font.letterSpacing: 1
-            }
+            height: 42
         }
 
         Loader {
@@ -205,8 +200,14 @@ FloatingWindow {
                     return windowsPage;
                 case "input":
                     return inputPage;
+                case "topbar":
+                    return topbarPage;
+                case "defaults":
+                    return defaultAppsPage;
                 case "system":
                     return systemPage;
+                case "autostart":
+                    return autostartPage;
                 case "keybindings":
                     return keybindingsPage;
                 default:
@@ -257,11 +258,41 @@ FloatingWindow {
     }
 
     Component {
+        id: topbarPage
+
+        BarLayoutPage {
+            controller: window.barLayout
+            theme: window.theme
+        }
+
+    }
+
+    Component {
+        id: defaultAppsPage
+
+        DefaultAppsPage {
+            controller: defaultAppsState
+            theme: window.theme
+        }
+
+    }
+
+    Component {
         id: systemPage
 
         SystemPage {
             controller: settingsController
             systemController: systemState
+            theme: window.theme
+        }
+
+    }
+
+    Component {
+        id: autostartPage
+
+        AutostartPage {
+            controller: autostartState
             theme: window.theme
         }
 

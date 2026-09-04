@@ -39,8 +39,11 @@ Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
 - Screenshot modes for smart selection, windows, workspaces, and regions.
 - Multi-monitor Wayland lock screen with PAM authentication.
 - Settings application in a real resizable window, with Hyprland display
-  arrangement, tiling and decoration, input devices, desktop preferences,
-  and searchable keybindings.
+  arrangement, tiling and decoration, input devices, a drag-and-drop top-bar
+  layout editor, default applications, system diagnostics, XDG autostart
+  entries, systemd user services, desktop preferences, and searchable
+  keybindings. Every bar module can be reordered, moved between the left,
+  center and right zones, or hidden.
 - Searchable Launcher actions for guided package, AUR, web app, and terminal
   app installation and removal.
 
@@ -84,6 +87,8 @@ require the corresponding command:
 | Interactive utility scripts | `fzf`, Kitty |
 | Package management | `pacman`; `paru` or `yay` for AUR packages |
 | Power profiles | `powerprofilesctl` |
+| Settings default applications | `xdg-mime` from `xdg-utils` |
+| Settings user services | A reachable systemd user manager |
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
 | Removable devices | `util-linux`, `udisks2`, `xdg-utils` |
 
@@ -156,7 +161,8 @@ recommended entry point for a fresh system.
 `scripts/uninstall` reverses what the setup installed: the systemd user service
 and the `vellum` binary, the generated Hyprland modules, the `require` lines it
 appended, the include/import lines it added to `kitty.conf`, `gtk.css`, and
-`btop.conf`, and the generated Neovim colorscheme with its LazyVim spec. It is also the ownership manifest — anything not listed there was
+`btop.conf`, the qt6ct palette and portal environment, and the generated Neovim
+colorscheme with its LazyVim spec. It is also the ownership manifest — anything not listed there was
 yours before the install and is left alone, including the repository, your
 wallpapers, and your screenshots.
 
@@ -242,18 +248,25 @@ installs `/etc/pam.d/vellum-shell`; no external lock-screen package is used.
 
 ### Login screen (SDDM)
 
-`sddm/vellum-ink/` is an SDDM greeter theme in the same ink visual language and
-on the same palette, with its own copies of the components under
+`sddm/vellum-ink/` is an SDDM greeter theme in the same visual language as the
+lock screen and on the same palette, with its own copies of the components under
 `sddm/vellum-ink/Ink*.qml`. It adds the greeter-only controls: user picker,
 session picker, keyboard layout, and the power actions.
+
+The greeter cannot read the wallpaper from `$HOME` (that directory is normally
+`0700` and the greeter runs as `sddm`), so the theme engine writes a downscaled
+copy next to the theme as `background.jpg` and points `theme.conf` at it. The
+install chowns that file to you, the same way it does with `theme.conf`, so
+later theme changes refresh the greeter background without root. Re-run the
+install once after updating the theme so the file exists:
 
 ```bash
 ~/.config/quickshell/vellum_shell/scripts/sddm-install --preview            # test run, no root
 sudo ~/.config/quickshell/vellum_shell/scripts/sddm-install --default --layout
 ```
 
-`scripts/sddm-theme` regenerates `theme.conf` from the active shell palette and
-runs as part of the theme switch, so the greeter follows the selected theme
+The backend's `sddm` theme generator regenerates `theme.conf` from the active
+shell palette on every theme switch, so the greeter follows the selected theme
 automatically. It writes both the repository copy and the installed one at
 `/usr/share/sddm/themes/vellum-ink/theme.conf`, which `sddm-install` chowns to the
 installing user for exactly that purpose. Everything else in the installed
@@ -271,7 +284,7 @@ sudo systemctl enable sddm.service
 
 The greeter opens one window per output and the theme decides which one gets
 the login card; the rest show the ambient view. The choice comes from
-`inputScreen` in `theme.conf`, which `scripts/sddm-theme` fills in from
+`inputScreen` in `theme.conf`, which the generator fills in from
 `lockscreen-monitor`, so the greeter and the lock screen use the same monitor.
 An empty or unplugged name falls back to the primary screen, so exactly one
 window always shows the card.
@@ -350,6 +363,8 @@ The backend generates:
 
 - `kitty-theme.conf` for Kitty.
 - `gtk-theme.css` for GTK 3 and GTK 4.
+- `~/.config/qt6ct/colors/vellum.conf` for Qt 6 applications and the Hyprland
+  screen-sharing picker (through a service-specific portal environment).
 - `~/.config/hypr/colors.lua` for Hyprland's native Lua configuration.
 - `vellum-theme.css` in the active Zen Browser profile, imported by `userChrome.css`.
 - A `btop` theme in the user's btop configuration.
@@ -471,6 +486,10 @@ is visible without a reload:
 `setup.sh` appends both to the `require` list in `hyprland.lua`, after your own
 modules, so their values win. Deleting the JSON store (or the System page's
 "Reset Hyprland settings") drops every override and falls back to your config.
+
+The top-bar editor stores its independent layout in `bar-layout.json` in the
+Vellum directory. It is shared by every monitor and applied live; deleting the
+file restores the built-in module order on the next shell start.
 
 Display changes go through a transaction owned by the daemon, because a bad mode
 or position can leave a screen the user can no longer click on:

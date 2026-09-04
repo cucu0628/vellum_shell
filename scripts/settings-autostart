@@ -1,0 +1,171 @@
+#!/usr/bin/env bash
+# XDG autostart bejegyzesek listazasa es biztonsagos felulirasa a Settings appnak.
+set -euo pipefail
+
+config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
+user_dir=$config_home/autostart
+IFS=: read -r -a config_dirs <<<"${XDG_CONFIG_DIRS:-/etc/xdg}"
+
+desktop_value() {
+  local file=$1 key=$2
+  awk -v wanted="$key" '
+    /^\[Desktop Entry\][[:space:]]*$/ { in_entry = 1; next }
+    /^\[/ { if (in_entry) exit; next }
+    in_entry && index($0, wanted "=") == 1 {
+      print substr($0, length(wanted) + 2)
+      exit
+    }
+  ' "$file"
+}
+
+system_entry() {
+  local id=$1 dir candidate
+  for dir in "${config_dirs[@]}"; do
+    candidate=$dir/autostart/$id
+    if [[ -f $candidate ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+clean_field() {
+  tr '\t\r\n' '   ' <<<"$1" | sed 's/[[:space:]][[:space:]]*/ /g; s/^ //; s/ $//'
+}
+
+list_entries() {
+  local -A seen=()
+  local dir file id source fallback name exec hidden gnome_enabled enabled
+  local -a dirs=("$user_dir")
+
+  for dir in "${config_dirs[@]}"; do
+    dirs+=("$dir/autostart")
+  done
+
+  shopt -s nullglob
+  for dir in "${dirs[@]}"; do
+    for file in "$dir"/*.desktop; do
+      id=${file##*/}
+      [[ ${seen[$id]+yes} ]] && continue
+      seen[$id]=1
+
+      source=System
+      [[ $dir == "$user_dir" ]] && source=User
+      fallback=""
+      if [[ $source == User ]]; then
+        fallback=$(system_entry "$id" || true)
+      fi
+
+      name=$(desktop_value "$file" Name)
+      exec=$(desktop_value "$file" Exec)
+      if [[ -n $fallback ]]; then
+        [[ -n $name ]] || name=$(desktop_value "$fallback" Name)
+        [[ -n $exec ]] || exec=$(desktop_value "$fallback" Exec)
+      fi
+      [[ -n $name ]] || name=${id%.desktop}
+
+      hidden=$(desktop_value "$file" Hidden)
+      gnome_enabled=$(desktop_value "$file" X-GNOME-Autostart-enabled)
+      enabled=true
+      [[ ${hidden,,} == true ]] && enabled=false
+      [[ ${gnome_enabled,,} == false ]] && enabled=false
+
+      printf '%s\t%s\t%s\t%s\t%s\n' \
+        "$id" "$(clean_field "$name")" "$(clean_field "$exec")" "$enabled" "$source"
+    done
+  done
+}
+
+set_keys() {
+  local file=$1 hidden=$2 gnome_enabled=$3 temporary
+  temporary=$(mktemp --tmpdir="$user_dir" .vellum-autostart.XXXXXX)
+  awk -v hidden="$hidden" -v gnome_enabled="$gnome_enabled" '
+    BEGIN { in_entry = 0; saw_entry = 0; wrote_hidden = 0; wrote_gnome = 0 }
+    function missing_keys() {
+      if (!wrote_hidden) print "Hidden=" hidden
+      if (!wrote_gnome) print "X-GNOME-Autostart-enabled=" gnome_enabled
+      wrote_hidden = 1
+      wrote_gnome = 1
+    }
+    /^\[Desktop Entry\][[:space:]]*$/ {
+      in_entry = 1
+      saw_entry = 1
+      print
+      next
+    }
+    /^\[/ {
+      if (in_entry) missing_keys()
+      in_entry = 0
+      print
+      next
+    }
+    in_entry && /^Hidden=/ {
+      if (!wrote_hidden) print "Hidden=" hidden
+      wrote_hidden = 1
+      next
+    }
+    in_entry && /^X-GNOME-Autostart-enabled=/ {
+      if (!wrote_gnome) print "X-GNOME-Autostart-enabled=" gnome_enabled
+      wrote_gnome = 1
+      next
+    }
+    { print }
+    END {
+      if (!saw_entry) print "[Desktop Entry]"
+      missing_keys()
+    }
+  ' "$file" >"$temporary"
+  chmod --reference="$file" "$temporary" 2>/dev/null || chmod 0644 "$temporary"
+  mv -f -- "$temporary" "$file"
+}
+
+set_entry() {
+  local id=${1:-} requested=${2:-} user_file system_file
+  [[ -n $id && $id == "${id##*/}" && $id == *.desktop ]] || {
+    printf 'Ervenytelen autostart azonosito.\n' >&2
+    return 2
+  }
+  [[ $requested == true || $requested == false ]] || {
+    printf 'Az allapot true vagy false lehet.\n' >&2
+    return 2
+  }
+
+  mkdir -p -- "$user_dir"
+  user_file=$user_dir/$id
+  system_file=$(system_entry "$id" || true)
+
+  if [[ ! -f $user_file ]]; then
+    [[ -n $system_file ]] || {
+      printf 'Nem talalhato ilyen autostart bejegyzes: %s\n' "$id" >&2
+      return 3
+    }
+    cp -- "$system_file" "$user_file"
+    printf '\nX-Vellum-Managed=true\n' >>"$user_file"
+  fi
+
+  if [[ $requested == true ]]; then
+    # A Vellum altal letrehozott tiltast inkabb eltavolitjuk, igy a rendszer
+    # eredeti bejegyzese es annak kesobbi csomagfrissitesei lesznek ervenyesek.
+    if [[ -n $system_file ]] && grep -qx 'X-Vellum-Managed=true' "$user_file"; then
+      rm -f -- "$user_file"
+      return
+    fi
+    set_keys "$user_file" false true
+  else
+    set_keys "$user_file" true false
+  fi
+}
+
+case ${1:-list} in
+  list)
+    list_entries
+    ;;
+  set)
+    set_entry "${2:-}" "${3:-}"
+    ;;
+  *)
+    printf 'Hasznalat: %s list | set ID true|false\n' "$0" >&2
+    exit 2
+    ;;
+esac

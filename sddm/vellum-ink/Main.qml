@@ -3,8 +3,10 @@ import QtQml
 import QtQuick.Window
 import "." as Ink
 
-// Vellum Shell "Vellum Ink" greeter, a lock screen vizualis nyelve.
-// SDDM-re forditva: enso hatter, shoji-redony, pecset, azonos szinpaletta.
+// Vellum Shell "Vellum Ink" greeter, a zarolokepernyo vizualis nyelve.
+// SDDM-re forditva: elhomalyosodo hatterkep, nagy ora, panel-kartya, azonos
+// paletta -- kiegeszitve azzal, amit csak a greeter tud: felhasznalo- es
+// munkamenet-valaszto, billentyuzetkiosztas es energia-muveletek.
 Item {
     id: root
 
@@ -18,7 +20,23 @@ Item {
     readonly property color surface: config.colorSurface || "#2a2a37"
     readonly property color muted: config.colorMuted || "#727169"
     readonly property color alertColor: config.colorAlert || "#d7472f"
+    // A shell palettajaban a `MUTED` a halvanyabb kontur, a `LIGHT_FOREGROUND`
+    // a szoveg. A theme.conf `colorMuted`-je a MUTED-bol jon, tehat mindketto
+    // szerepere ez all a legkozelebb.
+    readonly property color outline: muted
     readonly property string themeName: config.themeName || ""
+
+    // A greeter sajat hatterkep-peldanya, a tema mappajahoz kepest. A /home
+    // tipikusan 0700, ezert az sddm felhasznalo nem erne el az eredetit -- a
+    // temamotor ir ide egy kicsinyitett masolatot minden temavaltaskor. Ha
+    // hianyzik, az InkBackground a temaszinre es az ensō vizjelre esik vissza.
+    readonly property string wallpaper: {
+        var name = config.background || ""
+        // A theme.conf-ot a temamotor irja. Ha a futo daemon meg egy regebbi
+        // binaris, a `{{...}}` helyorzo feloldatlanul maradhat a fajlban --
+        // olyat ne adjunk az Image-nek, mert a greeter csak hibat logol.
+        return name.indexOf("{{") >= 0 ? "" : name
+    }
 
     // Tobb kijelzo eseten csak egy kepernyore kerul a bejelentkezo kartya.
     // A valasztott monitor a shell lockscreenjevel egyezik, mert a greeter sajat
@@ -89,6 +107,9 @@ Item {
     property bool busy: false
     property bool failed: false
     property bool closing: false
+    // A kilepes ket utemu: eloszor a kartya tunik el, csak utana enged fel a
+    // dermedt hatter -- ugyanaz a koreografia, mint a zarolokepernyon.
+    property bool thawing: false
     property bool ready: false
     property int revealStep: 0
     property string statusText: "Enter password"
@@ -117,7 +138,7 @@ Item {
     readonly property string timeText: two(currentTime.getHours()) + ":" + two(currentTime.getMinutes())
     readonly property string secondsText: two(currentTime.getSeconds())
     readonly property string weekdayText: dayNames[weekdayIndex]
-    readonly property string dateText: monthNames[currentTime.getMonth()] + " " + currentTime.getDate() + "  ·  " + currentTime.getFullYear()
+    readonly property string dateText: monthNames[currentTime.getMonth()] + " " + currentTime.getDate() + " " + currentTime.getFullYear()
     readonly property real dayProgress: (currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds()) / 86400
 
     function two(value) {
@@ -230,6 +251,7 @@ Item {
             root.busy = false
             root.statusText = "Welcome"
             root.closing = true
+            thawTimer.start()
         }
 
         function onLoginFailed() {
@@ -255,22 +277,31 @@ Item {
 
     Timer {
         id: introTimer
-        interval: 80
+        interval: 60
         onTriggered: {
             root.ready = true
             revealTimer.start()
         }
     }
 
-    // Lepcsozetes megjelenes: minden utem egy reteget hoz be a feluleten.
+    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = kartya,
+    // 4 = beviteli mezo, valasztok es a rendszermuveletek.
     Timer {
         id: revealTimer
-        interval: 130
+        interval: 110
         repeat: true
         onTriggered: {
             root.revealStep += 1
-            if (root.revealStep >= 6) revealTimer.stop()
+            if (root.revealStep >= 4) revealTimer.stop()
         }
+    }
+
+    // A kartya eltunese utan enged fel a dermedes: a greeter utolso kepe igy
+    // mar a tiszta hatterkep, nem egy fatyolos, vignettas lap.
+    Timer {
+        id: thawTimer
+        interval: 130
+        onTriggered: root.thawing = true
     }
 
     Ink.InkBackground {
@@ -290,9 +321,4 @@ Item {
         sourceComponent: Ink.InkAmbient { greeter: root }
     }
 
-    Ink.InkShutter {
-        anchors.fill: parent
-        greeter: root
-        z: 100
-    }
 }

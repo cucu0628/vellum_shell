@@ -10,6 +10,14 @@ Item {
     property var actions: []
     property bool shown: false
     property bool animateTransitions: true
+    readonly property var visibleActions: {
+        var result = []
+        for (var i = 0; i < actions.length; i++) {
+            var action = actions[i]
+            if (action && toast.cleanText(action.text) !== "") result.push(action)
+        }
+        return result
+    }
     readonly property bool hasDefaultAction: {
         for (var i = 0; i < actions.length; i++) {
             if (actions[i] && actions[i].identifier === "default") return true
@@ -166,10 +174,10 @@ Item {
                 Flow {
                     width: parent.width
                     spacing: 5
-                    visible: toast.actions.length > 0
+                    visible: toast.visibleActions.length > 0
 
                     Repeater {
-                        model: toast.actions
+                        model: toast.visibleActions
 
                         Rectangle {
                             property var action: modelData
@@ -185,7 +193,7 @@ Item {
 
                                 anchors.centerIn: parent
                                 width: parent.width - 12
-                                text: parent.action && parent.action.text !== "" ? parent.action.text.toUpperCase() : (parent.action && parent.action.identifier === "default" ? "OPEN" : "ACTION")
+                                text: parent.action ? toast.cleanText(parent.action.text).toUpperCase() : ""
                                 color: actionMouse.containsMouse ? toast.panelBg : toast.panelAccent
                                 font.pixelSize: 8
                                 font.bold: true

@@ -1,17 +1,20 @@
 import QtQuick
 
+// A greeter oraja. Ugyanaz a tipografia, mint a zarolokepernyon: monospace
+// szamjegyek (a blokk nem ugral percenkent), hajszalvekony napi haladasjelzo
+// es ritkitott verzalis datum.
 Column {
     id: clock
 
     required property var greeter
-    property int timeSize: 78
+    property int timeSize: 96
     property bool centered: false
-    property real barWidth: 200
+    property real barWidth: 260
 
-    spacing: 8
+    spacing: Math.round(timeSize * 0.13)
 
     Row {
-        spacing: 10
+        spacing: Math.round(clock.timeSize * 0.11)
         anchors.horizontalCenter: clock.centered ? parent.horizontalCenter : undefined
 
         Text {
@@ -19,47 +22,32 @@ Column {
 
             text: clock.greeter.timeText
             color: clock.greeter.foreground
+            font.family: "monospace"
             font.pixelSize: clock.timeSize
             font.weight: Font.Light
-            font.letterSpacing: clock.timeSize * 0.02
+            font.letterSpacing: -clock.timeSize * 0.03
         }
 
         Text {
             text: clock.greeter.secondsText
             color: clock.greeter.accent
-            font.pixelSize: Math.round(clock.timeSize * 0.22)
+            font.family: "monospace"
+            font.pixelSize: Math.round(clock.timeSize * 0.2)
             font.weight: Font.DemiBold
-            font.letterSpacing: 2
+            font.letterSpacing: 1
             anchors.baseline: bigTime.baseline
         }
     }
 
-    Text {
-        text: clock.greeter.weekdayText
-        color: clock.greeter.foreground
-        font.pixelSize: 12
-        font.letterSpacing: 5
-        font.bold: true
-        anchors.horizontalCenter: clock.centered ? parent.horizontalCenter : undefined
-    }
-
-    Text {
-        text: clock.greeter.dateText
-        color: clock.greeter.muted
-        font.pixelSize: 11
-        font.letterSpacing: 1.6
-        anchors.horizontalCenter: clock.centered ? parent.horizontalCenter : undefined
-    }
-
     Item {
         width: clock.barWidth
-        height: 3
+        height: 2
         anchors.horizontalCenter: clock.centered ? parent.horizontalCenter : undefined
 
         Rectangle {
             anchors.fill: parent
             color: clock.greeter.foreground
-            opacity: 0.12
+            opacity: 0.14
         }
 
         Rectangle {
@@ -68,6 +56,33 @@ Column {
             color: clock.greeter.accent
 
             Behavior on width { NumberAnimation { duration: 700; easing.type: Easing.OutCubic } }
+        }
+    }
+
+    Row {
+        spacing: 9
+        anchors.horizontalCenter: clock.centered ? parent.horizontalCenter : undefined
+
+        Text {
+            text: clock.greeter.weekdayText
+            color: clock.greeter.accent
+            font.pixelSize: 10
+            font.letterSpacing: 3
+            font.bold: true
+        }
+
+        Text {
+            text: "·"
+            color: clock.greeter.muted
+            font.pixelSize: 10
+            opacity: 0.6
+        }
+
+        Text {
+            text: clock.greeter.dateText
+            color: clock.greeter.muted
+            font.pixelSize: 10
+            font.letterSpacing: 2
         }
     }
 }

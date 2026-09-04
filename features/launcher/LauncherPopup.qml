@@ -397,6 +397,18 @@ PanelWindow {
         return [terminalProgram, "--", "sh", "-c", exec];
     }
 
+    // A muveleteket lecsatolva inditjuk, nem `Process`-kent: a Quickshell a
+    // sajat gyerekfolyamatait leallaskor kilovi, a "refresh shell" pedig eppen
+    // ezt a peldanyt allitja le. Managed gyerekkent a script a `kill` es az uj
+    // peldany inditasa kozott halt meg -- innen jott a "neha nem indul ujra".
+    // A popup 300 ms utani lebontasa (LazyPopup) ugyanigy elvitte volna.
+    function runAction(command) {
+        if ((command || "") === "")
+            return ;
+
+        Quickshell.execDetached(["sh", "-c", command]);
+    }
+
     function activateSelected() {
         if (visibleItems.length === 0)
             return ;
@@ -412,8 +424,7 @@ PanelWindow {
             copyProcess.running = true;
             opened = false;
         } else if (item.type === "project" && item.path) {
-            runProcess.command = ["code", item.path];
-            runProcess.running = true;
+            Quickshell.execDetached(["code", item.path]);
             opened = false;
         } else if (item.type === "action") {
             // A kikapcsolas-jellegu muveleteknel az elso Enter csak felvillantja
@@ -429,8 +440,7 @@ PanelWindow {
                 opened = false;
                 delayedActionTimer.restart();
             } else {
-                runProcess.command = ["sh", "-c", item.action.command];
-                runProcess.running = true;
+                runAction(item.action.command);
                 opened = false;
             }
         } else if (item.type === "emoji") {
@@ -590,9 +600,9 @@ PanelWindow {
             if (launcherWindow.delayedActionCommand === "")
                 return;
 
-            runProcess.command = ["sh", "-c", launcherWindow.delayedActionCommand];
+            var command = launcherWindow.delayedActionCommand;
             launcherWindow.delayedActionCommand = "";
-            runProcess.running = true;
+            launcherWindow.runAction(command);
         }
     }
 
@@ -607,10 +617,6 @@ PanelWindow {
 
     Process {
         id: copyProcess
-    }
-
-    Process {
-        id: runProcess
     }
 
     Process {

@@ -26,7 +26,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 104
+        height: 88
 
         SharedUi.ShellLogo {
             id: mark
@@ -39,32 +39,18 @@ Rectangle {
             color: sidebar.accent
         }
 
-        Column {
+        Text {
             anchors.left: mark.right
             anchors.leftMargin: 12
             anchors.right: parent.right
             anchors.rightMargin: 14
             anchors.verticalCenter: mark.verticalCenter
-            spacing: 0
-
-            Text {
-                width: parent.width
-                text: "Settings"
-                color: sidebar.foreground
-                font.family: "serif"
-                font.pixelSize: 20
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                text: "VELLUM / CONFIGURATION"
-                color: sidebar.muted
-                font.pixelSize: 7
-                font.letterSpacing: 1.2
-                elide: Text.ElideRight
-            }
+            text: "Settings"
+            color: sidebar.foreground
+            font.family: "serif"
+            font.pixelSize: 20
+            font.weight: Font.Medium
+            elide: Text.ElideRight
         }
 
         Rectangle {
@@ -92,33 +78,16 @@ Rectangle {
                 id: entry
 
                 required property var modelData
-                required property int index
 
                 readonly property bool current: entry.modelData.id === sidebar.activePage
 
                 width: sidebar.width
-                height: entry.modelData.startsGroup ? 70 : 43
-
-                Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 18
-                    anchors.top: parent.top
-                    anchors.topMargin: 12
-                    visible: entry.modelData.startsGroup
-                    text: entry.modelData.group
-                    color: sidebar.muted
-                    font.pixelSize: 7
-                    font.bold: true
-                    font.letterSpacing: 1.7
-                }
+                height: 48
 
                 Rectangle {
                     id: navigationRow
 
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 43
+                    anchors.fill: parent
                     color: entry.current || entryMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
 
                     Rectangle {
@@ -132,19 +101,7 @@ Rectangle {
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 18
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 18
-                        text: (entry.index + 1).toString().padStart(2, "0")
-                        color: entry.current ? sidebar.accent : sidebar.muted
-                        opacity: entry.current ? 1 : 0.55
-                        font.family: "monospace"
-                        font.pixelSize: 8
-                    }
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.leftMargin: 46
+                        anchors.leftMargin: 20
                         anchors.verticalCenter: parent.verticalCenter
                         width: 22
                         text: entry.modelData.icon
@@ -154,7 +111,7 @@ Rectangle {
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: 76
+                        anchors.leftMargin: 54
                         anchors.right: parent.right
                         anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
@@ -178,18 +135,6 @@ Rectangle {
 
             }
         }
-    }
-
-    Text {
-        anchors.left: parent.left
-        anchors.leftMargin: 18
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 18
-        text: "HYPRLAND / DESKTOP SHELL"
-        color: sidebar.muted
-        opacity: 0.55
-        font.pixelSize: 7
-        font.letterSpacing: 1.2
     }
 
     Rectangle {

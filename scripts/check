@@ -48,13 +48,19 @@ if need cargo "Rust ellenorzesek"; then
   run "cargo test" cargo test --manifest-path backend/Cargo.toml
 fi
 
-# A qmllint a Qt bin mappajaban is lehet, nem csak a PATH-on.
+# A Qt6-os qmllint kell, es a PATH-on levo `qmllint` nem feltetlenul az:
+# Archon a qt5-declarative is telepit egyet ugyanezen a neven. Az csak
+# szintaxist ellenoriz, ervenyes fajlokra pedig nem ir semmit -- ha az nyerne,
+# a kapu csendben, "0 figyelmeztetes, 0 hiba" mellett engedne at mindent.
+# Ezert a valasztott binaristol megkerdezzuk, hany eves.
 qmllint_bin=""
-if command -v qmllint >/dev/null 2>&1; then
-  qmllint_bin=qmllint
-elif [[ -x /usr/lib/qt6/bin/qmllint ]]; then
-  qmllint_bin=/usr/lib/qt6/bin/qmllint
-fi
+for candidate in /usr/lib/qt6/bin/qmllint qmllint6 qmllint; do
+  command -v "$candidate" >/dev/null 2>&1 || continue
+  if "$candidate" --version 2>&1 | grep -Eq 'qmllint 6\.'; then
+    qmllint_bin=$candidate
+    break
+  fi
+done
 
 if [[ -n $qmllint_bin ]]; then
   step "qmllint"

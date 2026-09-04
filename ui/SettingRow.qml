@@ -1,8 +1,8 @@
 import QtQuick
 
-// Egy beallitas sora: balra nev es magyarazat, jobbra a vezerlo. A vezerlot a
-// hivo teszi be alapertelmezett gyerekkent, ezert a `control` a default
-// property -- igy a hivo oldalon nincs plusz beagyazas.
+// Egy beallitas sora: balra nev, jobbra a vezerlo. A rovid magyarazat
+// alapbol csak a kepernyoolvasonak marad meg; a fontos figyelmezteteseket a
+// hivo a `showDescription` kapcsoloval lathatova teheti.
 Rectangle {
     id: row
 
@@ -10,7 +10,9 @@ Rectangle {
     property var theme: null
     property string label: ""
     property string description: ""
+    property bool showDescription: false
     property int controlWidth: 260
+    readonly property bool hasVisibleDescription: showDescription && description !== ""
 
     // A sajat QML dropdown kilog a sorbol. Az egesz sort kell a testverei fole
     // emelni, kulonben a kesobbi sorok csuszkai es szovegei rarajzolodnak.
@@ -45,7 +47,7 @@ Rectangle {
     Component.onCompleted: publishAccessibleName()
 
     width: parent ? parent.width : 0
-    height: Math.max(58, textColumn.implicitHeight + 24)
+    height: Math.max(row.hasVisibleDescription ? 58 : 50, textColumn.implicitHeight + 20)
     z: controlRaised ? 1000 : 0
     color: "transparent"
     // Az `enabled` a QQuickItem-e: a gyerekekre magatol oroklodik, itt csak
@@ -72,10 +74,10 @@ Rectangle {
 
         Text {
             width: parent.width
-            visible: row.description !== ""
+            visible: row.hasVisibleDescription
             text: row.description
             color: row.muted
-            font.pixelSize: 10
+            font.pixelSize: 11
             lineHeight: 1.15
             wrapMode: Text.WordWrap
         }

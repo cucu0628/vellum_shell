@@ -69,6 +69,7 @@ Flickable {
             theme: page.theme
             label: "Layout variant"
             description: "Optional xkb variant, such as nodeadkeys. Leave empty for the default."
+            showDescription: true
 
             TextSetting {
                 anchors.right: parent.right
@@ -154,6 +155,7 @@ Flickable {
             theme: page.theme
             label: "Focus follows mouse"
             description: "Off focuses on click only; loose keeps focus until another window is entered."
+            showDescription: true
 
             SharedUi.SettingSelect {
                 anchors.right: parent.right

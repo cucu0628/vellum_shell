@@ -70,6 +70,13 @@ ShellRoot {
     }
     readonly property var shellTheme: theme
 
+    Core.BarLayoutController {
+        id: barLayoutController
+
+        shellDir: shellRoot.shellDir
+    }
+    readonly property var barLayoutState: barLayoutController
+
     Core.WallpaperController {
         id: wallpaperStore
         backend: shellRoot.shellBackend
@@ -215,6 +222,7 @@ ShellRoot {
             sourceComponent: Component {
                 SettingsFeature.SettingsWindow {
                     backend: shellRoot.shellBackend
+                    barLayout: shellRoot.barLayoutState
                     theme: shellRoot.shellTheme
                     visible: settingsApp.opened
                     onClosed: settingsApp.opened = false
@@ -429,6 +437,7 @@ ShellRoot {
             barHeight: shellRoot.barHeight
             visibleWorkspaceIds: shellRoot.visibleWorkspaceIds
             occupiedWorkspaceIds: shellRoot.occupiedWorkspaceIds
+            layoutController: shellRoot.barLayoutState
             activePlayer: shellRoot.activePlayer
             hasMediaSource: Mpris.players.values.length > 0
             cavaValues: cavaController.values

@@ -13,6 +13,14 @@ Rectangle {
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
     readonly property var entryActions: entry && entry.actions ? entry.actions : []
+    readonly property var visibleActions: {
+        var result = []
+        for (var i = 0; i < entryActions.length; i++) {
+            var action = entryActions[i]
+            if (action && action.text && action.text.toString().trim() !== "") result.push(action)
+        }
+        return result
+    }
     readonly property bool critical: entry ? entry.critical === true : false
 
     signal activated()
@@ -173,10 +181,10 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 7
         spacing: 5
-        visible: row.entryActions.length > 0
+        visible: row.visibleActions.length > 0
 
         Repeater {
-            model: row.entryActions
+            model: row.visibleActions
 
             Rectangle {
                 property var action: modelData
@@ -192,7 +200,7 @@ Rectangle {
 
                     anchors.centerIn: parent
                     width: parent.width - 10
-                    text: parent.action && parent.action.text !== "" ? parent.action.text.toUpperCase() : (parent.action && parent.action.identifier === "default" ? "OPEN" : "ACTION")
+                    text: parent.action ? parent.action.text.toString().trim().toUpperCase() : ""
                     color: entryActionMouse.containsMouse ? row.panelBg : row.panelAccent
                     font.pixelSize: 8
                     font.bold: true

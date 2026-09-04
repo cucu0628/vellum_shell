@@ -91,6 +91,7 @@ Flickable {
             theme: page.theme
             label: "Tiling layout"
             description: "Dwindle splits the focused window; master keeps one primary area."
+            showDescription: true
 
             SharedUi.SettingSelect {
                 anchors.right: parent.right
@@ -203,6 +204,7 @@ Flickable {
             theme: page.theme
             label: "Blur"
             description: "Blur what is behind translucent surfaces. Costs GPU time."
+            showDescription: true
 
             SharedUi.SettingToggle {
                 anchors.right: parent.right

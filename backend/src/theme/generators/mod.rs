@@ -14,12 +14,13 @@ pub mod hyprland;
 pub mod icon;
 pub mod kitty;
 pub mod neovim;
+pub mod qt6ct;
 pub mod sddm;
 pub mod zen;
 
 use crate::theme::palette::Palette;
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Outcome {
@@ -68,12 +69,16 @@ const OPTIONAL: bool = false;
 /// lancolas viselkedese: ha pl. nincs Zen profil, a kitty temaja attol meg
 /// frissuljon. A kotelezo es az opcionalis hiba viszont nem ugyanaz: az
 /// elobbibol a `theme::apply` hibat csinal, es meg sem rogziti az uj temat.
-pub fn run_all(palette: &Palette, include_zen: bool) -> Vec<Outcome> {
+/// A `wallpaper` az EPPEN alkalmazott kep, nem a rogzitett allapot: a
+/// `theme::apply` szandekosan csak a legvegen commitolja a `current-wallpaper`-t,
+/// tehat a generatorok futasakor a fajl meg a regi erteket tartja.
+pub fn run_all(palette: &Palette, wallpaper: Option<&Path>, include_zen: bool) -> Vec<Outcome> {
     let mut outcomes = vec![
         // A sajat mappankba vagy a sajat konfigfajljainkba iranak: ha ezek
         // buknak, az nem egy hianyzo alkalmazas, hanem valodi irasi hiba.
         run("kitty", REQUIRED, || kitty::generate(palette)),
         run("gtk", REQUIRED, || gtk::generate(palette)),
+        run("qt6ct", OPTIONAL, || qt6ct::generate(palette)),
         run("hyprland", REQUIRED, || hyprland::generate(palette)),
         // Kulso alkalmazasok: hianyozhatnak, es akkor nincs mit temazni.
         run("icon", OPTIONAL, || icon::generate(palette)),
@@ -81,7 +86,7 @@ pub fn run_all(palette: &Palette, include_zen: bool) -> Vec<Outcome> {
         run("neovim", OPTIONAL, || neovim::generate(palette)),
         run("fastfetch", OPTIONAL, || fastfetch::generate(palette)),
         // Az SDDM temaja rendszerkonyvtarban ul: root nelkul varhatoan bukik.
-        run("sddm", OPTIONAL, || sddm::generate(palette)),
+        run("sddm", OPTIONAL, || sddm::generate(palette, wallpaper)),
     ];
 
     // A Zen profil patchelese a legtolakodobb muvelet, ezert kulon kapcsolhato.
