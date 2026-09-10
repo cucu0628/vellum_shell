@@ -9,6 +9,8 @@ PanelWindow {
     id: launcherWindow
 
     property var theme: null
+    required property string homeDir
+    required property string shellDir
     property bool opened: false
     property string query: ""
     property int selectedIndex: 0
@@ -16,7 +18,7 @@ PanelWindow {
     property bool suppressHoverSelection: false
     property var applications: []
     property var projects: []
-    property string delayedActionCommand: ""
+    property var delayedActionCommand: []
     // A Terminal=true bejegyzesek gazdaja. A shell tobbi resze is kittyt
     // hasznal (scripts/floating-terminal, a launcher terminal muvelete).
     property string terminalProgram: "kitty"
@@ -51,7 +53,7 @@ PanelWindow {
         if (projectsProcess.running)
             return ;
 
-        projectsProcess.command = ["sh", "-c", "find \"$HOME/Projects\" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print 2>/dev/null | sort -f"];
+        projectsProcess.command = ["find", homeDir + "/Projects", "-mindepth", "1", "-maxdepth", "1", "-type", "d", "!", "-name", ".*", "-print"];
         projectsProcess.running = true;
     }
 
@@ -70,6 +72,7 @@ PanelWindow {
                 "path": path
             });
         }
+        result.sort((a, b) => a.name.localeCompare(b.name));
         projects = result;
     }
 
@@ -403,10 +406,10 @@ PanelWindow {
     // peldany inditasa kozott halt meg -- innen jott a "neha nem indul ujra".
     // A popup 300 ms utani lebontasa (LazyPopup) ugyanigy elvitte volna.
     function runAction(command) {
-        if ((command || "") === "")
+        if (!command || command.length === 0)
             return ;
 
-        Quickshell.execDetached(["sh", "-c", command]);
+        Quickshell.execDetached(command);
     }
 
     function activateSelected() {
@@ -420,7 +423,7 @@ PanelWindow {
             frecencyStore.record(item.app.id || item.app.name);
             opened = false;
         } else if (item.type === "calc" && calcResult !== "") {
-            copyProcess.command = ["sh", "-c", "printf %s " + shellQuote(calcResult) + " | wl-copy"];
+            copyProcess.command = ["wl-copy", "--", calcResult];
             copyProcess.running = true;
             opened = false;
         } else if (item.type === "project" && item.path) {
@@ -444,7 +447,7 @@ PanelWindow {
                 opened = false;
             }
         } else if (item.type === "emoji") {
-            copyProcess.command = ["sh", "-c", "printf %s " + shellQuote(item.emoji.emoji) + " | wl-copy"];
+            copyProcess.command = ["wl-copy", "--", item.emoji.emoji];
             copyProcess.running = true;
             opened = false;
         }
@@ -597,11 +600,11 @@ PanelWindow {
 
         interval: 260
         onTriggered: {
-            if (launcherWindow.delayedActionCommand === "")
+            if (!launcherWindow.delayedActionCommand || launcherWindow.delayedActionCommand.length === 0)
                 return;
 
             var command = launcherWindow.delayedActionCommand;
-            launcherWindow.delayedActionCommand = "";
+            launcherWindow.delayedActionCommand = [];
             launcherWindow.runAction(command);
         }
     }
@@ -629,6 +632,8 @@ PanelWindow {
 
     LauncherUi.LauncherActions {
         id: launcherActions
+        homeDir: launcherWindow.homeDir
+        shellDir: launcherWindow.shellDir
     }
 
     LauncherUi.EmojiData {

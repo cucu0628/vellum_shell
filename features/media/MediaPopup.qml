@@ -4,7 +4,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Mpris
 import "." as MediaUi
-import "../weather" as WeatherUi
+import "../../core" as Core
 import "../../ui" as SharedUi
 
 PanelWindow {
@@ -95,7 +95,7 @@ PanelWindow {
         return (dayNames[(calendarNow.getDay() + 6) % 7] + ", " + monthNames[calendarNow.getMonth()] + " " + calendarNow.getDate()).toUpperCase()
     }
 
-    WeatherUi.WeatherController {
+    Core.WeatherController {
         id: weatherController
         backend: mediaPopup.backend
         active: mediaPopup.opened && mediaPopup.currentTab === 2
@@ -430,7 +430,7 @@ PanelWindow {
                         enabled: mediaPopup.currentTab === 2
                         active: mediaPopup.currentTab === 2 || mediaPopup.previousTab === 2
 
-                        sourceComponent: WeatherUi.WeatherCard {
+                        sourceComponent: MediaUi.WeatherCard {
                             anchors.fill: parent
                             theme: mediaPopup.theme
                             now: mediaPopup.calendarNow

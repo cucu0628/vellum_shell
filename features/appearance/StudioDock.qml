@@ -1,11 +1,9 @@
 import QtQuick
 import "../../ui" as SharedUi
 
-// A valaszto teljes felulete. Nem a kepernyo szelessegeben ul, hanem kozepre
-// igazitott, tartalomhoz meretezett panel -- igy targynak latszik, nem savnak.
-//
-// A dokk maga is shell felulet, ezert egyben az elonezet is: a paletta accent,
-// surface, muted es foreground erteke mind latszik rajta.
+// Az Appearance Studio egyetlen, osszefuggo also muhelyfelulete. A nagy kepek
+// es a valodi szinmintak viszik a hierarchiat; a szoveg csak azonositasra es a
+// ket vegso muveletre marad.
 Rectangle {
     id: dock
 
@@ -21,36 +19,32 @@ Rectangle {
     property bool dirty: false
     property var imageSource: function (path) { return path }
 
-    readonly property string bg: theme ? theme.background : "#11130f"
-    readonly property string fg: theme ? theme.foreground : "#e8ddc7"
-    readonly property string accent: theme ? theme.accent : "#b7372f"
-    readonly property string surfaceColor: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
-
-    readonly property int sideMargin: 18
-    readonly property int labelWidth: 96
+    readonly property color bg: theme ? theme.background : "#11130f"
+    readonly property color fg: theme ? theme.foreground : "#e8ddc7"
+    readonly property color accent: theme ? theme.accent : "#b7372f"
+    readonly property color surfaceColor: theme && theme.surface ? theme.surface : "#191b16"
+    readonly property color mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
+    readonly property color hairline: Qt.rgba(fg.r, fg.g, fg.b, 0.11)
+    readonly property int sideMargin: 22
 
     signal wallpaperSelected(int index)
     signal paletteSelected(int index)
     signal wallpaperStepRequested(int delta)
     signal paletteStepRequested(int delta)
+    signal dockToggleRequested
     signal applyRequested
     signal cancelRequested
 
-    implicitHeight: footer.y + footer.height + 16
-
+    implicitHeight: footer.y + footer.height + 18
     color: dock.surfaceColor
-    radius: 0
-    border.color: Qt.rgba(1, 1, 1, 0.09)
+    border.color: dock.hairline
     border.width: 1
+    radius: 0
     clip: true
 
-    // A paletta valtasa a dokkon is latszik, ezert az atmenet szamit: enelkul a
-    // sav egyik kepkockarol a masikra atvalt, ami rantasnak hat.
     Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
+    Behavior on border.color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
 
-    // Ugyanaz az akcentel, ami a bar also szelen fut: ez koti a dokkot a shell
-    // tobbi feluletehez, es megtori a lapos sotet tomboket.
     Rectangle {
         id: topRule
         anchors.left: parent.left
@@ -74,83 +68,50 @@ Rectangle {
 
     Item {
         id: header
-
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: topRule.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
         anchors.topMargin: 14
-        height: 50
+        height: 47
 
         SharedUi.ShellLogo {
             id: seal
             anchors.left: parent.left
             anchors.top: parent.top
-            size: 38
+            size: 34
             color: dock.accent
             Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
         }
 
-        Column {
+        Text {
             anchors.left: seal.right
-            anchors.leftMargin: 14
-            anchors.right: closeButton.left
-            anchors.rightMargin: 16
-            anchors.top: parent.top
-            spacing: 1
-
-            Text {
-                width: parent.width
-                text: dock.selectedWallpaper ? dock.selectedWallpaper.name : "Loading scene…"
-                color: dock.fg
-                font.family: "serif"
-                font.pixelSize: 20
-                font.weight: Font.Medium
-                elide: Text.ElideRight
-                Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-            }
-
-            Row {
-                spacing: 8
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: dock.selectedTheme ? dock.selectedTheme.name.toUpperCase() : ""
-                    color: dock.accent
-                    font.pixelSize: 8
-                    font.bold: true
-                    font.letterSpacing: 1.8
-                    Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: dock.selectedTheme
-                        ? (dock.selectedTheme.kind === "dynamic" ? "· from this image" : "· static palette")
-                        : ""
-                    color: dock.mutedFg
-                    font.pixelSize: 8
-                }
-            }
+            anchors.leftMargin: 12
+            anchors.verticalCenter: seal.verticalCenter
+            text: "Appearance"
+            color: dock.fg
+            font.family: "serif"
+            font.pixelSize: 23
+            font.weight: Font.Medium
+            Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
         }
 
         Rectangle {
             id: closeButton
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: 4
-            width: 26
-            height: 26
-            color: closeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.075) : "transparent"
-            border.color: Qt.rgba(1, 1, 1, 0.09)
+            width: 30
+            height: 30
+            color: closeMouse.containsMouse ? Qt.rgba(dock.fg.r, dock.fg.g, dock.fg.b, 0.08) : "transparent"
+            border.color: dock.hairline
             border.width: 1
 
             Text {
                 anchors.centerIn: parent
-                text: "✕"
+                text: "×"
                 color: closeMouse.containsMouse ? dock.accent : dock.mutedFg
-                font.pixelSize: 11
+                font.pixelSize: 16
             }
 
             MouseArea {
@@ -167,75 +128,77 @@ Rectangle {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 1
-            color: dock.mutedFg
-            opacity: 0.18
+            color: dock.hairline
         }
     }
 
-    // A savok sotetebb alapon ulnek, mint a dokk: a ket ertek adja a melyseget.
-    Rectangle {
-        id: wallpaperWell
-
+    Item {
+        id: wallpaperHeading
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: header.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
-        anchors.topMargin: 12
-        height: 128
-        color: dock.bg
-        Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-        border.color: Qt.rgba(1, 1, 1, 0.05)
-        border.width: 1
+        anchors.topMargin: 11
+        height: 22
 
-        Rectangle {
+        Row {
             anchors.left: parent.left
-            anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -22
-            width: 14
-            height: 2
-            color: dock.accent
-            opacity: dock.emphasisRail === "wallpaper" ? 1 : 0.35
+            spacing: 9
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14
+                height: 2
+                color: dock.accent
+                opacity: dock.emphasisRail === "wallpaper" ? 1 : 0.35
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "WALLPAPER"
+                color: dock.emphasisRail === "wallpaper" ? dock.fg : dock.mutedFg
+                font.pixelSize: 9
+                font.bold: true
+                font.letterSpacing: 2
+                Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
+            }
         }
 
         Text {
-            id: wallpaperLabel
-            anchors.left: parent.left
-            anchors.leftMargin: 14
+            anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -2
-            width: dock.labelWidth - 14
-            text: "WALLPAPER"
-            color: dock.emphasisRail === "wallpaper" ? dock.accent : dock.mutedFg
+            width: Math.min(480, parent.width * 0.55)
+            text: dock.selectedWallpaper ? dock.selectedWallpaper.name : ""
+            color: dock.fg
+            font.family: "serif"
+            font.pixelSize: 15
+            font.weight: Font.Medium
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideMiddle
             Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-            font.pixelSize: 9
-            font.letterSpacing: 2
-            font.bold: true
-            wrapMode: Text.WordWrap
         }
+    }
 
-        Text {
-            anchors.left: wallpaperLabel.left
-            anchors.top: wallpaperLabel.bottom
-            anchors.topMargin: 4
-            text: dock.wallpaperItems.length + " images"
-            color: dock.mutedFg
-            opacity: 0.7
-            font.pixelSize: 8
-        }
+    Rectangle {
+        id: wallpaperStage
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: wallpaperHeading.bottom
+        anchors.leftMargin: dock.sideMargin
+        anchors.rightMargin: dock.sideMargin
+        anchors.topMargin: 5
+        height: 142
+        color: dock.bg
+        border.color: dock.hairline
+        border.width: 1
+        clip: true
+        Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
 
         WallpaperRail {
-            id: wallpaperRail
-
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: dock.labelWidth
-            anchors.rightMargin: 10
-            anchors.topMargin: 10
-            anchors.bottomMargin: 10
+            anchors.fill: parent
+            anchors.margins: 9
             theme: dock.theme
             wallpaperItems: dock.wallpaperItems
             selectedIndex: dock.selectedWallpaperIndex
@@ -246,69 +209,59 @@ Rectangle {
         }
     }
 
-    Rectangle {
-        id: paletteWell
-
+    Item {
+        id: paletteHeading
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: wallpaperWell.bottom
+        anchors.top: wallpaperStage.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
-        anchors.topMargin: 10
-        height: 76
+        anchors.topMargin: 9
+        height: 20
+
+        Row {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 9
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14
+                height: 2
+                color: dock.accent
+                opacity: dock.emphasisRail === "theme" ? 1 : 0.35
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "PALETTE"
+                color: dock.emphasisRail === "theme" ? dock.fg : dock.mutedFg
+                font.pixelSize: 9
+                font.bold: true
+                font.letterSpacing: 2
+                Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
+            }
+        }
+    }
+
+    Rectangle {
+        id: paletteStage
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: paletteHeading.bottom
+        anchors.leftMargin: dock.sideMargin
+        anchors.rightMargin: dock.sideMargin
+        anchors.topMargin: 4
+        height: 70
         color: dock.bg
-        Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-        border.color: Qt.rgba(1, 1, 1, 0.05)
+        border.color: dock.hairline
         border.width: 1
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -22
-            width: 14
-            height: 2
-            color: dock.accent
-            opacity: dock.emphasisRail === "theme" ? 1 : 0.35
-        }
-
-        Text {
-            id: paletteLabel
-            anchors.left: parent.left
-            anchors.leftMargin: 14
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -2
-            width: dock.labelWidth - 14
-            text: "PALETTE"
-            color: dock.emphasisRail === "theme" ? dock.accent : dock.mutedFg
-            Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
-            font.pixelSize: 9
-            font.letterSpacing: 2
-            font.bold: true
-            wrapMode: Text.WordWrap
-        }
-
-        Text {
-            anchors.left: paletteLabel.left
-            anchors.top: paletteLabel.bottom
-            anchors.topMargin: 4
-            text: dock.themeItems.length + " themes"
-            color: dock.mutedFg
-            opacity: 0.7
-            font.pixelSize: 8
-        }
+        clip: true
+        Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
 
         PaletteRail {
-            id: paletteRail
-
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: dock.labelWidth
-            anchors.rightMargin: 10
-            anchors.topMargin: 9
-            anchors.bottomMargin: 9
+            anchors.fill: parent
+            anchors.margins: 7
             theme: dock.theme
             themeItems: dock.themeItems
             selectedIndex: dock.selectedThemeIndex
@@ -320,53 +273,110 @@ Rectangle {
 
     Item {
         id: footer
-
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: paletteWell.bottom
+        anchors.top: paletteStage.bottom
         anchors.leftMargin: dock.sideMargin
         anchors.rightMargin: dock.sideMargin
-        anchors.topMargin: 14
-        height: 32
+        anchors.topMargin: 12
+        height: 34
 
-        Text {
+        Row {
             anchors.left: parent.left
-            anchors.right: actions.left
-            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            text: "← →  wallpaper      ↑ ↓  palette      D  dynamic      SPACE  hide"
-            color: dock.mutedFg
-            opacity: 0.72
-            font.pixelSize: 9
-            font.letterSpacing: 1
-            elide: Text.ElideRight
+            spacing: 8
+
+            Rectangle {
+                id: helpButton
+                width: 34
+                height: 34
+                color: helpMouse.containsMouse ? Qt.rgba(dock.fg.r, dock.fg.g, dock.fg.b, 0.08) : "transparent"
+                border.color: dock.hairline
+                border.width: 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "?"
+                    color: helpMouse.containsMouse ? dock.accent : dock.mutedFg
+                    font.family: "serif"
+                    font.pixelSize: 15
+                    font.bold: true
+                }
+
+                MouseArea { id: helpMouse; anchors.fill: parent; hoverEnabled: true }
+            }
+
+            Rectangle {
+                width: 34
+                height: 34
+                color: hideMouse.containsMouse ? Qt.rgba(dock.fg.r, dock.fg.g, dock.fg.b, 0.08) : "transparent"
+                border.color: dock.hairline
+                border.width: 1
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "—"
+                    color: hideMouse.containsMouse ? dock.accent : dock.mutedFg
+                    font.pixelSize: 13
+                }
+
+                MouseArea {
+                    id: hideMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: dock.dockToggleRequested()
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.bottom: parent.top
+            anchors.bottomMargin: 8
+            width: 292
+            height: 48
+            z: 10
+            visible: helpMouse.containsMouse
+            color: dock.surfaceColor
+            border.color: dock.hairline
+            border.width: 1
+
+            Text {
+                anchors.fill: parent
+                anchors.margins: 10
+                text: "← →  wallpaper     ↑ ↓  palette     D  dynamic\nSpace  hide     Enter  apply     Esc  cancel"
+                color: dock.mutedFg
+                font.pixelSize: 9
+                font.letterSpacing: 0.6
+                lineHeight: 1.35
+            }
         }
 
         Row {
-            id: actions
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: 10
 
             Rectangle {
-                width: 108
-                height: 32
-                color: cancelMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.075) : "transparent"
-                border.color: Qt.rgba(1, 1, 1, 0.11)
+                width: 96
+                height: 34
+                color: cancelMouseArea.containsMouse ? Qt.rgba(dock.fg.r, dock.fg.g, dock.fg.b, 0.08) : "transparent"
+                border.color: dock.hairline
                 border.width: 1
                 Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: "ESC  CANCEL"
+                    text: "CANCEL"
                     color: dock.fg
-                    font.pixelSize: 9
+                    font.pixelSize: 10
                     font.bold: true
-                    font.letterSpacing: 2
+                    font.letterSpacing: 1.7
                 }
 
                 MouseArea {
-                    id: cancelMouse
+                    id: cancelMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
@@ -374,27 +384,25 @@ Rectangle {
                 }
             }
 
-            // Enter irja ki mindenre a temat: ez az egyetlen muvelet, ami
-            // lemezhez es kulso alkalmazasokhoz nyul.
             Rectangle {
-                width: 152
-                height: 32
+                width: 128
+                height: 34
                 color: dock.applying
                     ? dock.surfaceColor
-                    : (applyMouse.containsMouse ? Qt.lighter(dock.accent, 1.15) : dock.accent)
+                    : (applyMouse.containsMouse ? Qt.lighter(dock.accent, 1.12) : dock.accent)
                 border.color: dock.accent
                 border.width: 1
-                opacity: dock.dirty || dock.applying ? 1 : 0.45
+                opacity: dock.dirty || dock.applying ? 1 : 0.44
                 Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
                 Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                 Text {
                     anchors.centerIn: parent
-                    text: dock.applying ? "APPLYING…" : "APPLY EVERYWHERE  ↵"
+                    text: dock.applying ? "APPLYING…" : "APPLY  ↵"
                     color: dock.applying ? dock.accent : dock.bg
-                    font.pixelSize: 9
+                    font.pixelSize: 10
                     font.bold: true
-                    font.letterSpacing: 2
+                    font.letterSpacing: 1.7
                 }
 
                 MouseArea {

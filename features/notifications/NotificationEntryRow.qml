@@ -81,6 +81,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: row.critical ? "󰀦" : "󰂚"
                 color: row.panelAccent
@@ -100,6 +101,7 @@ Rectangle {
                 width: parent.width
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width - 42
                     text: row.grouped
                         ? (row.entry && row.entry.summary ? row.entry.summary : "Notification")
@@ -112,6 +114,7 @@ Rectangle {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: 42
                     text: row.entry ? row.entry.time : ""
                     color: row.mutedFg
@@ -122,6 +125,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: row.entry && row.entry.summary ? row.entry.summary : "Notification"
                 color: row.panelFg
@@ -132,6 +136,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: row.entry ? row.entry.body : ""
                 color: row.mutedFg
@@ -151,6 +156,7 @@ Rectangle {
             border.width: 1
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "󰅖"
                 color: deleteMouse.containsMouse ? row.panelBg : row.mutedFg
@@ -196,6 +202,7 @@ Rectangle {
                 border.width: 1
 
                 Text {
+                    textFormat: Text.PlainText
                     id: entryActionText
 
                     anchors.centerIn: parent

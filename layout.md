@@ -91,18 +91,17 @@ vellum_shell/
 │   ├── CavaController.qml            # Hangvizualizáció, csak lejátszás közben fut
 │   ├── MprisController.qml           # Aktív médialejátszó kiválasztása
 │   ├── NetworkStatusController.qml   # Aktív kapcsolat a backend `network` topicjából
+│   ├── Paths.qml                     # XDG- és shell-útvonalak egyetlen forrásból
 │   ├── PrivacyController.qml         # Mikrofon- és kamerahasználat figyelése
 │   ├── RemovableDeviceController.qml # Cserélhető kötetek és mount műveletek
 │   ├── ThemeStore.qml                # Paletta betöltése és frissítése
 │   ├── VpnController.qml             # ProtonVPN állapot a backend `vpn` topicjából
 │   ├── WallpaperController.qml       # Háttérkép állapot és monitorablakok
+│   ├── WeatherController.qml         # Időjárásállapot a backend `weather` topicjából
 │   └── WorkspaceController.qml       # Hyprland workspace állapot
 ├── features/                         # Önálló shell funkciók
 │   ├── about/
-│   │   ├── AboutPopup.qml
-│   │   ├── InfoRow.qml
-│   │   ├── InfoSectionCard.qml
-│   │   └── SystemInfoController.qml
+│   │   └── FastfetchTerminal.qml     # Lebego kitty ablak fastfetch-csel
 │   ├── ai/
 │   │   └── AiUsagePopup.qml          # Codex/Claude előfizetés-használat panel
 │   ├── appearance/
@@ -158,17 +157,20 @@ vellum_shell/
 │   │   ├── LockThemeController.qml   # Paletta és háttérkép a `theme` topicból
 │   │   ├── PasswordField.qml
 │   │   └── PowerStatusController.qml
+│   ├── connectivity/
+│   │   ├── ConnectivityPopup.qml     # Közös Wi-Fi/VPN panel fülekkel
+│   │   ├── NetworkController.qml     # A backend Wi-Fi műveleteinek UI-kliense
+│   │   ├── NetworkPanel.qml          # Wi-Fi fül tartalma
+│   │   ├── ThroughputController.qml  # Le-/feltöltési sebesség a /proc/net/dev-ből
+│   │   └── VpnPanel.qml              # Proton VPN fül tartalma
 │   ├── media/
 │   │   ├── CalendarCard.qml
 │   │   ├── MediaCard.qml
 │   │   ├── MediaPopup.qml
 │   │   ├── PlaybackPositionController.qml
 │   │   ├── SystemStatsCard.qml
-│   │   └── SystemStatsController.qml
-│   ├── network/
-│   │   ├── ConnectivityPopup.qml     # Közös Wi-Fi/VPN panel fülekkel
-│   │   ├── NetworkPanel.qml          # Wi-Fi fül tartalma
-│   │   └── ThroughputController.qml  # Le-/feltöltési sebesség a /proc/net/dev-ből
+│   │   ├── SystemStatsController.qml
+│   │   └── WeatherCard.qml
 │   ├── notifications/
 │   │   ├── NotificationCenter.qml
 │   │   ├── NotificationEntryRow.qml  # Egyetlen értesítés sor akciógombokkal
@@ -208,13 +210,8 @@ vellum_shell/
 │   │   ├── SystemPage.qml            # Rendszer oldal
 │   │   ├── TextSetting.qml           # Szöveges beállítás
 │   │   └── WindowsPage.qml           # Ablakok oldal
-│   ├── tray/
-│   │   └── TrayMenu.qml
-│   ├── vpn/
-│   │   └── VpnPanel.qml              # Proton VPN fül tartalma
-│   └── weather/
-│       ├── WeatherCard.qml
-│       └── WeatherController.qml
+│   └── tray/
+│       └── TrayMenu.qml
 ├── hypr/                             # Telepíthető Hyprland modulok
 │   ├── autostart.lua
 │   └── bindings.lua
@@ -232,6 +229,7 @@ vellum_shell/
 │   ├── ai-usage-codex
 │   ├── aur-install
 │   ├── backend-install
+│   ├── fastfetch-panel               # Az about ablak tartalma
 │   ├── floating-terminal
 │   ├── keybindings-list
 │   ├── launch-bluetooth
@@ -258,7 +256,7 @@ vellum_shell/
 │       ├── InkBackground.qml         # Elhomályosuló háttérkép, fátyol, ensō vízjel
 │       ├── InkCard.qml               # Greeter bejelentkező kártya
 │       ├── InkClock.qml              # Greeter óra
-│       ├── InkLogo.qml               # Az ensō jegy (ui/ShellLogo.qml másolata)
+│       ├── VellumLogo.qml            # Kalligrafikus V jegy (ui/ShellLogo.qml másolata)
 │       ├── InkPasswordField.qml      # Greeter jelszómező
 │       ├── InkPicker.qml             # Felhasználó- / munkamenet-választó
 │       ├── InkPickerList.qml         # Greeter választólista
@@ -288,15 +286,20 @@ vellum_shell/
 │   └── tokyo-night/
 │       └── theme.conf
 ├── ui/                               # Feature-független vizuális elemek
+│   ├── ActionButton.qml              # Feliratos, billentyűzettel kezelhető gomb
 │   ├── CalendarGrid.qml              # Közös 6x7 naptárrács
 │   ├── DashPanel.qml                 # Dashboard panelkeret fejléccel és elválasztóval
 │   ├── DashTile.qml                  # Dashboard adatcsempe (érték, ikon, felirat)
+│   ├── FocusRing.qml                 # Egységes billentyűzet-fókuszjelzés
+│   ├── Pressable.qml                 # Kattintás, billentyűzet és Accessible egy helyen
+│   ├── PopupFrame.qml                # Popupok közös kerete
+│   ├── PopupHeader.qml               # Popupok közös fejléce
 │   ├── SearchField.qml               # Közös keresőmező
 │   ├── SettingRow.qml                # Beállítássor: címke, leírás, vezérlő
 │   ├── SettingSelect.qml             # Legördülő vezérlő
 │   ├── SettingSlider.qml             # Csúszka vezérlő
 │   ├── SettingToggle.qml             # Kapcsoló vezérlő
-│   └── ShellLogo.qml                 # Shell embléma (ensō), témaszínt vesz fel
+│   └── ShellLogo.qml                 # Shell embléma (kalligrafikus V), témaszínt vesz fel
 ├── .gitignore
 ├── install.sh                        # Csomagfüggőségek telepítése
 └── setup.sh                          # Teljes rendszerbeállítás
@@ -395,10 +398,11 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - Launcher frecency és desktop ikon resolver.
 - Clipboard backend és perzisztencia controller.
 - Közös keresőmező és naptárrács.
-- Audio, About és Power levélkomponensek.
+- Audio és Power levélkomponensek.
 - Appearance controller és az alsó dokk a wallpaper coverflow és palette
   sávval. Nincs mock felület: az előnézet maga az élő shell.
-- About rendszerinformáció controller.
+- Az about panel helyett lebegő kitty ablak, benne fastfetch
+  (`features/about/FastfetchTerminal.qml`).
 - A felesleges gyökér popup wrapperek megszűntek; a `shell.qml` közvetlenül importálja a feature-típusokat.
 - Lock theme, power, PAM controller, háttér, card és password field szétválasztása.
 - Lockscreen újratervezés a shell panelnyelvén: a zárás az asztali háttérképet

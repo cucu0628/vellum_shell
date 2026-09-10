@@ -64,7 +64,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 spacing: 12
 
-                Ink.InkLogo {
+                Ink.VellumLogo {
                     anchors.verticalCenter: parent.verticalCenter
                     size: 24
                     color: ambient.greeter.failed ? ambient.greeter.alertColor : ambient.greeter.accent

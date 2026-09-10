@@ -64,8 +64,8 @@ do not remain open at the same time.
 - Standard command-line tools such as `bash`, `hyprctl`, and `jq`. The backend
   reads NetworkManager and udisks2 over D-Bus, so `ip`, `lsblk`, `udisksctl`,
   `curl`, and `matugen` are no longer needed. Two tools are still required:
-  `nmcli` drives the Wi-Fi panel's scanning and connecting, and `jq` is used by
-  the screenshot and lock-screen helper scripts.
+  the backend uses `nmcli` for Wi-Fi scanning and connection changes, and `jq`
+  is used by the screenshot and lock-screen helper scripts.
 
 ### Feature dependencies
 
@@ -205,11 +205,13 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `vpn` | `toggle`, `open`, `close`, `connect`, `disconnect`, `app` |
 | `removable` | `toggle`, `open`, `close` |
 | `lock` | `lock` |
-| `about` | `toggle`, `open`, `close` |
+| `about` | `toggle`, `open`, `close` (a floating kitty window running Fastfetch) |
 | `screenshot` | `capture`, `window`, `workspace`, `region` |
 
 Every overlay opens on the focused monitor and closes the others, because they
-all go through `app/PopupCoordinator.qml`.
+all go through `app/PopupCoordinator.qml`. `about` is the one exception: it is
+not an overlay but a real window -- Hyprland floats a centred kitty running
+Fastfetch -- so opening it only closes the overlays that would cover it.
 
 The setup installs these bindings in `~/.config/hypr/bindings.lua` using the
 native Hyprland Lua API:
@@ -302,6 +304,11 @@ writes an `Xsetup` that replays it through `xrandr`; `sddm-install --layout`
 installs it as `/etc/sddm/Xsetup` behind a `[X11] DisplayCommand` drop-in.
 Arch's `zz-wayland.conf` default (`DisplayServer=wayland`) makes this a no-op.
 
+After updating the layout generator, regenerate `Xsetup` as your desktop user
+with `scripts/sddm-layout`, then reinstall it with `sudo scripts/sddm-install
+--layout`. Updating the checkout does not replace `/etc/sddm/Xsetup`. The
+generator quotes monitor metadata as data before writing shell commands.
+
 ## Appearance
 
 The Appearance Studio reads wallpapers from `$HOME/Pictures/wallpapers` and
@@ -370,7 +377,11 @@ The backend generates:
 - A `btop` theme in the user's btop configuration.
 - `~/.local/share/nvim/site/colors/vellum.lua`, a full Neovim colorscheme.
 - A matching Vellum logo and Fastfetch configuration. A local
-  `~/.config/fastfetch/config.template.jsonc` overrides the bundled layout.
+  `~/.config/fastfetch/config.template.jsonc` overrides the bundled layout. This
+  is what the `about` target shows: `about toggle` floats a kitty window running
+  Fastfetch (`scripts/fastfetch-panel`) instead of a QML panel that would have to
+  re-render the same facts -- and because it is a real terminal, the kitty
+  graphics logo renders too.
 
 ### Neovim and LazyVim
 
@@ -463,7 +474,7 @@ idle daemon costs no CPU and about 7 MB of memory.
 | Topic | Source | Replaces |
 | --- | --- | --- |
 | `theme` | `themes/*/theme.conf`, native Material You | 9 chained bash scripts, `matugen`, `jq` |
-| `network` | NetworkManager D-Bus | `nmcli` and `ip -4 -j` polling |
+| `network` | NetworkManager D-Bus for live state; bounded `nmcli` calls for Wi-Fi actions | QML-side `nmcli` and `ip -4 -j` polling |
 | `vpn` | NetworkManager D-Bus, `protonvpn` for details | `protonvpn status` on every tick |
 | `removable` | udisks2 D-Bus | `lsblk --json` every 2.5 s, `udisksctl` |
 | `privacy` | `/proc` scan for `/dev/video*` handles | resident `camera-usage` bash loop |
@@ -515,8 +526,8 @@ See [`layout.md`](layout.md) for the detailed architecture and migration notes.
 
 ## Development
 
-One command runs every static check — Rust formatting, Clippy, the test suite,
-`qmllint`, and ShellCheck — skipping whatever is not installed:
+One command runs Rust formatting, Clippy, the test suites, `qmllint`, and
+ShellCheck — skipping whatever is not installed:
 
 ```bash
 ./scripts/check
@@ -530,10 +541,23 @@ cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
 qmllint shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
 shellcheck setup.sh install.sh scripts/*
+python3 -B -m unittest discover -s tests -p 'test_*.py'
+node tests/notifications.js
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+  /usr/lib/qt6/bin/qmltestrunner -input tests/qml
 ```
 
-`qmllint` warns on a clean tree because it does not know the Quickshell types, so
-the gate fails on errors only.
+The security regressions use isolated Unix sockets, mocked monitor metadata,
+and offscreen Qt components. They do not register a notification server, run
+installers, or change the active desktop. The Python tests cover shell and
+Desktop Entry escaping; Node exercises the notification controller functions.
+The QML tests verify that untrusted notification and clipboard text stays
+literal, following [Qt's guidance for untrusted text](https://doc.qt.io/qt-6/qml-qtquick-text.html#details).
+
+`qmllint` warns on a clean tree because it does not know the Quickshell types.
+The gate rejects errors, previously unseen warning categories, and growth above
+the recorded warning budget, so new diagnostics cannot disappear into that
+background noise.
 
 The shell has not yet been covered by an automated integration test in a
 nested Wayland session. Test changes on a non-critical session before using the

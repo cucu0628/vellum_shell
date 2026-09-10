@@ -131,14 +131,10 @@ Item {
     readonly property string hostText: (typeof sddm !== "undefined" && sddm.hostName) ? sddm.hostName : ""
 
     // --- ora, ugyanaz a formazas mint a LockRoot-ban ---
-    readonly property var dayNames: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
-    readonly property var monthNames: ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
-
-    readonly property int weekdayIndex: (currentTime.getDay() + 6) % 7
     readonly property string timeText: two(currentTime.getHours()) + ":" + two(currentTime.getMinutes())
     readonly property string secondsText: two(currentTime.getSeconds())
-    readonly property string weekdayText: dayNames[weekdayIndex]
-    readonly property string dateText: monthNames[currentTime.getMonth()] + " " + currentTime.getDate() + " " + currentTime.getFullYear()
+    readonly property string weekdayText: Qt.formatDate(currentTime, "dddd").toUpperCase()
+    readonly property string dateText: Qt.formatDate(currentTime, "MMMM d yyyy").toUpperCase()
     readonly property real dayProgress: (currentTime.getHours() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds()) / 86400
 
     function two(value) {

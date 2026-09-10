@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell
 import Quickshell.Io
 
 // Bejelentkezesi .desktop fajlok es a felhasznaloi systemd szolgaltatasok.
@@ -9,8 +8,7 @@ import Quickshell.Io
 Item {
     id: controller
 
-    readonly property string shellDir: Quickshell.env("VELLUM_SHELL_DIR")
-        || (Quickshell.env("HOME") + "/.config/quickshell/vellum_shell")
+    required property string shellDir
 
     property var autostartEntries: []
     property var services: []

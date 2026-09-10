@@ -27,9 +27,10 @@ preferred=""
 [[ -r "$base/lockscreen-monitor" ]] && preferred=$(<"$base/lockscreen-monitor")
 preferred=${preferred//[[:space:]]/}
 
-# name<TAB>WxH<TAB>XxY<TAB>edid-kulcs<TAB>primary(0|1)
+# Teljes, POSIX shell szerint idezett place parancsok. Az EDID kulso adat:
+# idezojelet es vezerlokaraktert is tartalmazhat, es az Xsetup rootkent fut.
 rows=$(python3 - "$preferred" "$monitors" <<'PY'
-import glob, json, sys
+import glob, json, shlex, sys
 
 preferred = sys.argv[1]
 monitors = json.loads(sys.argv[2])
@@ -67,11 +68,12 @@ def edid_key(connector):
     return serial or name
 
 for m in monitors:
-    print("\t".join([
-        m["name"],
-        f'{m["width"]}x{m["height"]}',
-        f'{m["x"]}x{m["y"]}',
+    print(shlex.join([
+        "place",
         edid_key(m["name"]),
+        m["name"],
+        f'{int(m["width"])}x{int(m["height"])}',
+        f'{int(m["x"])}x{int(m["y"])}',
         "1" if m["name"] == preferred else "0",
     ]))
 PY
@@ -131,10 +133,7 @@ place() {
 }
 
 HEADER
-  while IFS=$'\t' read -r name mode pos key primary; do
-    [[ -n $name ]] || continue
-    printf "place '%s' '%s' '%s' '%s' %s\n" "$key" "$name" "$mode" "$pos" "$primary"
-  done <<< "$rows"
+  printf '%s\n' "$rows"
 } > "$tmp"
 
 if [[ ! -r $output ]] || ! cmp -s "$tmp" "$output"; then

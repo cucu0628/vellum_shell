@@ -67,5 +67,6 @@ topic, a method name, or a required parameter fails that test on purpose: update
 the recorded contract, the QML callers, and the README IPC section together.
 
 `qmllint` reports warnings on a clean tree because it does not know the Quickshell
-types (`uncreatable-type`, unqualified access inside delegates). The gate fails on
-`Error:` only; treat a rising warning count as a signal to look, not as a failure.
+types (`uncreatable-type`, unqualified access inside delegates). The gate records
+the known categories and a warning budget; an error, a new category, or a rising
+count fails the check.

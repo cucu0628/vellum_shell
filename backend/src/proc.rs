@@ -11,6 +11,7 @@
 
 use crate::module::ModuleError;
 use anyhow::{Context, Result};
+use std::io::Write;
 use std::process::{Command, Output, Stdio};
 use std::time::Duration;
 
@@ -31,10 +32,37 @@ pub fn run(program: &str, args: &[&str], timeout: Duration) -> Result<Output> {
     run_command(command, program, timeout)
 }
 
+/// Parancs futtatasa egyetlen stdin bemenettel. Erzekeny adatot (peldaul
+/// Wi-Fi-jelszot) igy nem kell a parancssorba tenni, ahol a folyamatlistaban
+/// lathato lenne.
+pub fn run_with_input(
+    program: &str,
+    args: &[&str],
+    input: &[u8],
+    timeout: Duration,
+) -> Result<Output> {
+    let mut command = Command::new(program);
+    command.args(args).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = command.spawn().with_context(|| format!("a(z) {program} nem futtathato"))?;
+    if let Some(mut stdin) = child.stdin.take()
+        && let Err(err) = stdin.write_all(input)
+    {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(err).with_context(|| format!("a(z) {program} bemenete nem irhato"));
+    }
+    wait_for_output(child, program, timeout)
+}
+
 /// Ugyanaz, de egy mar felparameterezett `Command`-dal (kornyezeti valtozok,
 /// egyedi stdio).
 pub fn run_command(mut command: Command, label: &str, timeout: Duration) -> Result<Output> {
     let child = command.spawn().with_context(|| format!("a(z) {label} nem futtathato"))?;
+    wait_for_output(child, label, timeout)
+}
+
+fn wait_for_output(child: std::process::Child, label: &str, timeout: Duration) -> Result<Output> {
     let pid = child.id();
 
     let (tx, rx) = std::sync::mpsc::channel();
@@ -104,5 +132,11 @@ mod tests {
     fn a_failing_command_still_returns_its_status() {
         let output = run("false", &[], SHORT).unwrap();
         assert!(!output.status.success());
+    }
+
+    #[test]
+    fn input_is_written_without_putting_it_in_arguments() {
+        let output = run_with_input("cat", &[], b"titkos ertek\n", SHORT).unwrap();
+        assert_eq!(String::from_utf8_lossy(&output.stdout), "titkos ertek\n");
     }
 }

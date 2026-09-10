@@ -9,6 +9,7 @@ url=${2:-$(prompt "Web app URL")}
 icon=${3:-$(prompt "Icon name" "web-browser")}
 [[ -n $name && -n $url ]] || die "name and URL are required"
 [[ $url == http://* || $url == https://* ]] || die "URL must start with http:// or https://"
+[[ ! $url =~ [[:space:][:cntrl:]] ]] || die "URL must not contain whitespace or control characters"
 
 id=$(desktop_safe_id "$name")
 dir="$HOME/.local/share/applications/vellum-webapps"
@@ -18,10 +19,10 @@ desktop="$dir/vellum-webapp-$id.desktop"
 cat > "$desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=$name
+Name=$(desktop_string "$name")
 Comment=Web app
-Exec=xdg-open $url
-Icon=$icon
+Exec=xdg-open $(desktop_exec_arg "$url")
+Icon=$(desktop_string "$icon")
 Terminal=false
 Categories=Network;WebBrowser;
 StartupNotify=true

@@ -20,6 +20,35 @@ lua_quote() {
   printf '"%s"' "$value"
 }
 
+window_class=vellum-shell-floating-terminal
+window_width=1020
+window_height=650
+
+# A hivo felulirhatja az ablak azonositojat es meretet. Az about panel ezt
+# hasznalja: sajat osztalyt kap, hogy a shell meg tudja talalni es zarni tudja.
+while (( $# > 0 )); do
+  case $1 in
+    --class)
+      [[ -n ${2:-} ]] || { printf -- '--class requires a value.\n' >&2; exit 2; }
+      window_class=$2
+      shift 2
+      ;;
+    --size)
+      [[ ${2:-} =~ ^[0-9]+x[0-9]+$ ]] || { printf -- '--size requires WIDTHxHEIGHT.\n' >&2; exit 2; }
+      window_width=${2%%x*}
+      window_height=${2##*x}
+      shift 2
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
 if (( $# > 0 )); then
   run_cmd="$(quote_args "$@")"
 else
@@ -32,10 +61,10 @@ if ! command -v kitty >/dev/null 2>&1; then
   exit 1
 fi
 
-terminal_exec="kitty --class vellum-shell-floating-terminal -e bash -lc $(printf '%q' "$shell_cmd")"
+terminal_exec="kitty --class $window_class -e bash -lc $(printf '%q' "$shell_cmd")"
 
 if command -v hyprctl >/dev/null 2>&1; then
-  hyprctl dispatch "hl.dsp.exec_cmd($(lua_quote "$terminal_exec"), { float = true, size = { 1020, 650 }, center = true })" >/dev/null
+  hyprctl dispatch "hl.dsp.exec_cmd($(lua_quote "$terminal_exec"), { float = true, size = { $window_width, $window_height }, center = true })" >/dev/null
 else
   bash -lc "$terminal_exec" >/dev/null 2>&1 &
 fi

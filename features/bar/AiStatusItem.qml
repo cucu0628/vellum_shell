@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -29,11 +30,11 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: qsTr("Open AI usage")
         onClicked: root.clicked()
     }
 }

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Az about ablak tartalma: egyetlen fastfetch futas, semmi mas.
+#
+# A `kitty --hold` a kimenet ala egy shell promptot tesz, amitol az ablak
+# gepelesre varo terminalnak latszik. Itt a kimenet maga az ablak: a kurzort
+# elrejtjuk, a folyamat pedig csak arra var, hogy bezarjak (a shell az
+# `about close` IPC-vel zarja, a felhasznalo a sajat ablakzaro binddal).
+
+hide_cursor() { printf '\033[?25l'; }
+show_cursor() { printf '\033[?25h'; }
+
+trap show_cursor EXIT
+
+# Az ablak neve ne a futtato bash legyen: az about ablak fastfetch-kent
+# jelenjen meg az ablakvaltoban is.
+printf '\033]2;fastfetch\007'
+
+hide_cursor
+
+if ! command -v fastfetch >/dev/null 2>&1; then
+  printf 'fastfetch is not installed.\n' >&2
+elif [[ -x ${SHELL:-} ]]; then
+  # A fastfetch a szulofolyamatbol olvassa ki a shellt. A panelt bash inditja,
+  # ezert a felhasznalo sajat shelljebol hivjuk: az ablak ugyanazt mutassa,
+  # mint egy kezzel nyitott terminal. `exec` nelkul, kulonben a shell kilepne a
+  # folyamatlancbol, es megint a bash latszana.
+  "$SHELL" -c fastfetch || true
+else
+  fastfetch || true
+fi
+
+# A fastfetch visszakapcsolhatja a kurzort, ezert a kimenet utan ujra elrejtjuk.
+hide_cursor
+
+while :; do
+  sleep 86400
+done

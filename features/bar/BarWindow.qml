@@ -10,6 +10,7 @@ PanelWindow {
     required property var targetScreen
     required property var theme
     required property int barHeight
+    required property string shellDir
     required property var visibleWorkspaceIds
     required property var occupiedWorkspaceIds
     required property var layoutController
@@ -282,7 +283,7 @@ PanelWindow {
 
         BtopStatusItem {
             theme: root.theme
-            onClicked: root.launchCommand(["sh", "-c", "exec \"$HOME/.config/quickshell/vellum_shell/scripts/floating-terminal\" btop"])
+            onClicked: root.launchCommand([root.shellDir + "/scripts/floating-terminal", "btop"])
         }
     }
 

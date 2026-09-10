@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -47,11 +48,11 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 120 } }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: qsTr("Open removable devices, %1 available").arg(root.deviceCount)
         onClicked: root.clicked()
     }
 }

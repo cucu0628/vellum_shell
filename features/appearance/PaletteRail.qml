@@ -2,9 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 
-// A palettak vizszintes chip-sorban, ugyanazzal a kozepen-tarto mintaval, mint
-// a hatterkep sav. A dinamikus paletta all elol -- a backend `theme list` mar
-// igy rendez.
+// A palettak tenyleges szinmintak. Az allapotot keret es jeloles mutatja, igy
+// nincs szukseg minden kartyan magyarazo mikroszovegre.
 Item {
     id: rail
 
@@ -13,13 +12,11 @@ Item {
     property int selectedIndex: 0
     property color wellColor: "#11130f"
 
-    readonly property string bg: theme ? theme.background : "#11130f"
-    readonly property string fg: theme ? theme.foreground : "#e8ddc7"
-    readonly property string accent: theme ? theme.accent : "#b7372f"
-    readonly property string surfaceColor: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
-
-    readonly property int chipWidth: 184
+    readonly property color fg: theme ? theme.foreground : "#e8ddc7"
+    readonly property color accent: theme ? theme.accent : "#b7372f"
+    readonly property color mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
+    readonly property color hairline: Qt.rgba(fg.r, fg.g, fg.b, 0.12)
+    readonly property int chipWidth: 166
 
     signal paletteSelected(int index)
     signal stepRequested(int delta)
@@ -32,7 +29,6 @@ Item {
 
     ListView {
         id: list
-
         readonly property bool overflows: contentWidth > rail.width
 
         anchors.top: parent.top
@@ -44,7 +40,7 @@ Item {
         highlightRangeMode: overflows ? ListView.StrictlyEnforceRange : ListView.NoHighlightRange
         preferredHighlightBegin: Math.max(0, (width - rail.chipWidth) / 2)
         preferredHighlightEnd: Math.max(rail.chipWidth, (width + rail.chipWidth) / 2)
-        highlightMoveDuration: 260
+        highlightMoveDuration: 210
         highlightMoveVelocity: -1
         spacing: 8
         reuseItems: true
@@ -56,7 +52,6 @@ Item {
 
         delegate: Rectangle {
             id: chip
-
             required property var modelData
             required property int index
 
@@ -65,67 +60,60 @@ Item {
 
             width: rail.chipWidth
             height: list.height
-            color: chip.current ? rail.surfaceColor : (chipMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.075) : "transparent")
-            border.color: chip.current ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.06)
-            border.width: 1
-            Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
-            Behavior on border.color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
+            color: rail.wellColor
+            border.color: chip.current
+                ? chip.modelData.accent
+                : (chipMouse.containsMouse ? rail.mutedFg : rail.hairline)
+            border.width: chip.current ? 2 : 1
+            opacity: chip.current ? 1 : (chipMouse.containsMouse ? 0.94 : 0.74)
+            clip: true
+            Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on border.color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
-            Rectangle {
+            Row {
                 anchors.left: parent.left
-                anchors.leftMargin: 9
-                anchors.verticalCenter: parent.verticalCenter
-                width: 2
-                height: 14
-                color: chip.modelData.accent
-                opacity: chip.current ? 1 : 0.55
-                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.leftMargin: 7
+                anchors.rightMargin: 7
+                anchors.topMargin: 7
+                height: 24
+                spacing: 2
+
+                Rectangle { width: 25; height: parent.height; color: chip.modelData.background }
+                Rectangle { width: 25; height: parent.height; color: chip.modelData.surface }
+                Rectangle { width: 40; height: parent.height; color: chip.modelData.accent }
+                Rectangle { width: 25; height: parent.height; color: chip.modelData.foreground }
+                Rectangle { width: 25; height: parent.height; color: chip.modelData.muted }
             }
 
-            Column {
+            Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 17
+                anchors.leftMargin: 9
+                anchors.right: stateMark.left
+                anchors.rightMargin: 8
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 7
+                text: chip.modelData.name
+                color: chip.current ? chip.modelData.accent : rail.fg
+                font.family: "serif"
+                font.pixelSize: 13
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+            }
+
+            Rectangle {
+                id: stateMark
                 anchors.right: parent.right
-                anchors.rightMargin: 11
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
-
-                Text {
-                    width: parent.width
-                    text: chip.modelData.name
-                    color: chip.current ? rail.accent : rail.fg
-                    font.family: "serif"
-                    font.pixelSize: 13
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
-
-                Row {
-                    spacing: 3
-
-                    Repeater {
-                        model: [chip.modelData.background, chip.modelData.surface, chip.modelData.accent, chip.modelData.foreground, chip.modelData.muted]
-
-                        Rectangle {
-                            required property string modelData
-                            width: 24
-                            height: 6
-                            color: modelData
-                            border.color: Qt.rgba(1, 1, 1, 0.16)
-                            border.width: 1
-                        }
-                    }
-                }
-
-                Text {
-                    width: parent.width
-                    text: chip.dynamic ? "FROM THIS IMAGE  ·  D" : (chip.modelData.current ? "CURRENT" : "STATIC PALETTE")
-                    color: chip.dynamic ? chip.modelData.accent : rail.mutedFg
-                    font.pixelSize: 8
-                    font.bold: chip.dynamic
-                    font.letterSpacing: 1
-                    elide: Text.ElideRight
-                }
+                anchors.rightMargin: 9
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 9
+                width: chip.dynamic ? 12 : 7
+                height: 7
+                color: chip.dynamic ? chip.modelData.accent : "transparent"
+                border.color: chip.modelData.current ? chip.modelData.accent : "transparent"
+                border.width: 1
+                visible: chip.dynamic || chip.modelData.current
             }
 
             MouseArea {
@@ -142,7 +130,7 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: 28
+        width: 32
         visible: !list.atXBeginning
         gradient: Gradient {
             orientation: Gradient.Horizontal
@@ -155,7 +143,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        width: 28
+        width: 32
         visible: !list.atXEnd
         gradient: Gradient {
             orientation: Gradient.Horizontal
@@ -167,8 +155,8 @@ Item {
     WheelHandler {
         id: wheel
         property real accumulated: 0
-
         target: null
+
         onWheel: (event) => {
             var delta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y
             if (delta === 0) delta = event.pixelDelta.x !== 0 ? event.pixelDelta.x : event.angleDelta.x

@@ -79,7 +79,7 @@ Item {
 
         Behavior on opacity { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
 
-        Ink.InkLogo {
+        Ink.VellumLogo {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: -backgroundView.height * 0.03
             size: backgroundView.ensoSize

@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -31,11 +32,11 @@ Item {
         opacity: mouse.containsMouse || root.highlighted ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
     }
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: qsTr("Open notifications, %1 unread").arg(root.unreadCount)
         onClicked: root.clicked()
     }
 }

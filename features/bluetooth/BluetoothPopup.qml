@@ -10,6 +10,7 @@ PanelWindow {
 
     property var theme: null
     property var statusController: null
+    required property string shellDir
     property bool opened: false
     property string errorMessage: ""
     property string pairingAddress: ""
@@ -221,7 +222,7 @@ PanelWindow {
     }
 
     function openAdvancedSettings() {
-        advancedLauncher.command = ["sh", "-c", "exec \"$HOME/.config/quickshell/vellum_shell/scripts/launch-bluetooth\""]
+        advancedLauncher.command = [shellDir + "/scripts/launch-bluetooth"]
         advancedLauncher.running = true
         opened = false
     }

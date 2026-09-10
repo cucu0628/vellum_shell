@@ -8,6 +8,7 @@ name=${1:-$(prompt "TUI launcher name")}
 command_line=${2:-$(prompt "Command")}
 icon=${3:-$(prompt "Icon name" "utilities-terminal")}
 [[ -n $name && -n $command_line ]] || die "name and command are required"
+[[ $command_line != *$'\n'* && $command_line != *$'\r'* ]] || die "command must be a single line"
 command_name=${command_line%% *}
 has "$command_name" || die "command not found: $command_name"
 
@@ -19,10 +20,10 @@ desktop="$dir/vellum-tui-$id.desktop"
 cat > "$desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=$name
+Name=$(desktop_string "$name")
 Comment=Terminal app
 Exec=kitty -e $command_line
-Icon=$icon
+Icon=$(desktop_string "$icon")
 Terminal=false
 Categories=System;Utility;TerminalEmulator;
 StartupNotify=false

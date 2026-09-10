@@ -37,6 +37,24 @@ run() {
   return 0
 }
 
+if need python3 "Generator biztonsagi tesztek"; then
+  step "generator biztonsagi tesztek"
+  run "generator biztonsagi tesztek" python3 -B -m unittest discover -s tests -p 'test_*.py'
+fi
+
+if need node "Ertesitesi regresszios tesztek"; then
+  step "ertesitesi regresszios tesztek"
+  run "ertesitesi regresszios tesztek" node tests/notifications.js
+fi
+
+if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then
+  step "QML szoveg biztonsagi tesztek"
+  run "QML regresszios tesztek" env QT_QPA_PLATFORM=offscreen \
+    QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -input tests/qml
+else
+  skipped+=("QML szoveg biztonsagi tesztek (nincs Qt6 qmltestrunner)")
+fi
+
 if need cargo "Rust ellenorzesek"; then
   step "cargo fmt"
   run "cargo fmt" cargo fmt --manifest-path backend/Cargo.toml --check
@@ -74,9 +92,23 @@ if [[ -n $qmllint_bin ]]; then
     grep '^Error:' <<<"$qml_output"
     failed+=("qmllint")
   fi
-  printf 'figyelmeztetes: %s, hiba: %s\n' \
-    "$(grep -c '^Warning:' <<<"$qml_output" || true)" \
-    "$(grep -c '^Error:' <<<"$qml_output" || true)"
+  warning_count=$(grep -c '^Warning:' <<<"$qml_output" || true)
+  error_count=$(grep -c '^Error:' <<<"$qml_output" || true)
+  warning_budget=1093
+  known_warning_codes='unqualified|uncreatable-type|missing-property|signal-handler-parameters|unresolved-type'
+  unknown_warnings=$(grep '^Warning:' <<<"$qml_output" \
+    | grep -Ev "\\[($known_warning_codes)\\]$" || true)
+  if [[ -n $unknown_warnings ]]; then
+    printf '%s\n' "$unknown_warnings"
+    failed+=("qmllint uj figyelmeztetestipus")
+  fi
+  if ((warning_count > warning_budget)); then
+    printf 'a qmllint figyelmezteteseinek szama nott: %s > %s\n' \
+      "$warning_count" "$warning_budget"
+    failed+=("qmllint figyelmezteteskeret")
+  fi
+  printf 'figyelmeztetes: %s/%s, hiba: %s\n' \
+    "$warning_count" "$warning_budget" "$error_count"
 else
   skipped+=("qmllint (nincs telepitve)")
 fi

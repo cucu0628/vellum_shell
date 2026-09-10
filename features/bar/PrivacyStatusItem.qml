@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 // Privacy indicator: exists only while something is actually capturing. The mic
 // icon means an app is linked to a capture device, the camera icon means an app
@@ -84,11 +85,12 @@ Item {
         }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: root.micActive && root.cameraActive ? qsTr("Microphone and camera are in use")
+            : (root.micActive ? qsTr("Microphone is in use") : qsTr("Camera is in use"))
         onClicked: root.clicked()
     }
 }

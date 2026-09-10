@@ -128,7 +128,7 @@ FocusScope {
                 Behavior on color { ColorAnimation { duration: 160 } }
             }
 
-            Ink.InkLogo {
+            Ink.VellumLogo {
                 anchors.right: parent.right
                 anchors.rightMargin: -26
                 anchors.top: parent.top
@@ -153,7 +153,7 @@ FocusScope {
                     width: parent.width
                     spacing: 12
 
-                    Ink.InkLogo {
+                    Ink.VellumLogo {
                         anchors.verticalCenter: parent.verticalCenter
                         size: 28
                         color: card.greeter.accent

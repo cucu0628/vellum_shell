@@ -56,6 +56,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 id: chevron
 
                 anchors.left: parent.left
@@ -68,6 +69,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 anchors.left: chevron.right
                 anchors.leftMargin: 6
                 anchors.right: groupUnread.left
@@ -82,6 +84,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 id: groupUnread
 
                 anchors.right: groupClear.left
@@ -95,6 +98,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 id: groupClear
 
                 anchors.right: parent.right
@@ -166,6 +170,7 @@ Item {
             }
 
             Text {
+                textFormat: Text.PlainText
                 anchors.left: parent.left
                 anchors.leftMargin: 11
                 anchors.bottom: parent.bottom

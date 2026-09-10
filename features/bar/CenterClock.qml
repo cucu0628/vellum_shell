@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Services.Mpris
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -113,19 +114,18 @@ Item {
                 repeat: true
                 onTriggered: {
                     var d = new Date()
-                    var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-                    clockDisplay.text = days[d.getDay()] + " " + d.getHours().toString().padStart(2, '0') + ":" + d.getMinutes().toString().padStart(2, '0')
+                    clockDisplay.text = Qt.formatDate(d, "dddd") + " " + Qt.formatTime(d, "HH:mm")
                 }
                 Component.onCompleted: triggered()
             }
         }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: centerMouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: qsTr("Open media and calendar")
         onClicked: root.clicked()
     }
 }

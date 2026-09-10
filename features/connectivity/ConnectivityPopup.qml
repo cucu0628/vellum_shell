@@ -1,17 +1,18 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import "../vpn" as VpnFeature
+import "." as ConnectivityUi
 import "../../ui" as SharedUi
 
 // Wi-Fi and VPN share one bar module, so they also share one panel: the tabs
 // swap the body while the window, its size animation and its focus stay put.
-// Only the visible tab is `active`, which keeps nmcli scans and the (slow)
-// protonvpn CLI off the tab nobody is looking at.
+// Only the visible tab is `active`, which keeps Wi-Fi scan requests and the
+// (slow) protonvpn CLI off the tab nobody is looking at.
 PanelWindow {
     id: connectivityWindow
 
     property var theme: null
+    property var backend: null
     property var statusController: null
     property var vpnCli: null
     property bool opened: false
@@ -47,6 +48,8 @@ PanelWindow {
     Item {
         id: content
 
+        focus: connectivityWindow.opened
+        Keys.onEscapePressed: connectivityWindow.opened = false
         anchors.right: parent.right
         anchors.rightMargin: 10
         enabled: opened
@@ -146,12 +149,12 @@ PanelWindow {
 
                             }
 
-                            MouseArea {
+                            SharedUi.Pressable {
                                 id: tabMouse
 
                                 anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                theme: connectivityWindow.theme
+                                accessibleName: tab.modelData.label
                                 onClicked: connectivityWindow.currentTab = tab.index
                             }
 
@@ -171,12 +174,13 @@ PanelWindow {
                         anchors.fill: parent
                         visible: !connectivityWindow.vpnTab
                         theme: connectivityWindow.theme
+                        backend: connectivityWindow.backend
                         statusController: connectivityWindow.statusController
                         active: connectivityWindow.opened && !connectivityWindow.vpnTab
                         onCloseRequested: connectivityWindow.opened = false
                     }
 
-                    VpnFeature.VpnPanel {
+                    ConnectivityUi.VpnPanel {
                         id: vpnPanel
 
                         anchors.fill: parent

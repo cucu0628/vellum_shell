@@ -42,7 +42,7 @@ if [[ -x $vellum && -r "$base/current-theme" ]]; then
 else
   printf 'figyelmeztetes: a Vellum backend nem elerheto, a meglevo paletta kerul telepitesre\n' >&2
 fi
-((set_layout)) && sh "$base/scripts/sddm-layout" >/dev/null 2>&1 || true
+((set_layout)) && bash "$base/scripts/sddm-layout" >/dev/null 2>&1 || true
 
 if ((preview)); then
   greeter=$(command -v sddm-greeter-qt6 || command -v sddm-greeter || true)

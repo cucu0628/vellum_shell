@@ -51,7 +51,14 @@ jobs:
       - name: Qt eszkozok
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools
+          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qttest \
+            qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml-workerscript
+
+      - name: QML regressions
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+        run: /usr/lib/qt6/bin/qmltestrunner -input tests/qml
 
       # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
       # figyelmeztetest. Csak a hibak buktatnak.
@@ -69,6 +76,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generator and notification security regressions
+        run: |
+          python3 -B -m unittest discover -s tests -p 'test_*.py'
+          node tests/notifications.js
 
       - name: ShellCheck
         run: |

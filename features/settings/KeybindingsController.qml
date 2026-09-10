@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import Quickshell.Io
 
 // A Hyprland billentyukombinaciok listaja. A parsert a megszunt
@@ -9,10 +8,7 @@ import Quickshell.Io
 Item {
     id: controller
 
-    // Ugyanaz a szabaly, mint a backend `theme::paths::shell_dir()`-jeben,
-    // hogy a ket oldal ne csusszon szet athelyezett repo eseten.
-    readonly property string shellDir: Quickshell.env("VELLUM_SHELL_DIR")
-        || (Quickshell.env("HOME") + "/.config/quickshell/vellum_shell")
+    required property string shellDir
 
     property var bindings: []
     property bool loading: false
@@ -28,7 +24,7 @@ Item {
         loading = true;
         bindings = [];
         timeout.restart();
-        fetcher.command = ["sh", "-c", "exec \"$1\"", "sh", shellDir + "/scripts/keybindings-list"];
+        fetcher.command = [shellDir + "/scripts/keybindings-list"];
         fetcher.running = true;
     }
 

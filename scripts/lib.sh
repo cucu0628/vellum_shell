@@ -163,3 +163,25 @@ fzf_one() {
 desktop_safe_id() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-' | sed 's/^-//; s/-$//'
 }
+
+# Desktop Entry string: a kulso szoveg nem kezdhet uj kulcsot vagy csoportot.
+desktop_string() {
+  local value=$1
+  value=${value//\\/\\\\}
+  value=${value//$'\n'/\\n}
+  value=${value//$'\r'/\\r}
+  value=${value//$'\t'/\\t}
+  printf '%s' "$value"
+}
+
+# Az Exec argumentum eloszor parancssori idezest, majd Desktop Entry string
+# escape-elest kap. Ez nem shell-parancs; a szazalek is literal adat.
+desktop_exec_arg() {
+  local value=$1
+  value=${value//\\/\\\\}
+  value=${value//\"/\\\"}
+  value=${value//\$/\\$}
+  value=${value//\`/\\\`}
+  value=${value//%/%%}
+  desktop_string "\"$value\""
+}

@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell
 import Quickshell.Io
 
 // A rendszer-oldal allapota. A korabbi Setup beallitasok mellett egyszeri
@@ -8,11 +7,7 @@ Item {
     id: controller
 
     property var backend: null
-
-    // Ugyanaz a szabaly, mint a backend `theme::paths::shell_dir()`-jeben,
-    // hogy a ket oldal ne csusszon szet athelyezett repo eseten.
-    readonly property string shellDir: Quickshell.env("VELLUM_SHELL_DIR")
-        || (Quickshell.env("HOME") + "/.config/quickshell/vellum_shell")
+    required property string shellDir
 
     property string weatherLocation: ""
     property string powerProfile: ""
@@ -34,11 +29,7 @@ Item {
     visible: false
 
     function reload() {
-        readWeather.running = false;
-        // Az utvonal pozicionalis argumentumkent megy, nem a parancsba fuzve:
-        // egy szokozt vagy pontosvesszot tartalmazo HOME kulonben szethasitana.
-        readWeather.command = ["sh", "-c", "cat -- \"$1\" 2>/dev/null || true", "sh", shellDir + "/current-weather-location"];
-        readWeather.running = true;
+        weatherFile.reload();
 
         readProfiles.running = false;
         // Egy hivas adja a listat es az aktivat is: a `list` csillaggal jeloli
@@ -165,9 +156,7 @@ Item {
             return ;
 
         weatherLocation = trimmed;
-        write.running = false;
-        write.command = ["sh", "-c", "printf '%s\\n' \"$1\" > " + shellDir + "/current-weather-location", "sh", trimmed];
-        write.running = true;
+        weatherFile.setText(trimmed + "\n");
     }
 
     function setPowerProfile(value) {
@@ -188,16 +177,20 @@ Item {
         id: write
     }
 
-    Process {
-        id: readWeather
+    FileView {
+        id: weatherFile
 
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var value = (this.text || "").trim();
-                controller.weatherLocation = value === "" ? "Budapest" : value;
-            }
+        path: controller.shellDir + "/current-weather-location"
+        atomicWrites: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var value = weatherFile.text().trim();
+            controller.weatherLocation = value === "" ? "Budapest" : value;
         }
-
+        onFileChanged: weatherFile.reload()
+        onLoadFailed: controller.weatherLocation = "Budapest"
+        onSaveFailed: controller.diagnosticsMessage = "The weather location could not be saved."
     }
 
     Process {

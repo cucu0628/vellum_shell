@@ -14,6 +14,7 @@ FloatingWindow {
     property var backend: null
     property var barLayout: null
     property var theme: null
+    required property string shellDir
     property alias activePage: settingsController.activePage
 
     readonly property string background: theme ? theme.background : "#11130f"
@@ -107,6 +108,7 @@ FloatingWindow {
         id: systemState
 
         backend: window.backend
+        shellDir: window.shellDir
     }
 
     DefaultAppsController {
@@ -115,10 +117,12 @@ FloatingWindow {
 
     AutostartController {
         id: autostartState
+        shellDir: window.shellDir
     }
 
     KeybindingsController {
         id: keybindingsState
+        shellDir: window.shellDir
     }
 
     // A shell mas felulete nem kap fokuszt, amig ez az ablak nyitva van, ezert

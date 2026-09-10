@@ -12,7 +12,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::unix::OwnedReadHalf;
 use tokio::net::{UnixListener, UnixStream};
-use tokio::sync::{Mutex, Semaphore, mpsc};
+use tokio::sync::{Mutex, Notify, Semaphore, mpsc};
+
+const DRAIN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
 /// Egyszerre kiszolgalt kapcsolatok felso hatara. A socket csak a
 /// felhasznaloe, tehat ez nem tamadasi felulet, hanem egy elszabadult kliens
@@ -109,15 +111,33 @@ pub async fn listen(hub: Arc<Hub>, path: &Path) -> Result<()> {
 /// Egy kliens kapcsolatanak kimenete.
 ///
 /// A queue kotott: ha megtelik, a kliens lemaradt, es inkabb bontunk. A
-/// `closed` flag az, ami errol a tobbi taszkot is ertesiti -- a csatorna
-/// sender oldalarol nem lehet lezarni.
+/// `closed` flag es a `closing` jelzes az olvasot is felebreszti -- a
+/// csatorna sender oldalarol nem lehet lezarni.
 #[derive(Clone)]
 struct ClientOut {
     tx: mpsc::Sender<String>,
     closed: Arc<AtomicBool>,
+    closing: Arc<Notify>,
 }
 
 impl ClientOut {
+    fn new(tx: mpsc::Sender<String>) -> Self {
+        Self { tx, closed: Arc::new(AtomicBool::new(false)), closing: Arc::new(Notify::new()) }
+    }
+
+    fn close(&self) {
+        self.closed.store(true, Ordering::Relaxed);
+        // Egyetlen olvaso var erre. A notify_one megorzi a jelzest akkor is,
+        // ha a select meg nem kezdett varni: nem veszhet el a bontas.
+        self.closing.notify_one();
+    }
+
+    async fn wait_closed(&self) {
+        if !self.is_closed() {
+            self.closing.notified().await;
+        }
+    }
+
     fn send(&self, line: String) -> bool {
         if self.closed.load(Ordering::Relaxed) {
             return false;
@@ -126,11 +146,11 @@ impl ClientOut {
             Ok(()) => true,
             Err(mpsc::error::TrySendError::Full(_)) => {
                 tracing::warn!(limit = CLIENT_QUEUE, "a kliens kimeneti sora megtelt, bontunk");
-                self.closed.store(true, Ordering::Relaxed);
+                self.close();
                 false
             }
             Err(mpsc::error::TrySendError::Closed(_)) => {
-                self.closed.store(true, Ordering::Relaxed);
+                self.close();
                 false
             }
         }
@@ -187,14 +207,19 @@ async fn serve_client(hub: Arc<Hub>, stream: UnixStream) -> Result<()> {
     let mut reader = BufReader::new(read_half);
 
     let (queue_tx, mut out_rx) = mpsc::channel::<String>(CLIENT_QUEUE);
-    let out_tx = ClientOut { tx: queue_tx, closed: Arc::new(AtomicBool::new(false)) };
+    let out_tx = ClientOut::new(queue_tx);
     let subscriptions: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
     let calls = Arc::new(Semaphore::new(MAX_INFLIGHT_CALLS));
 
     // Iro taszk: egyetlen hely, ahol a socketre irunk.
-    let writer = tokio::spawn(async move {
+    // Ne tartsunk sajat sendert: EOF utan a sor kiurulese zarja az irot.
+    let closed = Arc::clone(&out_tx.closed);
+    let closing = Arc::clone(&out_tx.closing);
+    let mut writer = tokio::spawn(async move {
         while let Some(line) = out_rx.recv().await {
             if write_half.write_all(line.as_bytes()).await.is_err() {
+                closed.store(true, Ordering::Relaxed);
+                closing.notify_one();
                 break;
             }
         }
@@ -243,8 +268,13 @@ async fn serve_client(hub: Arc<Hub>, stream: UnixStream) -> Result<()> {
     // modul hurka a kliens nelkul is tovabb futna.
     let outcome: Result<()> = async {
         let mut buf = Vec::new();
-        while read_line_bounded(&mut reader, &mut buf, MAX_LINE_BYTES).await? {
-            if out_tx.is_closed() {
+        loop {
+            let has_line = tokio::select! {
+                biased;
+                _ = out_tx.wait_closed() => break,
+                result = read_line_bounded(&mut reader, &mut buf, MAX_LINE_BYTES) => result?,
+            };
+            if !has_line {
                 break;
             }
             let line = String::from_utf8_lossy(&buf).into_owned();
@@ -262,8 +292,15 @@ async fn serve_client(hub: Arc<Hub>, stream: UnixStream) -> Result<()> {
         hub.release(topic).await;
     }
     forwarder.abort();
+    let _ = forwarder.await;
+    let failed = out_tx.is_closed() || outcome.is_err();
     drop(out_tx);
-    let _ = writer.await;
+    // EOF eseten a mar kesz valaszokat meg kiuritheti a kliens. Hibanal
+    // azonnal bontunk; egy nem olvaso kliensre normal EOF utan sem varunk orokke.
+    if failed || tokio::time::timeout(DRAIN_TIMEOUT, &mut writer).await.is_err() {
+        writer.abort();
+        let _ = writer.await;
+    }
     outcome
 }
 
@@ -521,7 +558,7 @@ mod tests {
         let hub = Hub::new(vec![Arc::new(Dummy) as Arc<dyn Module>]);
         let subscriptions: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
         let (queue_tx, mut out_rx) = mpsc::channel::<String>(CLIENT_QUEUE);
-        let out_tx = ClientOut { tx: queue_tx, closed: Arc::new(AtomicBool::new(false)) };
+        let out_tx = ClientOut::new(queue_tx);
 
         // Minden permit elfogy, mielott a hivas beerkezne.
         let calls = Arc::new(Semaphore::new(MAX_INFLIGHT_CALLS));
@@ -557,5 +594,88 @@ mod tests {
         .await;
 
         assert_eq!(hub.subscriber_count("dummy").await, 0);
+    }
+
+    struct Flood;
+
+    #[async_trait::async_trait]
+    impl Module for Flood {
+        fn name(&self) -> &'static str {
+            "flood"
+        }
+
+        fn describe(&self) -> ModuleDescription {
+            ModuleDescription {
+                topic: "flood",
+                summary: "lassu olvaso teszt",
+                streams: true,
+                methods: Vec::new(),
+            }
+        }
+
+        async fn run(self: Arc<Self>, sink: StateSink) -> Result<()> {
+            let data = json!({ "payload": "x".repeat(16 * 1024) });
+            loop {
+                sink.push(data.clone());
+                tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn a_silent_slow_subscriber_is_disconnected_and_released() {
+        let hub = Hub::new(vec![Arc::new(Flood) as Arc<dyn Module>]);
+        let (mut client, server) = UnixStream::pair().unwrap();
+        let served = {
+            let hub = Arc::clone(&hub);
+            tokio::spawn(async move { serve_client(hub, server).await })
+        };
+        client.write_all(b"{\"op\":\"subscribe\",\"topics\":[\"flood\"]}\n").await.unwrap();
+        // A kliens nyitva marad, de nem olvas es nem kuld uj sort. Csak a
+        // megtelt kimeneti sor ebresztheti fel a szerver olvasojat.
+        tokio::time::timeout(std::time::Duration::from_secs(10), served)
+            .await
+            .expect("a tulcsordult kliens nem zarult le")
+            .unwrap()
+            .unwrap();
+        assert_eq!(hub.subscriber_count("flood").await, 0);
+        drop(client);
+    }
+
+    #[tokio::test]
+    async fn eof_does_not_wait_forever_for_a_blocked_writer() {
+        let hub = Hub::new(Vec::new());
+        let (mut client, server) = UnixStream::pair().unwrap();
+        let served = tokio::spawn(async move { serve_client(hub, server).await });
+        // Az ismeretlen op visszhangozasa a socket irasi bufferet megtolti,
+        // mikozben a kimeneti sor meg messze a darabszam-limit alatt marad.
+        let request = format!("{{\"op\":\"{}\"}}\n", "x".repeat(MAX_LINE_BYTES / 2));
+        client.write_all(request.as_bytes()).await.unwrap();
+        client.shutdown().await.unwrap();
+        tokio::time::timeout(DRAIN_TIMEOUT + std::time::Duration::from_secs(2), served)
+            .await
+            .expect("az EOF utan az iro orokre beragadt")
+            .unwrap()
+            .unwrap();
+        drop(client);
+    }
+
+    #[tokio::test]
+    async fn eof_still_delivers_queued_replies() {
+        let hub = Hub::new(Vec::new());
+        let (mut client, server) = UnixStream::pair().unwrap();
+        let served = tokio::spawn(async move { serve_client(hub, server).await });
+        client.write_all(b"{\"id\":9,\"op\":\"describe\"}\n").await.unwrap();
+        client.shutdown().await.unwrap();
+        let mut reader = BufReader::new(client);
+        let mut line = String::new();
+        tokio::time::timeout(std::time::Duration::from_secs(2), reader.read_line(&mut line))
+            .await
+            .unwrap()
+            .unwrap();
+        let reply: serde_json::Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(reply["id"], 9);
+        assert_eq!(reply["ok"], true);
+        served.await.unwrap().unwrap();
     }
 }

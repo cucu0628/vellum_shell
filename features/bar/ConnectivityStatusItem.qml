@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 // Wi-Fi/Ethernet state and the VPN shield in one module: the link icon carries
 // the connection, the badge next to it only appears while a tunnel is up, and
@@ -86,12 +87,14 @@ Item {
         }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
+        theme: root.theme
+        accessibleName: root.connectionType === "offline"
+            ? qsTr("Open network settings, offline")
+            : qsTr("Open network settings, connected by %1").arg(root.connectionType)
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        cursorShape: Qt.PointingHandCursor
         onClicked: (event) => {
             if (event.button === Qt.RightButton) root.vpnRequested()
             else root.clicked()

@@ -9,19 +9,21 @@ import QtQuick
 //   terms     tovabbi keresoszavak
 //   icon      nerd font glif
 //   subtitle  egysoros magyarazat
-//   command   `sh -c`-vel futtatva
+//   command   kozvetlenul indithato argv tomb
 //   confirm   igaz eseten ket Enter kell (visszafordithatatlan muveletek)
 //   delay     bezaras utan indul, hogy maga a launcher ne keruljon a kepre
 QtObject {
-    readonly property string shellPath: "~/.config/quickshell/vellum_shell/shell.qml"
-    readonly property string scriptsPath: "~/.config/quickshell/vellum_shell/scripts"
+    required property string homeDir
+    required property string shellDir
+    readonly property string shellPath: shellDir + "/shell.qml"
+    readonly property string scriptsPath: shellDir + "/scripts"
 
     function ipc(target, method) {
-        return "quickshell ipc --path " + shellPath + " call " + target + " " + method;
+        return ["quickshell", "ipc", "--path", shellPath, "call", target, method];
     }
 
     function terminalScript(script) {
-        return scriptsPath + "/floating-terminal " + scriptsPath + "/" + script;
+        return [scriptsPath + "/floating-terminal", scriptsPath + "/" + script];
     }
 
     readonly property var items: [{
@@ -78,19 +80,19 @@ QtObject {
         "terms": ["term", "shell", "kitty"],
         "icon": "",
         "subtitle": "Open terminal",
-        "command": "kitty"
+        "command": ["kitty"]
     }, {
         "name": "files",
         "terms": ["file", "folder", "nautilus", "home"],
         "icon": "󰉋",
         "subtitle": "Open home folder",
-        "command": "xdg-open $HOME"
+        "command": ["xdg-open", homeDir]
     }, {
         "name": "browser",
         "terms": ["web", "internet"],
         "icon": "󰖟",
         "subtitle": "Open default browser",
-        "command": "xdg-open https://www.google.com"
+        "command": ["xdg-open", "https://www.google.com"]
     }, {
         "name": "install package",
         "terms": ["pacman", "official", "repository", "software", "add"],
@@ -145,12 +147,12 @@ QtObject {
         "terms": ["reload", "restart", "vellum"],
         "icon": "󰑐",
         "subtitle": "Reload Vellum Shell",
-        "command": scriptsPath + "/theme-refresh"
+        "command": [scriptsPath + "/theme-refresh"]
     }, {
         "name": "about",
-        "terms": ["system", "info", "version"],
+        "terms": ["system", "info", "version", "fastfetch"],
         "icon": "󰋼",
-        "subtitle": "System information",
+        "subtitle": "Fastfetch in a floating terminal",
         "command": ipc("about", "toggle")
     }, {
         "name": "lock",
@@ -163,28 +165,28 @@ QtObject {
         "terms": ["sleep", "power"],
         "icon": "󰒲",
         "subtitle": "Suspend the system",
-        "command": "systemctl suspend",
+        "command": ["systemctl", "suspend"],
         "confirm": true
     }, {
         "name": "logout",
         "terms": ["exit", "sign out", "power"],
         "icon": "󰍃",
         "subtitle": "End the Hyprland session",
-        "command": "hyprctl dispatch 'hl.dsp.exit()'",
+        "command": ["hyprctl", "dispatch", "hl.dsp.exit()"],
         "confirm": true
     }, {
         "name": "reboot",
         "terms": ["restart", "power"],
         "icon": "󰜉",
         "subtitle": "Restart the system",
-        "command": "systemctl reboot",
+        "command": ["systemctl", "reboot"],
         "confirm": true
     }, {
         "name": "shutdown",
         "terms": ["poweroff", "power", "halt", "turn off"],
         "icon": "󰐥",
         "subtitle": "Power off the system",
-        "command": "systemctl poweroff",
+        "command": ["systemctl", "poweroff"],
         "confirm": true
     }]
 }

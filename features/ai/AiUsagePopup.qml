@@ -8,6 +8,7 @@ PanelWindow {
     id: aiWindow
 
     property var theme: null
+    required property string shellDir
     property bool opened: false
     property bool refreshing: false
     property var claude: emptyProvider("claude", "Claude Code")
@@ -26,8 +27,8 @@ PanelWindow {
         if (claudeProcess.running || codexProcess.running)
             return
         refreshing = true
-        claudeProcess.command = [Quickshell.env("HOME") + "/.config/quickshell/vellum_shell/scripts/ai-usage-claude"]
-        codexProcess.command = [Quickshell.env("HOME") + "/.config/quickshell/vellum_shell/scripts/ai-usage-codex"]
+        claudeProcess.command = [shellDir + "/scripts/ai-usage-claude"]
+        codexProcess.command = [shellDir + "/scripts/ai-usage-codex"]
         if (force) {
             claudeProcess.command.push("--force")
             codexProcess.command.push("--force")

@@ -1,4 +1,5 @@
 import QtQuick
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -36,11 +37,12 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
     }
 
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: !root.available ? qsTr("Bluetooth unavailable")
+            : (root.adapterEnabled ? qsTr("Open Bluetooth settings") : qsTr("Bluetooth is off"))
         onClicked: root.clicked()
     }
 }

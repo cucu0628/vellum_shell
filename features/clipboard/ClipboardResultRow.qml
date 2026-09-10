@@ -69,6 +69,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: resultRow.entry && resultRow.entry.isImage ? "" : ""
                 font.family: "Symbols Nerd Font Mono"
@@ -85,6 +86,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
 
             Text {
+                textFormat: Text.PlainText
                 text: resultRow.entry ? (resultRow.entry.isImage ? resultRow.entry.subtitle : resultRow.entry.title) : ""
                 color: resultRow.selected ? resultRow.panelAccent : resultRow.panelFg
                 font.pixelSize: 13
@@ -96,6 +98,7 @@ Rectangle {
             }
 
             Text {
+                textFormat: Text.PlainText
                 text: resultRow.entry && resultRow.controller
                     ? resultRow.controller.entryTypeLabel(resultRow.entry) + "  ·  CLIPBOARD HISTORY"
                     : ""
@@ -112,6 +115,7 @@ Rectangle {
         }
 
         Text {
+            textFormat: Text.PlainText
             width: 72
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignRight

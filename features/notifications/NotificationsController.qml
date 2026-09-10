@@ -18,7 +18,7 @@ Item {
     property int historyLimit: 100
     property bool groupingEnabled: true
     property var groups: []
-    property var expandedGroups: ({})
+    property var expandedGroups: Object.create(null)
     readonly property bool hasToast: toastVisible && currentNotification !== null
 
     width: 0
@@ -45,7 +45,7 @@ Item {
 
     function rebuildGroups() {
         var built = []
-        var index = ({})
+        var index = Object.create(null)
 
         for (var i = 0; i < history.length; i++) {
             var entry = history[i]
@@ -73,7 +73,7 @@ Item {
             if (group.icon === "" && entry.icon !== "") group.icon = entry.icon
         }
 
-        var nextExpanded = ({})
+        var nextExpanded = Object.create(null)
         var expandedChanged = false
         for (var g = 0; g < built.length; g++) {
             if (expandedGroups[built[g].key] === true) nextExpanded[built[g].key] = true
@@ -87,7 +87,7 @@ Item {
     }
 
     function setGroupExpanded(key, expanded) {
-        var next = ({})
+        var next = Object.create(null)
         for (var existing in expandedGroups) next[existing] = expandedGroups[existing]
         if (expanded) next[key] = true
         else delete next[key]
@@ -100,7 +100,7 @@ Item {
     }
 
     function setAllGroupsExpanded(expanded) {
-        var next = ({})
+        var next = Object.create(null)
         if (expanded) {
             for (var i = 0; i < groups.length; i++) {
                 if (groups[i].count > 1) next[groups[i].key] = true
@@ -282,6 +282,8 @@ Item {
     function setMenuOpen(open) {
         menuOpened = open
         if (open) {
+            for (var i = 0; i < history.length; i++) history[i].unread = false
+            history = history.slice()
             unreadCount = 0
             if (toastVisible) hideToastForMenu()
         }
@@ -391,7 +393,7 @@ Item {
 
     onHistoryChanged: rebuildGroups()
     onGroupingEnabledChanged: {
-        expandedGroups = ({})
+        expandedGroups = Object.create(null)
         rebuildGroups()
     }
     onDndChanged: if (dnd) toastQueue = []

@@ -16,7 +16,7 @@ import "features/lock" as LockFeature
 import "features/media" as MediaFeature
 import "features/settings" as SettingsFeature
 import "features/bluetooth" as BluetoothFeature
-import "features/network" as NetworkFeature
+import "features/connectivity" as ConnectivityFeature
 import "features/notifications" as NotificationFeature
 import "features/osd" as OsdFeature
 import "features/polkit" as PolkitFeature
@@ -30,7 +30,6 @@ ShellRoot {
 
     // Globális beállítások
     property int barHeight: 26
-    property alias preferredPlayerDbusName: mprisController.preferredPlayerDbusName
     property alias audioVolumePercent: audioSummaryController.volumePercent
     property alias audioMuted: audioSummaryController.muted
     property alias visibleWorkspaceIds: workspaceController.visibleWorkspaceIds
@@ -38,17 +37,37 @@ ShellRoot {
     property alias vpnActive: vpnController.active
     property alias vpnName: vpnController.name
     property alias networkType: networkStatusController.connectionType
-    property alias currentWallpaper: wallpaperStore.currentWallpaper
     property alias activePlayer: mprisController.activePlayer
     property var calendarNow: new Date()
     property bool audioOsdReady: false
-    readonly property string homeDir: Quickshell.env("HOME")
-    // Ugyanaz a szabaly, mint a backend `theme::paths::shell_dir()`-jeben,
-    // hogy a ket oldal ne csusszon szet athelyezett repo eseten.
-    readonly property string shellDir: Quickshell.env("VELLUM_SHELL_DIR")
-        || (homeDir + "/.config/quickshell/vellum_shell")
-    readonly property var monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    readonly property var dayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    readonly property string homeDir: paths.homeDir
+    readonly property string shellDir: paths.shellDir
+    readonly property var monthNames: localizedMonthNames()
+    readonly property var dayNames: localizedDayNames()
+
+    function localizedMonthNames() {
+        var names = [];
+        for (var month = 0; month < 12; month++)
+            names.push(Qt.formatDate(new Date(2024, month, 15), "MMMM"));
+        return names;
+    }
+
+    function localizedDayNames() {
+        var names = [];
+        // 2024-01-01 hetfo volt, igy az eredmeny tovabbra is hetfovel kezdodik.
+        for (var day = 1; day <= 7; day++)
+            names.push(Qt.formatDate(new Date(2024, 0, day), "ddd"));
+        return names;
+    }
+
+    Core.Paths {
+        id: paths
+        homeDir: Quickshell.env("HOME")
+        configHomeOverride: Quickshell.env("XDG_CONFIG_HOME")
+        stateHomeOverride: Quickshell.env("XDG_STATE_HOME")
+        cacheHomeOverride: Quickshell.env("XDG_CACHE_HOME")
+        shellDirOverride: Quickshell.env("VELLUM_SHELL_DIR")
+    }
 
     // A Rust backend kliense. Legelol jon letre, hogy a tobbi controller mar
     // atvehesse. Ha a daemon nem fut, a shell degradaltan, de mukodik.
@@ -82,7 +101,7 @@ ShellRoot {
         backend: shellRoot.shellBackend
         shellDir: shellRoot.shellDir
         screens: shellRoot.uniqueScreens
-        onDoubleClicked: (targetScreen) => shellRoot.setThemeSwitcherOpen(true, "wallpaper", targetScreen)
+        onDoubleClicked: (targetScreen) => popupCoordinator.setThemeSwitcherOpen(true, "wallpaper", targetScreen)
     }
 
     Core.WorkspaceController {
@@ -132,11 +151,8 @@ ShellRoot {
         active: shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing
     }
 
-    function setCurrentWallpaper(path) { wallpaperStore.setCurrentWallpaper(path) }
-    function wallpaperSource(path) { return wallpaperStore.source(path) }
-
     Component.onCompleted: {
-        refreshVisibleWorkspaces()
+        workspaceController.refresh()
         audioOsdReadyTimer.start()
     }
 
@@ -169,13 +185,6 @@ ShellRoot {
         processLauncher.running = true
     }
 
-    function refreshVisibleWorkspaces() { workspaceController.refresh() }
-    function updateVisibleWorkspacesFromService() { workspaceController.updateFromService() }
-    function updateVisibleWorkspaces(output) { workspaceController.update(output) }
-    function workspaceWindowCount(workspace) { return workspaceController.windowCount(workspace) }
-    function applyWorkspaceState(workspaces) { workspaceController.applyState(workspaces) }
-    function isWorkspaceOccupied(id) { return workspaceController.isOccupied(id) }
-
     function focusedScreen() {
         var monitor = Hyprland.focusedMonitor
         if (monitor && monitor.name) {
@@ -184,19 +193,6 @@ ShellRoot {
             }
         }
         return uniqueScreens.length > 0 ? uniqueScreens[0] : null
-    }
-
-    function toggleCenterPopup(nextScreen) { popupCoordinator.toggleCenterPopup(nextScreen) }
-    function toggleNotificationsDnd() { popupCoordinator.toggleNotificationsDnd() }
-    function setNotificationsOpen(open, nextScreen) { popupCoordinator.setNotificationsOpen(open, nextScreen) }
-    function setSettingsOpen(open) { popupCoordinator.setSettingsOpen(open) }
-    function setLauncherOpen(open, nextScreen) { popupCoordinator.setLauncherOpen(open, nextScreen) }
-    function setClipboardOpen(open, nextScreen) { popupCoordinator.setClipboardOpen(open, nextScreen) }
-    function setThemeSwitcherOpen(open, nextMode, nextScreen) { popupCoordinator.setThemeSwitcherOpen(open, nextMode, nextScreen) }
-    function setAudioOpen(open, nextScreen) { popupCoordinator.setAudioOpen(open, nextScreen) }
-    function setAboutOpen(open, nextScreen) { popupCoordinator.setAboutOpen(open, nextScreen) }
-    function captureScreenshot(mode) {
-        screenshotController.capture(mode)
     }
 
     // Az xdg-toplevel ablakot Hyprland alapbol csempezne. A backend egy pontos
@@ -224,6 +220,7 @@ ShellRoot {
                     backend: shellRoot.shellBackend
                     barLayout: shellRoot.barLayoutState
                     theme: shellRoot.shellTheme
+                    shellDir: shellRoot.shellDir
                     visible: settingsApp.opened
                     onClosed: settingsApp.opened = false
                     onCloseRequested: settingsApp.opened = false
@@ -241,6 +238,8 @@ ShellRoot {
             LauncherFeature.LauncherPopup {
                 theme: shellRoot.shellTheme
                 screen: appLauncher.screen
+                homeDir: shellRoot.homeDir
+                shellDir: shellRoot.shellDir
             }
         }
     }
@@ -266,7 +265,7 @@ ShellRoot {
             AppearanceFeature.AppearanceStudio {
                 backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
-                wallpaperController: shellRoot
+                wallpaperController: wallpaperStore
                 mode: themeSwitcher.mode
                 screen: themeSwitcher.screen
             }
@@ -287,8 +286,9 @@ ShellRoot {
         id: connectivityPopup
         mode: "network"
         popupComponent: Component {
-            NetworkFeature.ConnectivityPopup {
+            ConnectivityFeature.ConnectivityPopup {
                 theme: shellRoot.shellTheme
+                backend: shellRoot.shellBackend
                 statusController: networkStatusController
                 vpnCli: vpnController
                 screen: connectivityPopup.screen
@@ -316,6 +316,7 @@ ShellRoot {
                 theme: shellRoot.shellTheme
                 statusController: bluetoothStatusController
                 screen: bluetoothPopup.screen
+                shellDir: shellRoot.shellDir
             }
         }
     }
@@ -331,14 +332,10 @@ ShellRoot {
         }
     }
 
-    App.LazyPopup {
-        id: aboutPopup
-        popupComponent: Component {
-            AboutFeature.AboutPopup {
-                theme: shellRoot.shellTheme
-                screen: aboutPopup.screen
-            }
-        }
+    // Az about nem popup: egy lebego kitty ablak, amiben a fastfetch fut.
+    AboutFeature.FastfetchTerminal {
+        id: aboutTerminal
+        shellDir: shellRoot.shellDir
     }
 
     App.LazyPopup {
@@ -347,6 +344,7 @@ ShellRoot {
             AiFeature.AiUsagePopup {
                 theme: shellRoot.shellTheme
                 screen: aiPopup.screen
+                shellDir: shellRoot.shellDir
             }
         }
     }
@@ -390,7 +388,7 @@ ShellRoot {
         privacyPopup: privacyPopup
         aiPopup: aiPopup
         vpnCli: vpnController
-        aboutPopup: aboutPopup
+        aboutTerminal: aboutTerminal
         notifications: notifications
         trayMenu: trayMenu
         onCalendarRefreshRequested: shellRoot.calendarNow = new Date()
@@ -400,7 +398,7 @@ ShellRoot {
         coordinator: popupCoordinator
         lockProvider: lockRoot
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
-        screenshotCaptureProvider: function(mode) { shellRoot.captureScreenshot(mode) }
+        screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
     }
 
     // AGRESSZÍV MONITOR SZŰRÉS (Csak egyedi nevű monitorok)
@@ -418,14 +416,6 @@ ShellRoot {
         return result
     }
 
-    function isBrowserPlayer(player) { return mprisController.isBrowserPlayer(player) }
-    function chooseActivePlayer() { return mprisController.chooseActivePlayer() }
-    function updateActivePlayer() { mprisController.updateActivePlayer() }
-
-    function volumePercent() {
-        return audioVolumePercent
-    }
-
     // TOPBAR LÉTREHOZÁSA (DMS stílusú Instantiatorral)
     Instantiator {
         model: shellRoot.uniqueScreens
@@ -435,6 +425,7 @@ ShellRoot {
             targetScreen: modelData
             theme: shellRoot.shellTheme
             barHeight: shellRoot.barHeight
+            shellDir: shellRoot.shellDir
             visibleWorkspaceIds: shellRoot.visibleWorkspaceIds
             occupiedWorkspaceIds: shellRoot.occupiedWorkspaceIds
             layoutController: shellRoot.barLayoutState

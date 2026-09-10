@@ -20,6 +20,9 @@ Rectangle {
     border.width: 1
     radius: 0
     visible: ring.active
+    // Csak vizualis reteg: fokuszban se kerulhet a mogotte levo Pressable vagy
+    // ActionButton pointeresemenyei ele.
+    enabled: false
     opacity: ring.active ? 0.75 : 0
 
     Behavior on opacity {

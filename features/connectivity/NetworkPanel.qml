@@ -1,23 +1,23 @@
 import QtQuick
-import Quickshell.Io
 import "../../ui" as SharedUi
 
-// Wi-Fi half of the connectivity panel. It only talks to nmcli while `active`,
-// so the tab that is not on screen costs nothing.
+// Wi-Fi half of the connectivity panel. It only asks the backend to scan while
+// `active`, so the tab that is not on screen costs nothing.
 Item {
     id: networkPanel
 
     property var theme: null
+    property var backend: null
     property var statusController: null
     property bool active: false
-    property bool wifiEnabled: true
-    property bool scanning: false
-    property bool connecting: false
+    readonly property alias wifiEnabled: controller.wifiEnabled
+    readonly property alias scanning: controller.scanning
+    readonly property alias connecting: controller.connecting
     property bool selectedSecure: false
-    property string busySsid: ""
+    readonly property alias busySsid: controller.busySsid
     property string selectedSsid: ""
-    property string errorMessage: ""
-    property var networks: []
+    property alias errorMessage: controller.errorMessage
+    readonly property alias networks: controller.networks
     readonly property int preferredHeight: Math.min(554, 264 + Math.min(networks.length, 5) * 56 + (selectedSsid !== "" ? 88 : 0))
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
@@ -27,85 +27,6 @@ Item {
     readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
 
     signal closeRequested()
-
-    function splitEscaped(line) {
-        var fields = [];
-        var field = "";
-        var escaped = false;
-        for (var i = 0; i < line.length; i++) {
-            var character = line[i];
-            if (escaped) {
-                field += character;
-                escaped = false;
-            } else if (character === "\\") {
-                escaped = true;
-            } else if (character === ":") {
-                fields.push(field);
-                field = "";
-            } else {
-                field += character;
-            }
-        }
-        fields.push(field);
-        return fields;
-    }
-
-    function refresh() {
-        queryRadio();
-        scanNetworks();
-    }
-
-    function queryRadio() {
-        if (radioQuery.running)
-            return ;
-
-        radioQuery.command = ["nmcli", "-t", "-f", "WIFI", "general"];
-        radioQuery.running = true;
-    }
-
-    function scanNetworks() {
-        if (scanProcess.running || !wifiEnabled)
-            return ;
-
-        scanning = true;
-        scanProcess.command = ["nmcli", "-t", "-e", "yes", "-f", "IN-USE,SSID,SIGNAL,SECURITY,DEVICE", "device", "wifi", "list", "--rescan", "yes"];
-        scanProcess.running = true;
-    }
-
-    function parseNetworks(output) {
-        var bySsid = {
-        };
-        var lines = (output || "").trim().split("\n");
-        for (var i = 0; i < lines.length; i++) {
-            if (lines[i] === "")
-                continue;
-
-            var fields = splitEscaped(lines[i]);
-            if (fields.length < 5 || fields[1] === "")
-                continue;
-
-            var security = fields[3];
-            var item = {
-                "active": fields[0] === "*" || fields[0] === "yes",
-                "ssid": fields[1],
-                "signal": parseInt(fields[2]) || 0,
-                "security": security,
-                "secure": security !== "" && security !== "--",
-                "enterprise": security.indexOf("802.1X") !== -1 || security.indexOf("EAP") !== -1,
-                "device": fields[4]
-            };
-            if (!bySsid[item.ssid] || item.active || item.signal > bySsid[item.ssid].signal)
-                bySsid[item.ssid] = item;
-
-        }
-        var result = [];
-        for (var ssid in bySsid) result.push(bySsid[ssid])
-        result.sort((a, b) => {
-            return (b.active ? 1 : 0) - (a.active ? 1 : 0) || b.signal - a.signal;
-        });
-        networks = result;
-        scanning = false;
-    }
 
     function signalIcon(signal) {
         if (signal >= 75)
@@ -135,67 +56,26 @@ Item {
     }
 
     function connectSelected() {
-        if (selectedSsid === "" || connectProcess.running)
+        if (selectedSsid === "" || connecting)
             return ;
-
-        var command = ["nmcli"];
-        if (selectedSecure)
-            command.push("--ask");
-
-        command.push("device", "wifi", "connect", selectedSsid);
-        connecting = true;
-        errorMessage = "";
-        connectProcess.command = command;
-        connectProcess.running = true;
+        controller.connectNetwork(selectedSsid, selectedSecure, passwordInput.text);
     }
 
     function disconnectNetwork(network) {
-        if (networkAction.running)
-            return ;
-
-        var device = network.device || (statusController ? statusController.device : "");
-        if (device === "") {
-            errorMessage = "Wi-Fi device not found";
-            return ;
-        }
-        busySsid = network.ssid;
-        networkAction.command = ["nmcli", "device", "disconnect", device];
-        networkAction.running = true;
+        controller.disconnectNetwork(network);
     }
 
     function openAdvancedSettings() {
-        advancedLauncher.command = ["kcmshell6", "kcm_networkmanagement"];
-        advancedLauncher.running = true;
-        closeRequested();
-    }
-
-    function connectionError(output) {
-        var message = (output || "").trim();
-        var lower = message.toLowerCase();
-        if (lower.indexOf("secrets were required") !== -1 || lower.indexOf("not provided") !== -1)
-            return "A password is required or the password is incorrect";
-
-        if (lower.indexOf("no network with ssid") !== -1)
-            return "This network is no longer available";
-
-        if (lower.indexOf("activation failed") !== -1)
-            return "Could not connect to this network";
-
-        var lines = message.split("\n");
-        return lines.length > 0 && lines[lines.length - 1] !== "" ? lines[lines.length - 1] : "Connection failed";
+        controller.openAdvancedSettings();
     }
 
     function toggleWifi() {
-        if (radioToggle.running)
-            return ;
-
-        radioToggle.command = ["nmcli", "radio", "wifi", wifiEnabled ? "off" : "on"];
-        radioToggle.running = true;
+        controller.toggleWifi();
     }
 
     onActiveChanged: {
         if (active) {
-            refresh();
+            controller.refresh();
         } else {
             selectedSsid = "";
             passwordInput.text = "";
@@ -231,9 +111,11 @@ Item {
                     font.bold: true
                 }
 
-                MouseArea {
+                SharedUi.Pressable {
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
+                    enabled: !controller.radioBusy
+                    theme: networkPanel.theme
+                    accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
                     onClicked: toggleWifi()
                 }
 
@@ -381,12 +263,12 @@ Item {
                 font.pixelSize: 10
                 font.family: "monospace"
 
-                MouseArea {
+                SharedUi.Pressable {
                     id: advancedMouse
 
                     anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
+                    theme: networkPanel.theme
+                    accessibleName: qsTr("Open network settings")
                     onClicked: openAdvancedSettings()
                 }
 
@@ -402,13 +284,13 @@ Item {
                 font.pixelSize: 11
                 font.family: "monospace"
 
-                MouseArea {
+                SharedUi.Pressable {
                     id: refreshMouse
 
                     anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: refresh()
+                    theme: networkPanel.theme
+                    accessibleName: qsTr("Refresh Wi-Fi networks")
+                    onClicked: controller.refresh()
                 }
 
             }
@@ -444,9 +326,12 @@ Item {
                         model: networks
 
                         Rectangle {
+                            id: networkRow
+
+                            required property var modelData
                             width: networkColumn.width
                             height: 52
-                            color: networkMouse.containsMouse || modelData.active || selectedSsid === modelData.ssid ? inkBg : "transparent"
+                            color: networkMouse.containsMouse || networkRow.modelData.active || networkPanel.selectedSsid === networkRow.modelData.ssid ? networkPanel.inkBg : "transparent"
                             border.color: "transparent"
                             border.width: 0
 
@@ -455,7 +340,7 @@ Item {
                                 width: 3
                                 height: parent.height
                                 color: panelAccent
-                                opacity: modelData.active || selectedSsid === modelData.ssid ? 1 : 0
+                                opacity: networkRow.modelData.active || networkPanel.selectedSsid === networkRow.modelData.ssid ? 1 : 0
                             }
 
                             Row {
@@ -467,8 +352,8 @@ Item {
                                 Text {
                                     width: 25
                                     height: parent.height
-                                    text: signalIcon(modelData.signal)
-                                    color: modelData.active ? panelAccent : panelFg
+                                    text: networkPanel.signalIcon(networkRow.modelData.signal)
+                                    color: networkRow.modelData.active ? networkPanel.panelAccent : networkPanel.panelFg
                                     font.family: "Symbols Nerd Font Mono"
                                     font.pixelSize: 19
                                     verticalAlignment: Text.AlignVCenter
@@ -481,16 +366,16 @@ Item {
 
                                     Text {
                                         width: parent.width
-                                        text: modelData.ssid
-                                        color: panelFg
+                                        text: networkRow.modelData.ssid
+                                        color: networkPanel.panelFg
                                         font.pixelSize: 13
-                                        font.weight: modelData.active ? Font.DemiBold : Font.Normal
+                                        font.weight: networkRow.modelData.active ? Font.DemiBold : Font.Normal
                                         elide: Text.ElideRight
                                     }
 
                                     Text {
-                                        text: modelData.active ? "Connected" : modelData.signal + "%  ·  " + (modelData.secure ? modelData.security : "Open network")
-                                        color: modelData.active ? panelAccent : mutedFg
+                                        text: networkRow.modelData.active ? "Connected" : networkRow.modelData.signal + "%  ·  " + (networkRow.modelData.secure ? networkRow.modelData.security : "Open network")
+                                        color: networkRow.modelData.active ? networkPanel.panelAccent : networkPanel.mutedFg
                                         font.family: "monospace"
                                         font.pixelSize: 9
                                     }
@@ -500,29 +385,31 @@ Item {
                                 Text {
                                     width: 80
                                     height: parent.height
-                                    text: modelData.active ? (busySsid === modelData.ssid ? "Wait..." : "Disconnect") : (modelData.enterprise ? "802.1X" : (modelData.secure ? "" : "Connect"))
-                                    color: modelData.active ? panelAccent : mutedFg
-                                    font.family: modelData.active || modelData.enterprise ? "sans-serif" : "Symbols Nerd Font Mono"
-                                    font.pixelSize: modelData.enterprise ? 9 : 11
+                                    text: networkRow.modelData.active ? (networkPanel.busySsid === networkRow.modelData.ssid ? "Wait..." : "Disconnect") : (networkRow.modelData.enterprise ? "802.1X" : (networkRow.modelData.secure ? "" : "Connect"))
+                                    color: networkRow.modelData.active ? networkPanel.panelAccent : networkPanel.mutedFg
+                                    font.family: networkRow.modelData.active || networkRow.modelData.enterprise ? "sans-serif" : "Symbols Nerd Font Mono"
+                                    font.pixelSize: networkRow.modelData.enterprise ? 9 : 11
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignRight
                                 }
 
                             }
 
-                            MouseArea {
+                            SharedUi.Pressable {
                                 id: networkMouse
 
                                 anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                theme: networkPanel.theme
+                                accessibleName: networkRow.modelData.active
+                                    ? qsTr("Disconnect from %1").arg(networkRow.modelData.ssid)
+                                    : qsTr("Select %1").arg(networkRow.modelData.ssid)
                                 onClicked: {
-                                    if (modelData.active)
-                                        disconnectNetwork(modelData);
-                                    else if (modelData.enterprise)
-                                        openAdvancedSettings();
+                                    if (networkRow.modelData.active)
+                                        networkPanel.disconnectNetwork(networkRow.modelData);
+                                    else if (networkRow.modelData.enterprise)
+                                        networkPanel.openAdvancedSettings();
                                     else
-                                        chooseNetwork(modelData);
+                                        networkPanel.chooseNetwork(networkRow.modelData);
                                 }
                             }
 
@@ -601,10 +488,11 @@ Item {
                             font.bold: true
                         }
 
-                        MouseArea {
+                        SharedUi.Pressable {
                             anchors.fill: parent
                             enabled: !connecting
-                            cursorShape: Qt.PointingHandCursor
+                            theme: networkPanel.theme
+                            accessibleName: qsTr("Connect to %1").arg(networkPanel.selectedSsid)
                             onClicked: connectSelected()
                         }
 
@@ -633,108 +521,16 @@ Item {
         device: statusController ? statusController.device : ""
     }
 
-    Process {
-        id: radioQuery
-
-        stdout: StdioCollector {
-            onStreamFinished: networkPanel.wifiEnabled = (this.text || "").trim() === "enabled"
+    NetworkController {
+        id: controller
+        backend: networkPanel.backend
+        statusController: networkPanel.statusController
+        active: networkPanel.active
+        onConnectionSucceeded: {
+            networkPanel.selectedSsid = "";
+            passwordInput.text = "";
         }
-
-    }
-
-    Process {
-        id: scanProcess
-
-        onExited: networkPanel.scanning = false
-
-        stdout: StdioCollector {
-            onStreamFinished: networkPanel.parseNetworks(this.text || "")
-        }
-
-    }
-
-    Process {
-        id: radioToggle
-
-        onExited: {
-            networkPanel.queryRadio();
-            radioRefreshTimer.restart();
-        }
-    }
-
-    Process {
-        id: connectProcess
-
-        property string failureText: ""
-
-        stdinEnabled: true
-        onRunningChanged: {
-            if (running)
-                failureText = "";
-
-        }
-        onStarted: {
-            if (networkPanel.selectedSecure)
-                write(passwordInput.text + "\n");
-
-        }
-        onExited: (exitCode) => {
-            networkPanel.connecting = false;
-            if (exitCode === 0) {
-                networkPanel.selectedSsid = "";
-                passwordInput.text = "";
-                connectionRefreshTimer.restart();
-            } else {
-                networkPanel.errorMessage = networkPanel.connectionError(failureText);
-            }
-        }
-
-        stderr: StdioCollector {
-            onStreamFinished: connectProcess.failureText = this.text || ""
-        }
-
-    }
-
-    Process {
-        id: networkAction
-
-        property string failureText: ""
-
-        onRunningChanged: {
-            if (running)
-                failureText = "";
-
-        }
-        onExited: (exitCode) => {
-            networkPanel.busySsid = "";
-            if (exitCode !== 0)
-                networkPanel.errorMessage = networkPanel.connectionError(failureText);
-
-            connectionRefreshTimer.restart();
-        }
-
-        stderr: StdioCollector {
-            onStreamFinished: networkAction.failureText = this.text || ""
-        }
-
-    }
-
-    Process {
-        id: advancedLauncher
-    }
-
-    Timer {
-        id: radioRefreshTimer
-
-        interval: 500
-        onTriggered: networkPanel.refresh()
-    }
-
-    Timer {
-        id: connectionRefreshTimer
-
-        interval: 800
-        onTriggered: networkPanel.refresh()
+        onAdvancedSettingsOpened: networkPanel.closeRequested()
     }
 
 }

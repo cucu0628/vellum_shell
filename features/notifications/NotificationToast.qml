@@ -102,6 +102,7 @@ Item {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     anchors.centerIn: parent
                     text: toast.notification && toast.notification.urgency === NotificationUrgency.Critical ? "󰀦" : "󰂚"
                     color: toast.panelAccent
@@ -124,6 +125,7 @@ Item {
                     spacing: 8
 
                     Text {
+                        textFormat: Text.PlainText
                         text: toast.notification ? toast.cleanText(toast.notification.appName || "Notification").toUpperCase() : "NOTIFICATION"
                         color: toast.panelAccent
                         font.pixelSize: 9
@@ -134,6 +136,7 @@ Item {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         text: toast.notification && toast.notification.urgency === NotificationUrgency.Critical ? "CRITICAL" : ""
                         color: toast.panelAccent
                         font.pixelSize: 9
@@ -150,6 +153,7 @@ Item {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     text: toast.notification ? toast.cleanText(toast.notification.summary) : ""
                     color: toast.panelFg
@@ -160,6 +164,7 @@ Item {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     text: toast.notification ? toast.cleanText(toast.notification.body) : ""
                     color: toast.mutedFg
@@ -189,6 +194,7 @@ Item {
                             border.width: 1
 
                             Text {
+                                textFormat: Text.PlainText
                                 id: actionText
 
                                 anchors.centerIn: parent
@@ -233,6 +239,7 @@ Item {
             border.width: 1
 
             Text {
+                textFormat: Text.PlainText
                 anchors.centerIn: parent
                 text: "DISMISS"
                 color: dismissMouse.containsMouse ? toast.panelBg : toast.panelAccent

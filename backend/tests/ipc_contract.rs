@@ -29,7 +29,7 @@ const CONTRACT: &[(&str, &[&str])] = &[
             "stored()",
         ],
     ),
-    ("network", &[]),
+    ("network", &["connect(ssid)", "disconnect(device)", "scan()", "setWifiEnabled(enabled)"]),
     ("privacy", &[]),
     ("removable", &["mount(path)", "powerOff(path)", "unmount(path)"]),
     ("sysstats", &[]),

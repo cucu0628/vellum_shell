@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Services.Pipewire
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -51,11 +52,11 @@ Item {
             Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
         }
     }
-    MouseArea {
+    SharedUi.Pressable {
         id: mouse
         anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        theme: root.theme
+        accessibleName: qsTr("Open audio controls, volume %1 percent").arg(root.volumePercent)
         onWheel: wheel => {
             root.volumeStepRequested(wheel.angleDelta.y > 0)
             wheel.accepted = true

@@ -142,6 +142,7 @@ PanelWindow {
                         Behavior on border.color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
                         Text {
+                            textFormat: Text.PlainText
                             anchors.centerIn: parent
                             text: window.failed ? "DENIED" : "REQUIRED"
                             color: window.frameColor
@@ -154,6 +155,7 @@ PanelWindow {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     text: window.flow ? window.flow.message : ""
                     color: window.panelFg
@@ -162,6 +164,7 @@ PanelWindow {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     visible: window.flow && window.flow.actionId !== ""
                     text: window.flow ? window.flow.actionId : ""
@@ -178,6 +181,7 @@ PanelWindow {
                     spacing: 6
 
                     Text {
+                        textFormat: Text.PlainText
                         text: "AUTHENTICATE AS"
                         color: window.panelAccent
                         font.pixelSize: 9
@@ -219,6 +223,7 @@ PanelWindow {
                                 spacing: 2
 
                                 Text {
+                                    textFormat: Text.PlainText
                                     width: parent.width
                                     text: identityRow.modelData.displayName
                                     color: identityRow.current ? window.panelAccent : window.panelFg
@@ -228,6 +233,7 @@ PanelWindow {
                                 }
 
                                 Text {
+                                    textFormat: Text.PlainText
                                     width: parent.width
                                     text: identityRow.modelData.string
                                     color: window.mutedFg
@@ -273,6 +279,7 @@ PanelWindow {
                     }
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.left: parent.left
                         anchors.leftMargin: 20
                         anchors.verticalCenter: parent.verticalCenter
@@ -301,6 +308,7 @@ PanelWindow {
                         onAccepted: window.submit()
 
                         Text {
+                            textFormat: Text.PlainText
                             anchors.fill: parent
                             visible: parent.text === ""
                             text: window.flow && window.flow.inputPrompt !== "" ? window.flow.inputPrompt.toUpperCase() : "PASSWORD"
@@ -314,6 +322,7 @@ PanelWindow {
                 }
 
                 Text {
+                    textFormat: Text.PlainText
                     width: parent.width
                     visible: window.flow && window.flow.supplementaryMessage !== ""
                     text: window.flow ? window.flow.supplementaryMessage : ""
@@ -327,6 +336,7 @@ PanelWindow {
                     height: 30
 
                     Text {
+                        textFormat: Text.PlainText
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
                         text: "ESC  cancel      ↵  submit"
@@ -350,6 +360,7 @@ PanelWindow {
                             border.width: 1
 
                             Text {
+                                textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: "CANCEL"
                                 color: window.mutedFg
@@ -381,6 +392,7 @@ PanelWindow {
                             Behavior on color { ColorAnimation { duration: 120; easing.type: Easing.OutCubic } }
 
                             Text {
+                                textFormat: Text.PlainText
                                 anchors.centerIn: parent
                                 text: "AUTHENTICATE"
                                 color: submitMouse.containsMouse && window.response !== ""

@@ -26,7 +26,7 @@ QtObject {
     required property var privacyPopup
     required property var aiPopup
     required property var vpnCli
-    required property var aboutPopup
+    required property var aboutTerminal
     required property var notifications
     required property var trayMenu
 
@@ -43,7 +43,6 @@ QtObject {
         "removable",
         "privacy",
         "ai",
-        "about",
         "notifications",
         "tray"
     ]
@@ -60,7 +59,6 @@ QtObject {
         case "removable": return removablePopup
         case "privacy": return privacyPopup
         case "ai": return aiPopup
-        case "about": return aboutPopup
         case "notifications": return notifications
         case "tray": return trayMenu
         }
@@ -202,8 +200,26 @@ QtObject {
         setAudioOpen(!audioPopup.opened)
     }
 
-    function setAboutOpen(open, nextScreen) { setOverlayOpen("about", open, nextScreen) }
-    function toggleAbout(nextScreen) { toggleOverlay("about", nextScreen) }
+    // Az about egy valodi ablak a compositoron, nem fedoreteg. Nyitaskor megis
+    // be kell zarni a fedoretegeket: azok az overlay layeren ulnek, tehat
+    // eltakarnak minden ablakot, koztuk az ujonnan nyilo terminalt is.
+    function setAboutOpen(open, nextScreen) {
+        if (!open) {
+            aboutTerminal.close()
+            return
+        }
+        closeOverlays("")
+        aboutTerminal.open()
+    }
+
+    function toggleAbout(nextScreen) {
+        if (aboutTerminal.opened) {
+            aboutTerminal.close()
+            return
+        }
+        closeOverlays("")
+        aboutTerminal.open()
+    }
 
     function setBluetoothOpen(open, nextScreen) { setOverlayOpen("bluetooth", open, nextScreen) }
     function toggleBluetooth(nextScreen) { toggleOverlay("bluetooth", nextScreen) }

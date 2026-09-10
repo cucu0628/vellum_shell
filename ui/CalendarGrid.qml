@@ -4,7 +4,14 @@ Item {
     id: calendarGrid
 
     property var displayedDate: new Date()
-    property var dayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    property var dayNames: localizedDayNames()
+
+    function localizedDayNames() {
+        var names = [];
+        for (var day = 1; day <= 7; day++)
+            names.push(Qt.formatDate(new Date(2024, 0, day), "ddd"));
+        return names;
+    }
     property color foreground: "#f1e7d0"
     property color muted: "#9f8f7c"
     property color accent: "#d7472f"

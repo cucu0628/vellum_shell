@@ -3,7 +3,10 @@ import QtQuick.Shapes
 
 // Vellum: a calligraphic V with two folded-paper strokes.
 // Keep geometry in sync with assets/vellum-logo.svg and
-// sddm/vellum-ink/VellumLogo.qml.
+// ui/ShellLogo.qml (the greeter is installed independently).
+//
+// A komponensnev szandekosan elter a regi InkLogo nevtol: az SDDM sajat
+// felhasznaloi QML cache-e igy nem tudja a korabbi enso bytecode-jat hasznalni.
 Item {
     id: logo
 

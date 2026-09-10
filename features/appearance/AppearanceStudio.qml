@@ -126,6 +126,7 @@ PanelWindow {
             onPaletteSelected: (index) => appearanceController.selectPalette(index)
             onWallpaperStepRequested: (delta) => appearanceController.moveWallpaper(delta)
             onPaletteStepRequested: (delta) => appearanceController.movePalette(delta)
+            onDockToggleRequested: appearanceController.dockToggleRequested()
             onApplyRequested: appearanceController.applyAndClose()
             onCancelRequested: appearanceController.cancelAndClose()
         }
