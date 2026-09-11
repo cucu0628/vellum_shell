@@ -44,10 +44,10 @@ Item {
 
         Text {
             width: parent.width
-            text: header.subtitle.toUpperCase()
+            visible: header.subtitle !== ""
+            text: header.subtitle
             color: header.muted
-            font.pixelSize: 8
-            font.letterSpacing: 1.3
+            font.pixelSize: 10
             elide: Text.ElideRight
         }
     }

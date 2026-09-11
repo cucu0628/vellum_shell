@@ -45,10 +45,9 @@ Item {
         Text {
             width: parent.width
             visible: section.showDescription && section.description !== ""
-            text: section.description.toUpperCase()
+            text: section.description
             color: section.muted
-            font.pixelSize: 7
-            font.letterSpacing: 1.1
+            font.pixelSize: 10
             elide: Text.ElideRight
         }
     }

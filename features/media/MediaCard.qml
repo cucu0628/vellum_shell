@@ -28,12 +28,12 @@ Item {
     readonly property bool isPlaying: player && player.playbackState === MprisPlaybackState.Playing
     readonly property real currentPosition: livePosition >= 0 ? livePosition : (player ? player.position : 0)
     readonly property string statusLabel: !player
-        ? "MEDIA IDLE"
-        : (player.playbackState === MprisPlaybackState.Playing ? "NOW PLAYING" : "MEDIA PAUSED")
+        ? ""
+        : (player.playbackState === MprisPlaybackState.Playing ? "NOW PLAYING" : "PAUSED")
     readonly property string trackTitle: player && player.trackTitle !== "" ? player.trackTitle : "No music playing"
     readonly property string trackArtist: player && player.trackArtist !== ""
         ? player.trackArtist
-        : (player && player.identity ? player.identity : "No active source")
+        : (player && player.identity ? player.identity : "")
 
     function playerIcon(value) {
         if (!value) return "󰎆"
@@ -105,9 +105,9 @@ Item {
         visible: card.compact
         theme: card.theme
         editorial: true
-        title: card.statusLabel
+        title: card.player ? card.statusLabel : "MEDIA"
         kanji: ""
-        trailing: card.player && card.player.identity ? card.player.identity.toUpperCase() : "NO SOURCE"
+        trailing: card.player && card.player.identity ? card.player.identity.toUpperCase() : ""
 
         Rectangle {
             id: compactArtFrame
@@ -162,6 +162,7 @@ Item {
                 color: card.muted
                 font.pixelSize: 12
                 elide: Text.ElideRight
+                visible: text !== ""
                 verticalAlignment: Text.AlignVCenter
             }
 
@@ -298,6 +299,7 @@ Item {
                     id: sourceStrip
                     width: parent.width
                     height: 28
+                    visible: card.players.length > 0
 
                     Text {
                         id: sourceLabel
@@ -306,7 +308,7 @@ Item {
                         text: "SOURCE"
                         color: card.accent
                         font.pixelSize: 9
-                        font.letterSpacing: 2
+                        font.letterSpacing: 1.2
                         font.bold: true
                     }
 
@@ -371,16 +373,6 @@ Item {
                                     }
                                 }
                             }
-
-                            Rectangle {
-                                width: 148
-                                height: 28
-                                visible: card.players.length === 0
-                                color: "transparent"
-                                border.color: card.lineBg
-                                border.width: 1
-                                Text { anchors.centerIn: parent; text: "No media source"; color: card.muted; font.pixelSize: 10 }
-                            }
                         }
                     }
                 }
@@ -405,6 +397,7 @@ Item {
                     color: card.muted
                     font.pixelSize: 13
                     elide: Text.ElideRight
+                    visible: text !== ""
                 }
             }
         }
@@ -547,7 +540,7 @@ Item {
                 height: 46
                 opacity: card.volumeSupported(card.player) ? 1 : 0.35
 
-                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "VOL"; color: card.accent; font.pixelSize: 9; font.letterSpacing: 2; font.bold: true }
+                Text { anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter; text: "VOL"; color: card.accent; font.pixelSize: 9; font.letterSpacing: 1.2; font.bold: true }
 
                 Rectangle {
                     id: volumeTrack

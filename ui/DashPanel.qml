@@ -52,8 +52,8 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: panel.title
                 color: panel.editorial ? panel.foreground : panel.accent
-                font.pixelSize: 9
-                font.letterSpacing: panel.editorial ? 2 : 3
+                font.pixelSize: 10
+                font.letterSpacing: panel.editorial ? 1.2 : 1.5
                 font.bold: true
             }
 
@@ -62,7 +62,7 @@ Rectangle {
                 text: panel.kanji
                 color: panel.muted
                 font.pixelSize: 10
-                font.letterSpacing: 2
+                font.letterSpacing: 1
                 opacity: 0.75
                 visible: panel.kanji !== ""
             }
@@ -73,8 +73,7 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             text: panel.trailing
             color: panel.muted
-            font.pixelSize: 9
-            font.letterSpacing: 1
+            font.pixelSize: 10
             visible: panel.trailing !== ""
         }
     }

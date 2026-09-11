@@ -66,8 +66,8 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             text: tile.label
             color: tile.muted
-            font.pixelSize: 8
-            font.letterSpacing: 1
+            font.pixelSize: 9
+            font.letterSpacing: 0.6
             visible: tile.label !== ""
         }
     }

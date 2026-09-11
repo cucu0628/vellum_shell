@@ -32,6 +32,21 @@ Read `README.md` for supported behavior and `layout.md` for the detailed archite
 - Do not hand-edit generated runtime files such as `current-theme`, `gtk-theme.css`, `kitty-theme.conf`, `zen-theme.css`, or `sddm/vellum-ink/theme.conf` unless the task is specifically about generated output. Edit the palette, template, or generator instead.
 - Do not run `setup.sh`, `install.sh`, `scripts/backend-install`, package helpers, power actions, or lock-screen actions as routine validation: they modify the live desktop or system.
 
+## UI style rules
+
+- Use four typography tiers in QML: display/title is 18–26 px and usually serif; section headings are 13–17 px at Medium or DemiBold; body and control text is 11–13 px; metadata and hints are 9–10 px.
+- Do not introduce visible UI text below 9 px. Reserve 9 px for short metadata, counters, timestamps, and keyboard hints; prose and actionable labels must be at least 10 px.
+- Keep sentence-style supporting text in mixed case with zero letter spacing. Uppercase labels must be at most two words and use 0.8–1.5 px letter spacing; exceed 1.5 px only for intentional lock-screen, password, passkey, or clock treatments.
+- Use serif for display hierarchy, sans-serif for labels and prose, and monospace only for fixed-width values, technical identifiers, or keyboard hints.
+- Use `foreground` for primary content, `muted` for supporting information, and `accent` for active, selected, focused, or actionable states. Give a panel one dominant accent treatment; do not color every heading or metadata line with the accent.
+- Keep readable secondary text at full opacity or at least `0.7`. Lower opacity is for decoration, inactive indicators, dividers, and disabled content, not for essential labels.
+- Follow a 4 px spacing rhythm. Prefer 4, 8, 12, 16, and 24 px gaps and padding; use another value only when alignment or a compact control requires it.
+- A panel or card gets one title and at most one supporting metadata line before its content. Do not repeat the same state in a title, trailing label, badge, and empty-state message; one clear empty-state sentence is enough unless an action is available.
+- Keep compact interactive targets at least 28 px high and settings rows or primary list rows at least 44 px high. Visual glyphs may be smaller, but their hit area must meet the target size.
+- When a visual pattern appears in two or more features, refine the reusable component in `ui/` instead of adding divergent feature-local styling. Keep `ui/` feature-independent.
+- Render user-provided, clipboard, and notification content as `Text.PlainText`. Choose wrapping or elision explicitly, and never reduce body text below the typography scale to make metadata fit.
+- For new UI and any visual cluster being modified, apply these rules to the whole cluster so adjacent labels do not retain conflicting sizes or tracking. Preserve deliberately atmospheric lock-screen and SDDM typography unless the task targets it.
+
 ## Validation
 
 `scripts/check` runs every gate below in one go and skips the tools that are not

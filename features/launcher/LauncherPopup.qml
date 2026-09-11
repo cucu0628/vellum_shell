@@ -744,35 +744,11 @@ PanelWindow {
                         }
 
                         Text {
-                            text: "SEARCH  ·  COMMAND  ·  OPEN"
+                            text: "Apps, actions and emoji"
                             color: mutedFg
-                            font.pixelSize: 8
-                            font.letterSpacing: 1.8
+                            font.pixelSize: 10
                         }
 
-                    }
-
-                    Column {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
-
-                        Text {
-                            anchors.right: parent.right
-                            text: projectMode ? "PROJECTS" : "UNIFIED SEARCH"
-                            color: panelAccent
-                            font.pixelSize: 8
-                            font.bold: true
-                            font.letterSpacing: 1.8
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            text: "TAB CHANGES MODE"
-                            color: mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 8
-                        }
                     }
 
                 }
@@ -837,9 +813,9 @@ PanelWindow {
                                 Text {
                                     text: modelData.label
                                     color: activeMode ? panelAccent : mutedFg
-                                    font.pixelSize: 9
+                                    font.pixelSize: 10
                                     font.bold: activeMode
-                                    font.letterSpacing: 1.8
+                                    font.letterSpacing: 1.1
                                 }
 
                             }
@@ -868,8 +844,8 @@ PanelWindow {
                         anchors.left: parent.left
                         text: modeTitle + "  ·  " + visibleItems.length + (visibleItems.length === 1 ? " RESULT" : " RESULTS")
                         color: panelAccent
-                        font.pixelSize: 8
-                        font.letterSpacing: 2
+                        font.pixelSize: 9
+                        font.letterSpacing: 1.2
                         font.bold: true
                     }
 
@@ -878,7 +854,7 @@ PanelWindow {
                         text: "↑↓  SELECT     ENTER  OPEN     ESC  CLOSE"
                         color: mutedFg
                         font.family: "monospace"
-                        font.pixelSize: 8
+                        font.pixelSize: 9
                     }
 
                 }
