@@ -140,7 +140,6 @@ fedora_packages=(
   coreutils
   curl
   desktop-file-utils
-  dolphin
   fastfetch
   findutils
   fontconfig
@@ -279,10 +278,15 @@ install_fedora_packages() {
   # A kulcsfontossagu COPR csomagoknal ne rejtse el a hibat a
   # --skip-unavailable. A --refresh az ujonnan engedelyezett repo metaadatait
   # azonnal betolti.
-  sudo dnf install --refresh "${fedora_hyprland_packages[@]}"
+  sudo dnf install --refresh --setopt=install_weak_deps=False \
+    "${fedora_hyprland_packages[@]}"
 
   printf 'Fedora csomagok ellenőrzése és telepítése...\n'
-  sudo dnf install --skip-unavailable "${fedora_packages[@]}"
+  # A Vellum sajat panelt es launchert ad. A gyenge fuggosegek kikapcsolasa
+  # megakadalyozza, hogy a COPR ajanlott Wofit, nwg-panelt vagy masik shell
+  # komponenst huzzon be. A fajlkezelo az xdg-open rendszeralapertelmezese.
+  sudo dnf install --skip-unavailable --setopt=install_weak_deps=False \
+    "${fedora_packages[@]}"
   install_fedora_power_profiles
   install_nerd_symbols
   install_fedora_source_tools

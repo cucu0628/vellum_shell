@@ -163,9 +163,11 @@ DNF and enable the `lionheartp/Hyprland` COPR recommended by Hyprland upstream.
 Vellum needs Hyprland 0.55 or newer with its Lua configuration API. Fedora 44
 and newer provide Quickshell directly. The installer keeps an existing
 PPD-compatible power-profile service; otherwise it installs Fedora's default
-`tuned-ppd`. The package installer targets regular DNF-based Fedora
-installations; Fedora Atomic variants require their packages to be layered
-separately before running `./setup.sh --skip-packages`.
+`tuned-ppd`. DNF weak dependencies are disabled so the Hyprland package cannot
+pull in another panel or launcher such as nwg-panel or Wofi. The package
+installer targets regular DNF-based Fedora installations; Fedora Atomic
+variants require their packages to be layered separately before running
+`./setup.sh --skip-packages`.
 
 ### Removing it again
 

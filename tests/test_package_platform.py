@@ -104,8 +104,17 @@ class PackagePlatformTests(unittest.TestCase):
         installer = INSTALLER.read_text()
 
         self.assertIn("sudo dnf -y copr enable lionheartp/Hyprland", installer)
-        self.assertIn('sudo dnf install --refresh "${fedora_hyprland_packages[@]}"', installer)
+        self.assertIn("sudo dnf install --refresh --setopt=install_weak_deps=False", installer)
         self.assertIn("xdg-desktop-portal-hyprland", installer)
+
+    def test_fedora_installer_does_not_pull_another_shell(self):
+        installer = INSTALLER.read_text()
+        fedora_packages = installer.split("fedora_packages=(", 1)[1].split("\n)", 1)[0]
+
+        self.assertNotIn("dolphin", fedora_packages)
+        self.assertNotIn("wofi", fedora_packages)
+        self.assertNotIn("nwg-panel", fedora_packages)
+        self.assertEqual(installer.count("--setopt=install_weak_deps=False"), 2)
 
 
 if __name__ == "__main__":
