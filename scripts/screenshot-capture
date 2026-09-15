@@ -2,6 +2,11 @@
 
 set -u
 
+# A Fedora telepito a disztribucioban nem csomagolt wayfreeze/satty binarisokat
+# ide teszi. A grafikus munkamenet PATH-ja nem minden bejelentkezesnel tartalmazza.
+PATH="$HOME/.local/bin:$PATH"
+export PATH
+
 mode=${1:-smart}
 
 missing=""

@@ -6,8 +6,9 @@ multi-monitor top bar, application launcher, notification center, media
 dashboard, system controls, appearance management, and a separate Wayland
 session lock.
 
-The project targets Arch Linux or CachyOS with Hyprland 0.55 or newer. It uses
-Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
+The project targets Arch Linux, CachyOS, and Fedora Linux with Hyprland 0.55 or
+newer. It uses Hyprland's native Lua configuration API and assumes Kitty for
+terminal helpers.
 
 ## Preview
 
@@ -44,7 +45,7 @@ Hyprland's native Lua configuration API and assumes Kitty for terminal helpers.
   entries, systemd user services, desktop preferences, and searchable
   keybindings. Every bar module can be reordered, moved between the left,
   center and right zones, or hidden.
-- Searchable Launcher actions for guided package, AUR, web app, and terminal
+- Searchable Launcher actions for guided package, AUR/COPR, web app, and terminal
   app installation and removal.
 
 Popups are loaded on demand and coordinated so that overlapping shell surfaces
@@ -85,16 +86,17 @@ require the corresponding command:
 | Screenshot capture | `grim`, `slurp`, `wayfreeze`, `magick`, `hyprctl`, `jq` |
 | Screenshot extras | `satty`, `wl-copy`, `notify-send`, `xdg-user-dir` |
 | Interactive utility scripts | `fzf`, Kitty |
-| Package management | `pacman`; `paru` or `yay` for AUR packages |
+| Package management | `pacman` plus `paru`/`yay` on Arch; `dnf` plus its COPR plugin on Fedora |
 | Power profiles | `powerprofilesctl` |
 | Settings default applications | `xdg-mime` from `xdg-utils` |
 | Settings user services | A reachable systemd user manager |
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
 | Removable devices | `util-linux`, `udisks2`, `xdg-utils` |
 
-The package helpers are Arch-specific. Hyprland integration uses the native
-Lua API introduced in Hyprland 0.55 (`hl.config(...)`, `hl.bind(...)`, and
-`hl.dsp.*`).
+The package helpers detect Arch/CachyOS or Fedora at runtime. The community
+package action uses the AUR through `paru`/`yay` on Arch and enables a selected
+COPR before installing on Fedora. Hyprland integration uses the native Lua API
+introduced in Hyprland 0.55 (`hl.config(...)`, `hl.bind(...)`, and `hl.dsp.*`).
 
 ## Installation
 
@@ -156,6 +158,13 @@ Restart an already running instance with:
 `install.sh` remains available as a package-only installer. `setup.sh` is the
 recommended entry point for a fresh system.
 
+Both scripts detect Arch/CachyOS and Fedora automatically. On Fedora they use
+DNF and enable the `lionheartp/Hyprland` COPR recommended by Hyprland upstream,
+because Vellum needs Hyprland 0.55 or newer with its Lua configuration API.
+Fedora 44 and newer provide Quickshell directly. The package installer targets
+regular DNF-based Fedora installations; Fedora Atomic variants require their
+packages to be layered separately before running `./setup.sh --skip-packages`.
+
 ### Removing it again
 
 `scripts/uninstall` reverses what the setup installed: the systemd user service
@@ -204,7 +213,7 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `bluetooth` | `toggle`, `open`, `close` |
 | `vpn` | `toggle`, `open`, `close`, `connect`, `disconnect`, `app` |
 | `removable` | `toggle`, `open`, `close` |
-| `lock` | `lock` |
+| `lock` | `lock`, `suspend` (locks first and waits for compositor confirmation) |
 | `about` | `toggle`, `open`, `close` (a floating kitty window running Fastfetch) |
 | `screenshot` | `capture`, `window`, `workspace`, `region` |
 

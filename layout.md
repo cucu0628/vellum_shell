@@ -229,6 +229,7 @@ vellum_shell/
 │   ├── ai-usage-codex
 │   ├── aur-install
 │   ├── backend-install
+│   ├── community-install             # AUR (Arch) vagy COPR (Fedora)
 │   ├── fastfetch-panel               # Az about ablak tartalma
 │   ├── floating-terminal
 │   ├── keybindings-list

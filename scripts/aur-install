@@ -1,26 +1,6 @@
 #!/usr/bin/env bash
+# Regi publikus nev: a launcher mar a disztribuciofuggetlen community-install
+# segedet hasznalja, de kulso billentyuparancsok kedveert ez az alias megmarad.
 set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source=lib.sh
-. "$SCRIPT_DIR/lib.sh"
-
-helper=""
-for candidate in paru yay; do
-  if has "$candidate"; then
-    helper=$candidate
-    break
-  fi
-done
-[[ -n $helper ]] || die "install paru or yay first"
-
-if (( $# > 0 )); then
-  packages=("$@")
-else
-  require_fzf
-  mapfile -t packages < <("$helper" -Slq aur 2>/dev/null | sort -u | fzf_many "AUR install" "$helper -Si {} 2>/dev/null || true")
-fi
-
-(( ${#packages[@]} > 0 )) || die "no package selected"
-printf 'Installing from AUR with %s: %s\n' "$helper" "${packages[*]}"
-"$helper" -S --needed "${packages[@]}"
-pause
+exec "$SCRIPT_DIR/community-install" "$@"

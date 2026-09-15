@@ -23,6 +23,12 @@ impl Client {
                 path.display()
             )
         })?;
+        #[cfg(unix)]
+        {
+            let peer =
+                stream.peer_cred().context("a backend socket tulajdonosa nem ellenorizheto")?;
+            require_peer_uid(peer.uid(), unsafe { libc::getuid() })?;
+        }
         let (read_half, write_half) = stream.into_split();
         Ok(Self { lines: BufReader::new(read_half).lines(), write_half, next_id: 1 })
     }
@@ -100,5 +106,29 @@ impl Client {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(unix)]
+fn require_peer_uid(actual: u32, expected: u32) -> Result<()> {
+    if actual != expected {
+        bail!("a backend socket mas felhasznaloe (vart uid: {expected}, kapott uid: {actual})");
+    }
+    Ok(())
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_different_user_cannot_pose_as_the_backend() {
+        let error = require_peer_uid(2000, 1000).unwrap_err().to_string();
+        assert!(error.contains("mas felhasznaloe"), "{error}");
+    }
+
+    #[test]
+    fn the_current_users_backend_is_accepted() {
+        require_peer_uid(1000, 1000).unwrap();
     }
 }

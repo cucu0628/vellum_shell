@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import "." as LockUi
 import "../../core" as Core
@@ -38,6 +39,9 @@ ShellRoot {
     readonly property var effectiveBackend: backend ? backend : ownBackend.item
     // A zárolt ciklus egyetlen igazságforrása: ez hajtja a WlSessionLockot és az ütemezőket is.
     property bool sessionActive: false
+    // Az altatas csak azutan indulhat, hogy a compositor minden kijelzon
+    // visszaigazolta a session lock feluletet.
+    property bool suspendPending: false
     property int revealStep: 0
     property var currentTime: new Date()
     property alias powerText: powerController.powerText
@@ -104,6 +108,19 @@ ShellRoot {
         introTimer.restart()
     }
 
+    function suspend() {
+        if (closing || suspendPending || suspendProcess.running) return
+        if (!sessionActive) lock()
+        suspendPending = true
+        suspendWhenSecure()
+    }
+
+    function suspendWhenSecure() {
+        if (!suspendPending || !sessionLock.secure || suspendProcess.running) return
+        suspendPending = false
+        suspendProcess.running = true
+    }
+
     Component.onCompleted: {
         if (lockOnStartup) lock()
     }
@@ -132,6 +149,11 @@ ShellRoot {
     LockUi.AuthenticationController {
         id: authentication
         onSucceeded: root.finishUnlock()
+    }
+
+    Process {
+        id: suspendProcess
+        command: ["systemctl", "suspend"]
     }
 
     Timer {
@@ -203,6 +225,7 @@ ShellRoot {
         locked: root.sessionActive
 
         onSecureChanged: {
+            if (secure) root.suspendWhenSecure()
             if (root.closing && !secure) unlockExitTimer.restart()
         }
 

@@ -7,7 +7,9 @@ shell_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 # amit a QML kliens nem tud kiszamolni. Ilyen munkamenetben mi jelolunk ki egy
 # kozos utvonalat mindkettonek.
 if [[ -z ${XDG_RUNTIME_DIR:-} && -z ${VELLUM_SOCKET:-} ]]; then
-  VELLUM_SOCKET="/tmp/vellum-shell-$(id -u).sock"
+  fallback_dir="/tmp/vellum-shell-$(id -u)"
+  install -d -m 700 "$fallback_dir"
+  VELLUM_SOCKET="$fallback_dir/vellum-shell.sock"
   export VELLUM_SOCKET
 fi
 

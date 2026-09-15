@@ -3,22 +3,22 @@ hl.config({
 	general = {
 		col = {
 			active_border = "rgb(ffffff)",
-			inactive_border = "rgb(c6c6c6)",
+			inactive_border = "rgb(636363)",
 		},
 	},
 	group = {
 		col = {
 			border_active = "rgb(ffffff)",
-			border_inactive = "rgb(c6c6c6)",
+			border_inactive = "rgb(636363)",
 			border_locked_active = "rgb(efefef)",
-			border_locked_inactive = "rgb(c6c6c6)",
+			border_locked_inactive = "rgb(636363)",
 		},
 		groupbar = {
 			col = {
 				active = "rgb(ffffff)",
-				inactive = "rgb(c6c6c6)",
+				inactive = "rgb(636363)",
 				locked_active = "rgb(efefef)",
-				locked_inactive = "rgb(c6c6c6)",
+				locked_inactive = "rgb(636363)",
 			},
 		},
 	},

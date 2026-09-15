@@ -25,10 +25,13 @@ TestCase {
         compare(action("files").command, ["xdg-open", "/home/test user"])
         compare(action("install package").command,
             ["/opt/vellum shell/scripts/floating-terminal", "/opt/vellum shell/scripts/pkg-install"])
+        compare(action("install community package").command,
+            ["/opt/vellum shell/scripts/floating-terminal", "/opt/vellum shell/scripts/community-install"])
     }
 
     function test_power_actions_are_argv_arrays() {
-        compare(action("suspend").command, ["systemctl", "suspend"])
+        compare(action("suspend").command,
+            ["quickshell", "ipc", "--path", "/opt/vellum shell/shell.qml", "call", "lock", "suspend"])
         compare(action("logout").command, ["hyprctl", "dispatch", "hl.dsp.exit()"])
     }
 }

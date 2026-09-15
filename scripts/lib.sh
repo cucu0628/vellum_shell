@@ -11,6 +11,49 @@ has() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Az installerek es a launcher ugyanebbol a helybol dontik el, melyik
+# csomagkezelot kell hasznalniuk. Az ID_LIKE miatt az Arch- es Fedora-alapu
+# valtozatok is a megfelelo agat kapjak; ismeretlen rendszeren nem talalgatunk.
+vellum_platform() {
+  local os_release=${VELLUM_OS_RELEASE:-/etc/os-release}
+  [[ -r $os_release ]] || return 1
+
+  (
+    ID=""
+    ID_LIKE=""
+    # shellcheck disable=SC1090
+    . "$os_release"
+    case " ${ID,,} ${ID_LIKE,,} " in
+      *" arch "*) printf '%s\n' arch ;;
+      *" fedora "*) printf '%s\n' fedora ;;
+      *) exit 1 ;;
+    esac
+  )
+}
+
+vellum_platform_name() {
+  case "${1:-$(vellum_platform 2>/dev/null || true)}" in
+    arch) printf '%s\n' "Arch Linux / CachyOS" ;;
+    fedora) printf '%s\n' "Fedora Linux" ;;
+    *) printf '%s\n' "ismeretlen Linux disztribucio" ;;
+  esac
+}
+
+vellum_package_hint() {
+  local platform=$1 package=$2
+  case "$platform" in
+    arch) printf 'sudo pacman -S %s\n' "$package" ;;
+    fedora)
+      if [[ $package == rust ]]; then
+        printf '%s\n' 'sudo dnf install rust cargo'
+      else
+        printf 'sudo dnf install %s\n' "$package"
+      fi
+      ;;
+    *) printf 'telepitsd ezt a csomagot: %s\n' "$package" ;;
+  esac
+}
+
 # A repo helye. A VELLUM_SHELL_DIR nyer -- ugyanaz a szabaly, mint a backend
 # `theme::paths::shell_dir()`-jeben --, kulonben ennek a fajlnak a szulomappaja.
 # Igy a scriptek akkor is jo helyre mutatnak, ha a repo nem a kanonikus uton van.

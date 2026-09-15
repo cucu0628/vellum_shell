@@ -21,7 +21,10 @@ Item {
         if (explicitPath) return explicitPath
         var runtimeDir = Quickshell.env("XDG_RUNTIME_DIR")
         if (runtimeDir) return runtimeDir + "/vellum-shell.sock"
-        return "/tmp/vellum-shell.sock"
+        // UID nelkul nem allithato elo biztonsagos /tmp fallback. A normal
+        // indito script ilyen kornyezetben VELLUM_SOCKET-et ad at; onallo
+        // inditasnal a shell inkabb daemon nelkul, degradaltan mukodik.
+        return ""
     }
     readonly property bool connected: _socket ? _socket.connected : false
 
@@ -186,7 +189,7 @@ Item {
 
     Loader {
         id: socketLoader
-        active: true
+        active: backend.socketPath !== ""
 
         sourceComponent: Component {
             Socket {

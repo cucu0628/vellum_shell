@@ -95,17 +95,17 @@ QtObject {
         "command": ["xdg-open", "https://www.google.com"]
     }, {
         "name": "install package",
-        "terms": ["pacman", "official", "repository", "software", "add"],
+        "terms": ["pacman", "dnf", "fedora", "official", "repository", "software", "add"],
         "icon": "󰏔",
         "subtitle": "Search and install from the official repositories",
         "command": terminalScript("pkg-install"),
         "delay": true
     }, {
-        "name": "install AUR package",
-        "terms": ["yay", "arch user repository", "software", "add"],
+        "name": "install community package",
+        "terms": ["aur", "yay", "paru", "copr", "fedora", "software", "add"],
         "icon": "󰣇",
-        "subtitle": "Search and install from the Arch User Repository",
-        "command": terminalScript("aur-install"),
+        "subtitle": "Use the AUR on Arch or a COPR on Fedora",
+        "command": terminalScript("community-install"),
         "delay": true
     }, {
         "name": "install web app",
@@ -123,9 +123,9 @@ QtObject {
         "delay": true
     }, {
         "name": "remove package",
-        "terms": ["pacman", "aur", "uninstall", "software", "delete"],
+        "terms": ["pacman", "dnf", "aur", "copr", "uninstall", "software", "delete"],
         "icon": "󰆴",
-        "subtitle": "Remove an installed repository or AUR package",
+        "subtitle": "Remove an installed system package",
         "command": terminalScript("pkg-remove"),
         "delay": true
     }, {
@@ -165,7 +165,7 @@ QtObject {
         "terms": ["sleep", "power"],
         "icon": "󰒲",
         "subtitle": "Suspend the system",
-        "command": ["systemctl", "suspend"],
+        "command": ipc("lock", "suspend"),
         "confirm": true
     }, {
         "name": "logout",

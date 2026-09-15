@@ -102,6 +102,7 @@ Item {
         target: "lock"
 
         function lock(): void { lockProvider.lock() }
+        function suspend(): void { lockProvider.suspend() }
     }
 
     IpcHandler {

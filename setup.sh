@@ -38,6 +38,9 @@ done
 
 source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 target_dir="$HOME/.config/quickshell/vellum_shell"
+# shellcheck source=scripts/lib.sh
+. "$source_dir/scripts/lib.sh"
+platform=$(vellum_platform 2>/dev/null || true)
 
 # -- preflight ---------------------------------------------------------------
 #
@@ -62,13 +65,24 @@ required_rust() {
 }
 
 preflight() {
-  command -v pacman >/dev/null 2>&1 || \
-    problems+=("nincs pacman: ez a setup Arch Linux / CachyOS rendszerre valo")
+  case "$platform" in
+    arch)
+      [[ $install_packages == false ]] || command -v pacman >/dev/null 2>&1 || \
+        problems+=("Arch/CachyOS rendszeren nem talalhato a pacman")
+      ;;
+    fedora)
+      [[ $install_packages == false ]] || command -v dnf >/dev/null 2>&1 || \
+        problems+=("Fedora rendszeren nem talalhato a dnf; az Atomic kiadasok rpm-ostree telepiteset a setup nem vegzi el")
+      ;;
+    *)
+      problems+=("nem tamogatott disztribucio; Arch Linux, CachyOS vagy Fedora Linux kell")
+      ;;
+  esac
 
   # A backend nem opcionalis: a temazas es a rendszerallapot mar csak benne
   # letezik. Az install.sh hozza a `rust` csomagot; --skip-packages mellett
   # viszont a felhasznalonak kell.
-  local msrv
+  local msrv rust_hint
   msrv=$(required_rust)
   if command -v cargo >/dev/null 2>&1; then
     local have
@@ -79,11 +93,16 @@ preflight() {
   elif [[ $install_packages == true ]]; then
     plan+=("Rust telepitese (a backend forrasbol epul)")
   else
-    problems+=("nincs cargo, a --skip-packages miatt pedig nem is telepitjuk (sudo pacman -S rust)")
+    rust_hint=$(vellum_package_hint "$platform" rust)
+    problems+=("nincs cargo, a --skip-packages miatt pedig nem is telepitjuk ($rust_hint)")
   fi
 
   if [[ ! -e "$HOME/.config/hypr/hyprland.lua" && ! -r /usr/share/hypr/hyprland.lua ]]; then
-    problems+=("nincs Hyprland Lua alapkonfiguracio; Hyprland 0.55 vagy ujabb kell")
+    if [[ $install_packages == true ]]; then
+      plan+=("Hyprland 0.55+ es Lua alapkonfiguracio telepitese")
+    else
+      problems+=("nincs Hyprland Lua alapkonfiguracio; Hyprland 0.55 vagy ujabb kell")
+    fi
   fi
 
   if [[ -e $target_dir || -L $target_dir ]] \
@@ -104,7 +123,10 @@ preflight() {
   done
 
   if [[ $install_packages == true ]]; then
-    plan+=("csomagok telepitese az install.sh-val")
+    plan+=("$(vellum_platform_name "$platform") csomagok telepitese az install.sh-val")
+    if [[ $platform == fedora ]]; then
+      plan+=("lionheartp/Hyprland COPR engedelyezese a Hyprland 0.55+ csomaghoz")
+    fi
   fi
   plan+=("PAM modul: /etc/pam.d/vellum-shell")
   plan+=("backend forditasa es telepitese (scripts/backend-install)")
@@ -172,7 +194,8 @@ sudo install -Dm644 "$source_dir/pam/vellum-shell" /etc/pam.d/vellum-shell
 # A cargo meglete es verzioja a preflightban dolt el; a csomagtelepito ota
 # viszont valtozhatott, ezert itt meg egyszer megnezzuk.
 if ! command -v cargo >/dev/null 2>&1; then
-  printf 'Hiba: nincs cargo. A backend nelkul nincs temazas. Telepitsd: sudo pacman -S rust\n' >&2
+  printf 'Hiba: nincs cargo. A backend nelkul nincs temazas. Telepitsd: %s\n' \
+    "$(vellum_package_hint "$platform" rust)" >&2
   exit 1
 fi
 "$source_dir/scripts/backend-install"

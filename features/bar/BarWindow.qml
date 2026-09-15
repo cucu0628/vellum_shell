@@ -68,15 +68,6 @@ PanelWindow {
     Item {
         anchors.fill: parent
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 1
-            color: root.theme.accent
-            opacity: 0.55
-        }
-
         Row {
             id: leftZone
 

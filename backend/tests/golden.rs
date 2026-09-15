@@ -1,9 +1,10 @@
 //! Golden teszt: a Rust generatorok kimenetenek byte-ra egyeznie kell a
-//! korabbi bash scriptekevel.
+//! rogzitett elvart kimenettel.
 //!
-//! A baseline-t a `backend/tests/capture-golden.sh` rogzitette meg a migracio
-//! elott, egy homokozo HOME-ban. Ez a teszt ugyanolyan homokozoban futtatja a
-//! Rust valtozatot, es osszeveti a ket kimenetet.
+//! A baseline eredetileg a `backend/tests/capture-golden.sh` segitsegevel, a
+//! migracio elott keszult egy homokozo HOME-ban. A szandekos generatorvaltozasok
+//! erintett elvarasait azota celzottan frissitjuk. Ez a teszt ugyanolyan
+//! homokozoban futtatja a Rust valtozatot, es osszeveti a ket kimenetet.
 //!
 //! Egyetlen teszfuggveny, mert a HOME/VELLUM_SHELL_DIR kornyezeti valtozok
 //! processz-szintuek -- parhuzamos tesztek egymas alol huznak ki oket.
@@ -100,7 +101,7 @@ fn expected_icon_theme(golden: &Path) -> Option<String> {
 }
 
 #[test]
-fn generators_match_bash_baseline() {
+fn generators_match_golden_baseline() {
     let sandbox = Sandbox::new();
     let repo = repo_root();
     let golden_root = golden_dir();

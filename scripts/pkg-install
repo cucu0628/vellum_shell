@@ -4,14 +4,28 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
+platform=$(vellum_platform 2>/dev/null || true)
+[[ -n $platform ]] || die "only Arch Linux, CachyOS and Fedora Linux are supported"
+
 if (( $# > 0 )); then
   packages=("$@")
 else
   require_fzf
-  mapfile -t packages < <(pacman -Slq | sort -u | fzf_many "pacman install" "pacman -Si {} 2>/dev/null || true")
+  case "$platform" in
+    arch)
+      mapfile -t packages < <(pacman -Slq | sort -u | fzf_many "pacman install" "pacman -Si {} 2>/dev/null || true")
+      ;;
+    fedora)
+      mapfile -t packages < <(dnf repoquery --available --queryformat '%{name}' 2>/dev/null \
+        | sort -u | fzf_many "dnf install" "dnf info {} 2>/dev/null || true")
+      ;;
+  esac
 fi
 
 (( ${#packages[@]} > 0 )) || die "no package selected"
 printf 'Installing: %s\n' "${packages[*]}"
-sudo pacman -S --needed "${packages[@]}"
+case "$platform" in
+  arch) sudo pacman -S --needed "${packages[@]}" ;;
+  fedora) sudo dnf install "${packages[@]}" ;;
+esac
 pause

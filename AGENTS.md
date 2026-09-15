@@ -2,7 +2,8 @@
 
 ## Project shape
 
-Vellum Shell is a Quickshell/QtQuick desktop shell for Hyprland on Arch Linux and CachyOS. Keep the existing dependency direction intact:
+Vellum Shell is a Quickshell/QtQuick desktop shell for Hyprland on Arch Linux,
+CachyOS, and Fedora Linux. Keep the existing dependency direction intact:
 
 ```text
 shell.qml -> app, core, features

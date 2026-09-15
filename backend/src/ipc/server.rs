@@ -49,13 +49,48 @@ pub fn socket_path() -> PathBuf {
     match std::env::var_os("XDG_RUNTIME_DIR") {
         Some(dir) if !dir.is_empty() => PathBuf::from(dir).join("vellum-shell.sock"),
         // SAFETY: a getuid() nem nyul megosztott allapothoz es sosem bukik.
-        _ => PathBuf::from(format!("/tmp/vellum-shell-{}.sock", unsafe { libc::getuid() })),
+        _ => PathBuf::from(format!("/tmp/vellum-shell-{}", unsafe { libc::getuid() }))
+            .join("vellum-shell.sock"),
     }
+}
+
+/// A socket szuloje nem lehet mas felhasznalo altal cserelheto. Ez kulonosen
+/// a /tmp fallbacknel fontos: az elore kiszamithato socketnevet kulonben egy
+/// masik helyi felhasznalo a daemon indulasa elott lefoglalhatna.
+#[cfg(unix)]
+fn prepare_socket_dir(path: &Path) -> Result<()> {
+    use std::os::unix::fs::{DirBuilderExt, MetadataExt, PermissionsExt};
+
+    let parent = path.parent().context("a socket utvonalanak nincs szuloje")?;
+    if !parent.exists() {
+        let mut builder = std::fs::DirBuilder::new();
+        builder.recursive(true).mode(0o700);
+        builder.create(parent).with_context(|| {
+            format!("a socket konyvtara nem hozhato letre: {}", parent.display())
+        })?;
+        // Az umask csak jogot vehet el a kert modbol. Allitsuk vissza a pontos
+        // erteket, hogy a daemon szokatlanul szigoru umask mellett is elerje.
+        std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o700))?;
+    }
+
+    let metadata = std::fs::symlink_metadata(parent)
+        .with_context(|| format!("a socket konyvtara nem vizsgalhato: {}", parent.display()))?;
+    let uid = unsafe { libc::getuid() };
+    if !metadata.file_type().is_dir() || metadata.uid() != uid || metadata.mode() & 0o022 != 0 {
+        anyhow::bail!(
+            "nem biztonsagos socket konyvtar: {} (sajat tulajdonu, masok altal nem irhato konyvtar kell)",
+            parent.display()
+        );
+    }
+    Ok(())
 }
 
 /// Elindul a socketen. Ha maradt egy arva socket-fajl egy korabbi futasbol,
 /// eltavolitja -- de csak ha tenyleg nem figyel rajta senki.
 pub async fn listen(hub: Arc<Hub>, path: &Path) -> Result<()> {
+    #[cfg(unix)]
+    prepare_socket_dir(path)?;
+
     if path.exists() {
         match UnixStream::connect(path).await {
             Ok(_) => anyhow::bail!("mar fut egy peldany ezen a socketen: {}", path.display()),
@@ -439,6 +474,42 @@ async fn handle_line(
 mod tests {
     use super::*;
     use crate::module::{Module, ModuleDescription, StateSink};
+
+    #[cfg(unix)]
+    fn socket_test_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir()
+            .join(format!("vellum-socket-security-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        root
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn socket_fallback_directory_is_private() {
+        use std::os::unix::fs::MetadataExt;
+
+        let root = socket_test_root("private");
+        let socket = root.join("runtime/vellum-shell.sock");
+        prepare_socket_dir(&socket).unwrap();
+
+        let metadata = std::fs::metadata(socket.parent().unwrap()).unwrap();
+        assert_eq!(metadata.mode() & 0o777, 0o700);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn world_writable_socket_directory_is_rejected() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = socket_test_root("world-writable");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o777)).unwrap();
+
+        let error = prepare_socket_dir(&root.join("vellum-shell.sock")).unwrap_err().to_string();
+        assert!(error.contains("nem biztonsagos"), "{error}");
+        let _ = std::fs::remove_dir_all(root);
+    }
 
     /// Streamelo modul, ami sosem all le maga -- igy a feliratkozo-szamlalas a
     /// megfigyelheto viselkedes.

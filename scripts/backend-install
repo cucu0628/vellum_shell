@@ -30,7 +30,11 @@ if systemctl --user is-active --quiet "$unit_name" 2>/dev/null; then
 fi
 
 # Kezzel inditott peldany is fokhatja a socketet (pl. fejlesztes kozben).
-socket="${XDG_RUNTIME_DIR:-/tmp}/vellum-shell.sock"
+if [[ -n ${XDG_RUNTIME_DIR:-} ]]; then
+  socket="$XDG_RUNTIME_DIR/vellum-shell.sock"
+else
+  socket="/tmp/vellum-shell-$(id -u)/vellum-shell.sock"
+fi
 if [[ -S $socket ]] && "$binary" --socket "$socket" ping >/dev/null 2>&1; then
   printf 'Figyelmeztetes: egy masik vellum peldany meg fut es fogja a socketet.\n' >&2
   printf 'Allitsd le (pkill -x vellum), majd futtasd ujra.\n' >&2
