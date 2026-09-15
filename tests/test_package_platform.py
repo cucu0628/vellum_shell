@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 LIB = ROOT / "scripts/lib.sh"
+INSTALLER = ROOT / "install.sh"
 
 
 class PackagePlatformTests(unittest.TestCase):
@@ -88,6 +89,23 @@ class PackagePlatformTests(unittest.TestCase):
             self.assertEqual(
                 self.run_helper("community-install", arch, "tool", commands=("paru",)),
                 [b"paru", b"-S", b"--needed", b"tool"])
+
+    def test_fedora_installer_preserves_the_power_profile_provider(self):
+        installer = INSTALLER.read_text()
+        fedora_packages = installer.split("fedora_packages=(", 1)[1].split("\n)", 1)[0]
+
+        self.assertNotIn("power-profiles-daemon", fedora_packages)
+        self.assertNotIn("tuned-ppd", fedora_packages)
+        self.assertNotIn("satty", fedora_packages)
+        self.assertIn("rpm -q --whatprovides ppd-service", installer)
+        self.assertIn("sudo dnf install tuned-ppd", installer)
+
+    def test_fedora_hyprland_repo_is_accepted_and_refreshed(self):
+        installer = INSTALLER.read_text()
+
+        self.assertIn("sudo dnf -y copr enable lionheartp/Hyprland", installer)
+        self.assertIn('sudo dnf install --refresh "${fedora_hyprland_packages[@]}"', installer)
+        self.assertIn("xdg-desktop-portal-hyprland", installer)
 
 
 if __name__ == "__main__":

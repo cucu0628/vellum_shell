@@ -153,7 +153,6 @@ fedora_packages=(
   grep
   grim
   gtk4-devel
-  hyprland
   iproute
   jq
   kitty
@@ -169,13 +168,11 @@ fedora_packages=(
   pkgconf-pkg-config
   playerctl
   polkit
-  power-profiles-daemon
   procps-ng
   python3
   qt6ct
   quickshell
   rust
-  satty
   sddm
   sed
   slurp
@@ -187,12 +184,16 @@ fedora_packages=(
   wireplumber
   wl-clipboard
   xdg-desktop-portal-gtk
-  xdg-desktop-portal-hyprland
   xdg-user-dirs
   xdg-utils
   xrandr
   xz
   yaru-icon-theme
+)
+
+fedora_hyprland_packages=(
+  hyprland
+  xdg-desktop-portal-hyprland
 )
 
 install_fedora_copr_plugin() {
@@ -244,6 +245,18 @@ install_fedora_source_tools() {
   fi
 }
 
+install_fedora_power_profiles() {
+  # Fedora a tuned-ppd szolgaltatast hasznalja alapertelmezetten. Ugyanazt a
+  # PPD D-Bus API-t adja, mint a power-profiles-daemon, ezert a ket csomag
+  # szandekosan utkozik. Egy mar telepitett szolgaltatot nem cserelunk le.
+  if rpm -q --whatprovides ppd-service >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf 'A Fedora energia-profil szolgáltatás telepítése...\n'
+  sudo dnf install tuned-ppd
+}
+
 install_fedora_packages() {
   local enabled_repos required_command
   local -a missing_commands
@@ -254,18 +267,23 @@ install_fedora_packages() {
 
   install_fedora_copr_plugin
 
-  # A Vellum Hyprland 0.55+ Lua konfiguraciojat hasznalja. A Fedora szamara a
-  # Hyprland sajat telepitesi dokumentacioja ezt a COPR-t ajanlja.
+  # A Vellum Hyprland 0.55+ Lua konfiguraciojat hasznalja. A Hyprland sajat
+  # dokumentacioja Fedora alatt ezt a COPR-t ajanlja.
   enabled_repos=$(dnf repolist --enabled 2>/dev/null || true)
   if ! grep -Eqi 'lionheartp.*hyprland' <<<"$enabled_repos"; then
     printf 'A Hyprland Fedora COPR engedélyezése...\n'
-    sudo dnf copr enable lionheartp/Hyprland
+    sudo dnf -y copr enable lionheartp/Hyprland
   fi
 
+  printf 'A Fedora Hyprland csomagok ellenőrzése és telepítése...\n'
+  # A kulcsfontossagu COPR csomagoknal ne rejtse el a hibat a
+  # --skip-unavailable. A --refresh az ujonnan engedelyezett repo metaadatait
+  # azonnal betolti.
+  sudo dnf install --refresh "${fedora_hyprland_packages[@]}"
+
   printf 'Fedora csomagok ellenőrzése és telepítése...\n'
-  # A satty nem minden támogatott Fedora kiadásban van csomagolva. Ilyenkor a
-  # DNF átugorja, és lent Cargo telepíti; a többi csomag ugyanúgy felkerül.
   sudo dnf install --skip-unavailable "${fedora_packages[@]}"
+  install_fedora_power_profiles
   install_nerd_symbols
   install_fedora_source_tools
 

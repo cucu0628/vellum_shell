@@ -87,7 +87,7 @@ require the corresponding command:
 | Screenshot extras | `satty`, `wl-copy`, `notify-send`, `xdg-user-dir` |
 | Interactive utility scripts | `fzf`, Kitty |
 | Package management | `pacman` plus `paru`/`yay` on Arch; `dnf` plus its COPR plugin on Fedora |
-| Power profiles | `powerprofilesctl` |
+| Power profiles | `powerprofilesctl` or a compatible PPD D-Bus service |
 | Settings default applications | `xdg-mime` from `xdg-utils` |
 | Settings user services | A reachable systemd user manager |
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
@@ -159,11 +159,13 @@ Restart an already running instance with:
 recommended entry point for a fresh system.
 
 Both scripts detect Arch/CachyOS and Fedora automatically. On Fedora they use
-DNF and enable the `lionheartp/Hyprland` COPR recommended by Hyprland upstream,
-because Vellum needs Hyprland 0.55 or newer with its Lua configuration API.
-Fedora 44 and newer provide Quickshell directly. The package installer targets
-regular DNF-based Fedora installations; Fedora Atomic variants require their
-packages to be layered separately before running `./setup.sh --skip-packages`.
+DNF and enable the `lionheartp/Hyprland` COPR recommended by Hyprland upstream.
+Vellum needs Hyprland 0.55 or newer with its Lua configuration API. Fedora 44
+and newer provide Quickshell directly. The installer keeps an existing
+PPD-compatible power-profile service; otherwise it installs Fedora's default
+`tuned-ppd`. The package installer targets regular DNF-based Fedora
+installations; Fedora Atomic variants require their packages to be layered
+separately before running `./setup.sh --skip-packages`.
 
 ### Removing it again
 

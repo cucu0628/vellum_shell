@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  printf 'Használat: %s list | set <power-saver|balanced|performance>\n' "${0##*/}" >&2
+  exit 2
+}
+
+list_with_powerprofilesctl() {
+  printf 'active:%s\n' "$(powerprofilesctl get)"
+  powerprofilesctl list | sed -n 's/^[* ] \([a-z-]*\):$/name:\1/p'
+}
+
+list_with_dbus() {
+  local active_raw profiles_raw active
+  active_raw=$(gdbus call --system \
+    --dest org.freedesktop.UPower.PowerProfiles \
+    --object-path /org/freedesktop/UPower/PowerProfiles \
+    --method org.freedesktop.DBus.Properties.Get \
+    org.freedesktop.UPower.PowerProfiles ActiveProfile)
+  profiles_raw=$(gdbus call --system \
+    --dest org.freedesktop.UPower.PowerProfiles \
+    --object-path /org/freedesktop/UPower/PowerProfiles \
+    --method org.freedesktop.DBus.Properties.Get \
+    org.freedesktop.UPower.PowerProfiles Profiles)
+
+  active=$(sed -n "s/^.*<'\\([^']*\\)'>.*$/\\1/p" <<<"$active_raw")
+  [[ -n $active ]] || exit 1
+  printf 'active:%s\n' "$active"
+  grep -oE "'Profile': <'[^']+'>" <<<"$profiles_raw" \
+    | sed "s/^'Profile': <'\\([^']*\\)'>$/name:\\1/"
+}
+
+set_with_dbus() {
+  local profile=$1
+  gdbus call --system \
+    --dest org.freedesktop.UPower.PowerProfiles \
+    --object-path /org/freedesktop/UPower/PowerProfiles \
+    --method org.freedesktop.DBus.Properties.Set \
+    org.freedesktop.UPower.PowerProfiles ActiveProfile "<'$profile'>" >/dev/null
+}
+
+case ${1:-} in
+  list)
+    (( $# == 1 )) || usage
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+      list_with_powerprofilesctl
+    else
+      command -v gdbus >/dev/null 2>&1 || exit 1
+      list_with_dbus
+    fi
+    ;;
+  set)
+    (( $# == 2 )) || usage
+    case $2 in
+      power-saver|balanced|performance) ;;
+      *) usage ;;
+    esac
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+      powerprofilesctl set "$2"
+    else
+      command -v gdbus >/dev/null 2>&1 || exit 1
+      set_with_dbus "$2"
+    fi
+    ;;
+  *) usage ;;
+esac

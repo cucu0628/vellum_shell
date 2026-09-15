@@ -32,9 +32,9 @@ Item {
         weatherFile.reload();
 
         readProfiles.running = false;
-        // Egy hivas adja a listat es az aktivat is: a `list` csillaggal jeloli
-        // az eppen ervenyeset, de az konnyen valtozik -- ezert kerdezzuk kulon.
-        readProfiles.command = ["sh", "-c", "command -v powerprofilesctl >/dev/null 2>&1 || exit 1; printf 'active:%s\\n' \"$(powerprofilesctl get)\"; powerprofilesctl list | sed -n 's/^[* ] \\([a-z-]*\\):$/name:\\1/p'"];
+        // A seged egyseges kimenetet ad a powerprofilesctl es a Fedora
+        // tuned-ppd altal biztositott szabvanyos D-Bus API folett.
+        readProfiles.command = [shellDir + "/scripts/power-profile", "list"];
         readProfiles.running = true;
 
         readMonitors.running = false;
@@ -162,7 +162,7 @@ Item {
     function setPowerProfile(value) {
         powerProfile = value;
         write.running = false;
-        write.command = ["powerprofilesctl", "set", value];
+        write.command = [shellDir + "/scripts/power-profile", "set", value];
         write.running = true;
     }
 

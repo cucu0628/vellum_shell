@@ -55,7 +55,7 @@ Flickable {
             theme: page.theme
             enabled: page.systemController.powerProfilesAvailable
             label: "Power profile"
-            description: page.systemController.powerProfilesAvailable ? "Balances performance against battery life." : "power-profiles-daemon is not installed."
+            description: page.systemController.powerProfilesAvailable ? "Balances performance against battery life." : "No compatible power-profile service is available."
             showDescription: !page.systemController.powerProfilesAvailable
 
             SharedUi.SettingSelect {
