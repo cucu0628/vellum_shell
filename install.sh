@@ -257,8 +257,8 @@ install_fedora_power_profiles() {
 }
 
 install_fedora_packages() {
-  local enabled_repos required_command
-  local -a missing_commands
+  local enabled_repos package required_command
+  local -a missing_commands missing_fedora_packages missing_hyprland_packages
   command -v dnf >/dev/null 2>&1 || {
     printf 'Hiba: Fedora rendszeren nem található a dnf. Az Atomic kiadások rpm-ostree telepítését ez a script nem módosítja.\n' >&2
     exit 1
@@ -274,19 +274,36 @@ install_fedora_packages() {
     sudo dnf -y copr enable lionheartp/Hyprland
   fi
 
-  printf 'A Fedora Hyprland csomagok ellenőrzése és telepítése...\n'
-  # A kulcsfontossagu COPR csomagoknal ne rejtse el a hibat a
-  # --skip-unavailable. A --refresh az ujonnan engedelyezett repo metaadatait
-  # azonnal betolti.
-  sudo dnf install --refresh --setopt=install_weak_deps=False \
-    "${fedora_hyprland_packages[@]}"
+  missing_hyprland_packages=()
+  for package in "${fedora_hyprland_packages[@]}"; do
+    rpm -q -- "$package" >/dev/null 2>&1 || missing_hyprland_packages+=("$package")
+  done
+  if (( ${#missing_hyprland_packages[@]} > 0 )); then
+    printf 'A hiányzó Fedora Hyprland csomagok telepítése...\n'
+    # A kulcsfontossagu COPR csomagoknal ne rejtse el a hibat a
+    # --skip-unavailable. A --refresh az ujonnan engedelyezett repo metaadatait
+    # azonnal betolti.
+    sudo dnf install --refresh --setopt=install_weak_deps=False \
+      "${missing_hyprland_packages[@]}"
+  fi
 
-  printf 'Fedora csomagok ellenőrzése és telepítése...\n'
+  missing_fedora_packages=()
+  for package in "${fedora_packages[@]}"; do
+    rpm -q -- "$package" >/dev/null 2>&1 || missing_fedora_packages+=("$package")
+  done
+
   # A Vellum sajat panelt es launchert ad. A gyenge fuggosegek kikapcsolasa
   # megakadalyozza, hogy a COPR ajanlott Wofit, nwg-panelt vagy masik shell
   # komponenst huzzon be. A fajlkezelo az xdg-open rendszeralapertelmezese.
-  sudo dnf install --skip-unavailable --setopt=install_weak_deps=False \
-    "${fedora_packages[@]}"
+  # A mar telepitett csomagokat sem adjuk at ujra a DNF-nek: egy telepites nem
+  # indithat el mellekesen teljes Fedora/KDE frissitest.
+  if (( ${#missing_fedora_packages[@]} > 0 )); then
+    printf 'A hiányzó Fedora csomagok telepítése...\n'
+    sudo dnf install --skip-unavailable --setopt=install_weak_deps=False \
+      "${missing_fedora_packages[@]}"
+  else
+    printf 'Minden szükséges Fedora csomag már telepítve van.\n'
+  fi
   install_fedora_power_profiles
   install_nerd_symbols
   install_fedora_source_tools

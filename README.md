@@ -165,9 +165,10 @@ and newer provide Quickshell directly. The installer keeps an existing
 PPD-compatible power-profile service; otherwise it installs Fedora's default
 `tuned-ppd`. DNF weak dependencies are disabled so the Hyprland package cannot
 pull in another panel or launcher such as nwg-panel or Wofi. The package
-installer targets regular DNF-based Fedora installations; Fedora Atomic
-variants require their packages to be layered separately before running
-`./setup.sh --skip-packages`.
+installer passes only missing RPMs to DNF, avoiding an unrelated desktop or KDE
+upgrade during setup. It targets regular DNF-based Fedora installations;
+Fedora Atomic variants require their packages to be layered separately before
+running `./setup.sh --skip-packages`.
 
 ### Removing it again
 

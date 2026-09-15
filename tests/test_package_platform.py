@@ -115,6 +115,13 @@ class PackagePlatformTests(unittest.TestCase):
         self.assertNotIn("wofi", fedora_packages)
         self.assertNotIn("nwg-panel", fedora_packages)
         self.assertEqual(installer.count("--setopt=install_weak_deps=False"), 2)
+        self.assertIn('rpm -q -- "$package"', installer)
+        self.assertIn('"${missing_fedora_packages[@]}"', installer)
+        self.assertIn('"${missing_hyprland_packages[@]}"', installer)
+        old_bulk_call = (
+            "--setopt=install_weak_deps=False \\" + "\n    "
+            + '"${fedora_packages[@]}"')
+        self.assertNotIn(old_bulk_call, installer)
 
 
 if __name__ == "__main__":
