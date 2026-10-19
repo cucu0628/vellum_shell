@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
+# A Settings "Keybindings" oldalanak adatforrasa.
+#
+# Kimenet: ha a Hyprland elerheto, eloszor a `hyprctl binds -j` JSON-ja, utana
+# egy `#source` sor, majd a config forrasabol olvasott `kombinacio<TAB>muvelet`
+# sorok. A Lua configban minden kotes `__lua` dispatchert es egy belso
+# sorszamot kap, a JSON-bol tehat csak a billentyu derul ki -- a muvelet
+# leirasat a forras adja hozza. Hyprland nelkul csak a forras-sorok jonnek.
+#
+# A forrast a belepesi fajltol a `require` hivasokon at olvassuk, a
+# `local NEV = "ertek"` + `if NEV == "ertek" then` agakat kiertekelve, igy egy
+# masik shellhez tartozo (inaktiv) kotesfajl nem irja felul a muveleteket.
 set -euo pipefail
 
-bind_file="${HYPR_BINDINGS_FILE:-$HOME/.config/hypr/bindings.lua}"
-
-if command -v hyprctl >/dev/null 2>&1 && runtime_binds=$(hyprctl binds -j 2>/dev/null); then
-    printf '%s\n' "$runtime_binds"
-    exit 0
-fi
-
-if [[ ! -r "$bind_file" ]]; then
-    exit 0
-fi
+entry_file="${HYPR_BINDINGS_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland.lua}"
+module_dir="$(dirname -- "$entry_file")"
 
 direction_name() {
     case "$1" in
@@ -33,8 +36,13 @@ describe_command() {
         case "$command" in
             kitty) printf 'Open terminal (Kitty)' ;;
             nautilus*) printf 'Open file manager' ;;
-            zen-browser*) printf 'Open browser' ;;
+            zen-browser* | *app.zen_browser.zen*) printf 'Open browser' ;;
             code) printf 'Open VS Code' ;;
+            wpctl\ set-volume*+) printf 'Raise volume' ;;
+            wpctl\ set-volume*-) printf 'Lower volume' ;;
+            wpctl\ set-mute*SOURCE*) printf 'Mute microphone' ;;
+            wpctl\ set-mute*) printf 'Mute audio' ;;
+            *floating-terminal\ btop) printf 'System monitor (btop)' ;;
             *) printf 'Run: %s' "$command" ;;
         esac
     fi
@@ -43,7 +51,7 @@ describe_command() {
 describe_action() {
     local action="$1"
     local shortcut="${2:-}"
-    local direction workspace command x y
+    local direction workspace x y
 
     if [[ "$action" =~ description[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]]; then
         printf '%s' "${BASH_REMATCH[1]}"
@@ -81,11 +89,14 @@ describe_action() {
         case "$workspace" in
             e+1) printf 'Move window to next workspace' ;;
             e-1) printf 'Move window to previous workspace' ;;
+            special:*) printf 'Move window to special workspace %s' "${workspace#special:}" ;;
             *) printf 'Move window to workspace %s' "$workspace" ;;
         esac
     elif [[ "$action" == *"hl.dsp.window.move"* && "$action" =~ direction[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]]; then
         direction="$(direction_name "${BASH_REMATCH[1]}")"
         printf 'Move window %s' "$direction"
+    elif [[ "$action" =~ hl\.dsp\.workspace\.toggle_special\(\"([^\"]*)\"\) ]]; then
+        printf 'Toggle special workspace %s' "${BASH_REMATCH[1]}"
     elif [[ "$action" == *"hl.dsp.focus"* && "$action" =~ monitor[[:space:]]*=[[:space:]]*\"([^\"]+)\" ]]; then
         direction="$(direction_name "${BASH_REMATCH[1]}")"
         printf 'Focus monitor %s' "$direction"
@@ -118,13 +129,199 @@ describe_action() {
     fi
 }
 
-while IFS= read -r line; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    [[ "$line" == --* ]] && continue
+# Sajat segedfuggveny hivasa, pl. `rebind("SUPER + M", "btop", opts)` vagy
+# `shell("SUPER + V", "clipboard toggle", "Vellum clipboard")`. A fuggveny
+# jelenteset nem ismerjuk: a `description` mezo, egy `hl.dsp` hivas, vagy a
+# string-argumentumok kozul az utolso (ha tobb van, az a leiras szokott lenni).
+describe_helper() {
+    local rest="$1"
+    local shortcut="$2"
+    local -a strings=()
+    local remaining="$rest"
 
-    if [[ "$line" =~ ^hl\.bind\(\"([^\"]+)\"[[:space:]]*,[[:space:]]*(.*)$ ]]; then
-        shortcut="${BASH_REMATCH[1]}"
-        action="${BASH_REMATCH[2]}"
-        printf '%s\t%s\n' "$shortcut" "$(describe_action "$action" "$shortcut")"
+    if [[ "$rest" =~ description[[:space:]]*=[[:space:]]*\"([^\"]+)\" || "$rest" == *"hl.dsp."* || "$rest" == function* ]]; then
+        describe_action "$rest" "$shortcut"
+        return
     fi
-done < "$bind_file"
+
+    while [[ "$remaining" =~ \"([^\"]*)\"(.*) ]]; do
+        strings+=("${BASH_REMATCH[1]}")
+        remaining="${BASH_REMATCH[2]}"
+    done
+
+    if ((${#strings[@]} >= 2)); then
+        printf '%s' "${strings[-1]}"
+    elif ((${#strings[@]} == 1)); then
+        describe_command "${strings[0]}"
+    else
+        printf 'Custom Lua action'
+    fi
+}
+
+# "SUPER + shift + Left" -> "SUPER+SHIFT+LEFT": ugyanaz a kotes ugyanazt a
+# kulcsot kapja, barhogy is irtak a modositokat.
+canonical_shortcut() {
+    local text="${1^^}"
+    local -a parts=()
+    local -A present=()
+    local part key result=""
+
+    text="${text//[[:space:]]/}"
+    IFS='+' read -ra parts <<< "$text"
+    ((${#parts[@]} > 0)) || return 0
+    key="${parts[-1]}"
+    unset 'parts[-1]'
+
+    for part in "${parts[@]}"; do
+        case "$part" in
+            SUPER | WIN | LOGO | META | MOD4) present[SUPER]=1 ;;
+            CTRL | CONTROL) present[CTRL]=1 ;;
+            ALT | MOD1) present[ALT]=1 ;;
+            *) present[$part]=1 ;;
+        esac
+    done
+
+    for part in SUPER CTRL ALT SHIFT CAPS MOD2 MOD3 MOD5; do
+        [[ -n "${present[$part]:-}" ]] && result+="$part+"
+    done
+    printf '%s%s' "$result" "$key"
+}
+
+declare -A bind_line=()
+declare -A bind_listed=()
+declare -a bind_order=()
+declare -A seen_files=()
+
+record_bind() {
+    local id
+    id="$(canonical_shortcut "$1")"
+    if [[ -z "${bind_listed[$id]:-}" ]]; then
+        bind_listed[$id]=1
+        bind_order+=("$id")
+    fi
+    bind_line[$id]="$1"$'\t'"$2"
+}
+
+remove_bind() {
+    local id
+    id="$(canonical_shortcut "$1")"
+    unset 'bind_line[$id]'
+}
+
+# 1 = igaz, 0 = hamis, ? = nem tudjuk kiertekelni (mindket ag szamit).
+condition_value() {
+    local condition="$1"
+    local pattern='^([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*(==|~=)[[:space:]]*"([^"]*)"$'
+
+    if [[ "$condition" =~ $pattern && -n "${vars[${BASH_REMATCH[1]}]+x}" ]]; then
+        local equal=0
+        [[ "${vars[${BASH_REMATCH[1]}]}" == "${BASH_REMATCH[3]}" ]] && equal=1
+        if [[ "${BASH_REMATCH[2]}" == "==" ]]; then
+            printf '%s' "$equal"
+        else
+            printf '%s' "$((1 - equal))"
+        fi
+    else
+        printf '?'
+    fi
+}
+
+scan_file() {
+    local file="$1"
+    [[ -r "$file" && -z "${seen_files[$file]:-}" ]] || return 0
+    seen_files[$file]=1
+
+    # Nyitott blokkok: `b` = fuggveny/ciklus, `u` = ismeretlen feltetel,
+    # `i<volt mar igaz ag><ez az ag aktiv>` = kiertekelt if.
+    local -A vars=()
+    local -a blocks=()
+    local line block active value shortcut
+    local require_pattern='^(local[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*)?require[[:space:]]*\(?[[:space:]]*["'"'"']([^"'"'"']+)["'"'"']'
+    local local_pattern='^local[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*"([^"]*)"$'
+    local bind_pattern='^hl\.bind\("([^"]+)"[[:space:]]*,[[:space:]]*(.*)$'
+    local unbind_pattern='^hl\.unbind\("([^"]+)"\)'
+    local helper_pattern='^[A-Za-z_][A-Za-z0-9_]*\("([^"]+)"[[:space:]]*,[[:space:]]*(.*)$'
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" || "$line" == --* ]] && continue
+
+        if [[ "$line" =~ ^if[[:space:]]+(.+)[[:space:]]+then$ ]]; then
+            value="$(condition_value "${BASH_REMATCH[1]}")"
+            case "$value" in
+                1) blocks+=("i11") ;;
+                0) blocks+=("i00") ;;
+                *) blocks+=("u") ;;
+            esac
+            continue
+        elif [[ "$line" =~ ^elseif[[:space:]]+(.+)[[:space:]]+then$ ]]; then
+            ((${#blocks[@]} > 0)) || continue
+            block="${blocks[-1]}"
+            if [[ "$block" == i1* ]]; then
+                blocks[-1]="i10"
+            elif [[ "$block" == i0* ]]; then
+                value="$(condition_value "${BASH_REMATCH[1]}")"
+                case "$value" in
+                    1) blocks[-1]="i11" ;;
+                    0) blocks[-1]="i00" ;;
+                    *) blocks[-1]="u" ;;
+                esac
+            fi
+            continue
+        elif [[ "$line" == "else" ]]; then
+            ((${#blocks[@]} > 0)) || continue
+            block="${blocks[-1]}"
+            if [[ "$block" == i1* ]]; then
+                blocks[-1]="i10"
+            elif [[ "$block" == i0* ]]; then
+                blocks[-1]="i11"
+            fi
+            continue
+        elif [[ "$line" =~ ^end([^A-Za-z0-9_]|$) ]]; then
+            ((${#blocks[@]} > 0)) && unset 'blocks[-1]'
+            continue
+        fi
+
+        # Egysoros `function() ... end` nem nyit blokkot.
+        if [[ "$line" =~ (^|[^A-Za-z0-9_])function([[:space:]]|\() && ! "$line" =~ [^A-Za-z0-9_]end([^A-Za-z0-9_]|$) ]] \
+            || [[ "$line" =~ ^(for|while)[[:space:]].*[[:space:]]do$ || "$line" == "do" ]]; then
+            blocks+=("b")
+        fi
+
+        active=1
+        for block in "${blocks[@]}"; do
+            [[ "$block" == i?0 ]] && active=0
+        done
+        ((active)) || continue
+
+        if [[ "$line" =~ $local_pattern ]]; then
+            vars[${BASH_REMATCH[1]}]="${BASH_REMATCH[2]}"
+        elif [[ "$line" =~ $require_pattern ]]; then
+            scan_file "$module_dir/${BASH_REMATCH[2]//.//}.lua"
+        elif [[ "$line" =~ $bind_pattern ]]; then
+            shortcut="${BASH_REMATCH[1]}"
+            record_bind "$shortcut" "$(describe_action "${BASH_REMATCH[2]}" "$shortcut")"
+        elif [[ "$line" =~ $unbind_pattern ]]; then
+            remove_bind "${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $helper_pattern ]]; then
+            shortcut="${BASH_REMATCH[1]}"
+            # Csak ami billentyunek nez ki: modositos kombinacio vagy kulon gomb.
+            if [[ "$shortcut" == *+* || "$shortcut" == XF86* || "$shortcut" == Print ]]; then
+                record_bind "$shortcut" "$(describe_helper "${BASH_REMATCH[2]}" "$shortcut")"
+            fi
+        fi
+    done < "$file"
+}
+
+if command -v hyprctl >/dev/null 2>&1 && runtime_binds=$(hyprctl binds -j 2>/dev/null); then
+    printf '%s\n' "$runtime_binds"
+fi
+
+printf '#source\n'
+scan_file "$entry_file"
+for id in "${bind_order[@]}"; do
+    if [[ -n "${bind_line[$id]+x}" ]]; then
+        printf '%s\n' "${bind_line[$id]}"
+    fi
+done

@@ -76,7 +76,8 @@ Flickable {
                     placeholder: "No default"
                     maxVisibleRows: 9
                     searchable: true
-                    dropUp: categoryRow.index >= 4
+                    searchPlaceholder: "Search applications..."
+                    emptyText: "No matching applications."
                     onActivated: (value) => page.controller.setDefault(categoryRow.modelData, value)
                 }
             }
