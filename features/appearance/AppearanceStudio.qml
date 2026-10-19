@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
 import "../../ui" as SharedUi
@@ -153,6 +154,37 @@ PanelWindow {
             Behavior on color { ColorAnimation { duration: 190; easing.type: Easing.OutCubic } }
         }
 
+        // Temanezetben a kijelolt kartya mogott a tema akcentusa dereng, es
+        // lapozaskor atuszik a kovetkezo szinbe: a hatter is a valasztast koveti.
+        Shape {
+            id: glow
+
+            readonly property var shown: themePicker.displayEntry(themePicker.currentEntry)
+            property color tint: shown ? shown.accent : studio.accent
+
+            anchors.fill: parent
+            opacity: studio.themeMode && studio.hasItems ? 1 : 0
+            visible: opacity > 0
+            preferredRendererType: Shape.CurveRenderer
+            Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+            Behavior on tint { ColorAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+            ShapePath {
+                strokeWidth: -1
+                fillGradient: RadialGradient {
+                    centerX: glow.width / 2
+                    centerY: glow.height / 2 - 24
+                    centerRadius: Math.max(glow.width, glow.height) * 0.42
+                    focalX: centerX
+                    focalY: centerY
+                    GradientStop { position: 0; color: Qt.rgba(glow.tint.r, glow.tint.g, glow.tint.b, 0.2) }
+                    GradientStop { position: 0.55; color: Qt.rgba(glow.tint.r, glow.tint.g, glow.tint.b, 0.06) }
+                    GradientStop { position: 1; color: Qt.rgba(glow.tint.r, glow.tint.g, glow.tint.b, 0) }
+                }
+                PathRectangle { x: 0; y: 0; width: glow.width; height: glow.height }
+            }
+        }
+
         // Ures teruletre kattintva bezar, ahogy egy popup a kulso kattintasra.
         MouseArea {
             anchors.fill: parent
@@ -275,6 +307,7 @@ PanelWindow {
             Component {
                 id: themeCard
                 ThemeCard {
+                    dynamicSummary: themePicker.dynamicSummary
                     wallpaperSource: studio.wallpaperController
                         ? studio.wallpaperController.source(studio.wallpaperController.currentWallpaper)
                         : ""

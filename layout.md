@@ -113,7 +113,7 @@ vellum_shell/
 │   ├── appearance/
 │   │   ├── AppearanceStudio.qml      # Teljes képernyős ablak: háttérkép- és témanézet
 │   │   ├── SkewCarousel.qml          # Közös ferde carousel (wallpaperCarousel nyomán)
-│   │   ├── ThemeCard.qml             # Paletta-kártya a carouselben
+│   │   ├── ThemeCard.qml             # Mini asztal a téma színeivel (bar, terminál, minták)
 │   │   ├── ThemePickerController.qml # Téma: élő előnézet, Enterre `theme apply`
 │   │   ├── Upright.qml               # Ferde kártyán belül egyenesen álló réteg
 │   │   ├── WallpaperCard.qml         # Háttérkép-kártya a carouselben

@@ -113,6 +113,19 @@ pub struct ThemeSummary {
     pub kind: String,
     pub icon_theme: String,
     pub current: bool,
+    pub terminal: TerminalColors,
+}
+
+/// A terminal hat alapszine. A valaszto ezekkel rajzolja a kartyak
+/// szintaxiskiemelt mintasorait, hogy a tema ne csak ot feluletszinbol alljon.
+#[derive(Debug, Clone, Serialize)]
+pub struct TerminalColors {
+    pub red: String,
+    pub yellow: String,
+    pub green: String,
+    pub cyan: String,
+    pub blue: String,
+    pub magenta: String,
 }
 
 fn strip_all_whitespace_and_quotes(value: &str) -> String {

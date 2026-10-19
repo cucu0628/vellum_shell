@@ -22,6 +22,16 @@ Item {
         return leftEdge(y) + width - slant
     }
 
+    // Egy `top`..`bottom` magassagu egyenes teglalap legbaloldalibb x-e es
+    // legnagyobb szelessege ugy, hogy teljes egeszeben a kartyan belul maradjon.
+    function insetLeft(top, bottom) {
+        return Math.max(leftEdge(top), leftEdge(bottom))
+    }
+
+    function insetWidth(top, bottom) {
+        return Math.min(rightEdge(top), rightEdge(bottom)) - insetLeft(top, bottom)
+    }
+
     x: skew < 0 ? -slant : 0
     y: 0
     width: parent ? parent.width + slant : 0

@@ -341,6 +341,12 @@ ends, `Home`/`End` jump to the first and last card, and `Ctrl+F` or `/` filters
 wallpapers by name. Clicking a side card centres it; clicking the centred card
 or pressing `Enter` applies it. `Esc` or a click on empty space closes.
 
+Each theme card is a small desktop drawn in that theme: a bar, a terminal
+whose sample code uses the theme's terminal colours, a type specimen with an
+accent button and switch, and the surface colours as paint bands. The centred
+card types its code in, and the dynamic theme's desktop is your current
+wallpaper. Behind the carousel, the focused theme's accent glows.
+
 Browsing wallpapers changes nothing. Browsing themes only recolours the running
 shell in process, so the bar above the overlay shows the candidate palette.
 `Enter` writes the choice out: a wallpaper goes to the state file and the login
