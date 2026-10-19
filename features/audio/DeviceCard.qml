@@ -1,6 +1,10 @@
 import "." as AudioUi
 import QtQuick
+import "../../ui" as SharedUi
 
+// Az alapertelmezett kimenet vagy bemenet. Felul: nemitas, nev, szazalek es
+// (ha van masik eszkoz) valto gomb; alatta a csuszka. A valto a kartyan belul
+// nyitja le a tobbi eszkozt, kulon sor nelkul.
 Rectangle {
     id: deviceCard
 
@@ -8,138 +12,225 @@ Rectangle {
     property var node: null
     property bool input: false
     property bool active: false
-    readonly property real nameWidth: Math.min(170, Math.max(118, width * 0.31))
-    readonly property real barWidth: Math.max(64, width - nameWidth - 182)
+    property var others: []
+    property bool expanded: false
 
-    height: 64
-    color: hover.containsMouse || active ? (controller ? controller.inkBg : "#1b1613") : "transparent"
-    border.color: active ? (controller ? controller.panelAccent : "#d7472f") : "transparent"
-    border.width: 1
-    radius: 0
+    readonly property bool muted: node && node.audio && node.audio.muted
+    readonly property string fg: controller ? controller.panelFg : "#f1e7d0"
+    readonly property string muted_: controller ? controller.mutedFg : "#9f8f7c"
+    readonly property string accent: controller ? controller.panelAccent : "#d7472f"
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 3
-        color: controller ? controller.panelAccent : "#d7472f"
-        opacity: active ? 1 : 0
+    signal toggleExpanded()
+
+    height: 74 + (expanded && others.length > 0 ? otherList.height + 6 : 0)
+    radius: 10
+    color: controller ? controller.inkBg : "#1b1613"
+    clip: true
+
+    Behavior on height { NumberAnimation { duration: 200; easing.type: Easing.OutQuint } }
+
+    // Gorgetes a kartya barmely pontjan a hangerot allitja.
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: (wheel) => {
+            if (deviceCard.controller) deviceCard.controller.wheelVolume(deviceCard.node, wheel)
+        }
     }
 
-    Row {
-        anchors.fill: parent
-        anchors.margins: 10
-        spacing: 10
+    Rectangle {
+        id: muteButton
+
+        x: 12
+        y: 12
+        width: 32
+        height: 32
+        radius: 8
+        color: muteMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
         Text {
-            width: 24
-            height: parent.height
-            text: input ? (node && node.audio && node.audio.muted ? "󰍭" : "󰍬") : (node && node.audio && node.audio.muted ? "" : "")
-            color: node && node.audio && node.audio.muted ? (controller ? controller.mutedFg : "#9f8f7c") : (controller ? controller.panelAccent : "#d7472f")
+            anchors.centerIn: parent
+            text: deviceCard.input
+                ? (deviceCard.muted ? "󰍭" : "󰍬")
+                : (deviceCard.muted ? "󰖁" : "󰕾")
+            color: deviceCard.muted ? deviceCard.muted_ : deviceCard.accent
             font.family: "Symbols Nerd Font Mono"
-            font.pixelSize: 15
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: 16
+        }
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (controller) {
-                        controller.toggleMute(node);
+        SharedUi.Pressable {
+            id: muteMouse
+            anchors.fill: parent
+            accessibleName: deviceCard.muted ? qsTr("Unmute") : qsTr("Mute")
+            onClicked: if (deviceCard.controller) deviceCard.controller.toggleMute(deviceCard.node)
+        }
+    }
+
+    Column {
+        anchors.left: muteButton.right
+        anchors.leftMargin: 10
+        anchors.right: percentText.left
+        anchors.rightMargin: 10
+        anchors.verticalCenter: muteButton.verticalCenter
+        spacing: 1
+
+        Text {
+            width: parent.width
+            text: deviceCard.controller ? deviceCard.controller.nodeTitle(deviceCard.node) : ""
+            textFormat: Text.PlainText
+            color: deviceCard.fg
+            font.pixelSize: 13
+            font.weight: Font.Medium
+            elide: Text.ElideRight
+        }
+
+        Text {
+            width: parent.width
+            text: deviceCard.muted ? qsTr("Muted") : (deviceCard.input ? qsTr("Default input") : qsTr("Default output"))
+            color: deviceCard.muted_
+            font.pixelSize: 10
+            elide: Text.ElideRight
+        }
+    }
+
+    Text {
+        id: percentText
+
+        anchors.right: switchButton.visible ? switchButton.left : parent.right
+        anchors.rightMargin: switchButton.visible ? 4 : 14
+        anchors.verticalCenter: muteButton.verticalCenter
+        text: (deviceCard.controller ? deviceCard.controller.percent(deviceCard.node) : 0) + "%"
+        color: deviceCard.fg
+        font.pixelSize: 12
+        font.features: { "tnum": 1 }
+    }
+
+    // Masik eszkozre valtas: a lista a kartyan belul nyilik le.
+    Rectangle {
+        id: switchButton
+
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        anchors.verticalCenter: muteButton.verticalCenter
+        width: switchRow.implicitWidth + 16
+        height: 28
+        radius: 6
+        visible: deviceCard.others.length > 0
+        color: switchMouse.containsMouse || deviceCard.expanded ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+
+        Row {
+            id: switchRow
+
+            anchors.centerIn: parent
+            spacing: 4
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: deviceCard.others.length
+                color: deviceCard.muted_
+                font.pixelSize: 10
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "󰅀"
+                color: deviceCard.expanded ? deviceCard.fg : deviceCard.muted_
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 13
+                rotation: deviceCard.expanded ? 180 : 0
+                Behavior on rotation { NumberAnimation { duration: 160 } }
+            }
+        }
+
+        SharedUi.Pressable {
+            id: switchMouse
+            anchors.fill: parent
+            accessibleName: deviceCard.input ? qsTr("Choose input device") : qsTr("Choose output device")
+            onClicked: deviceCard.toggleExpanded()
+        }
+    }
+
+    AudioUi.VolumeBar {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 54
+        anchors.rightMargin: 16
+        y: 50
+        controller: deviceCard.controller
+        node: deviceCard.node
+    }
+
+    // A tobbi eszkoz: kattintasra az lesz az alapertelmezett.
+    Column {
+        id: otherList
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: 6
+        anchors.rightMargin: 6
+        y: 74
+        spacing: 2
+        opacity: deviceCard.expanded ? 1 : 0
+        visible: opacity > 0
+
+        Behavior on opacity { NumberAnimation { duration: 160 } }
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Qt.rgba(1, 1, 1, 0.06)
+        }
+
+        Repeater {
+            model: deviceCard.others
+
+            Rectangle {
+                id: option
+
+                required property var modelData
+
+                width: otherList.width
+                height: 36
+                radius: 6
+                color: optionMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 14
+                    anchors.right: useText.left
+                    anchors.rightMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: deviceCard.controller ? deviceCard.controller.nodeTitle(option.modelData) : ""
+                    textFormat: Text.PlainText
+                    color: deviceCard.fg
+                    font.pixelSize: 12
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    id: useText
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Use")
+                    color: optionMouse.containsMouse ? deviceCard.accent : deviceCard.muted_
+                    font.pixelSize: 11
+                }
+
+                MouseArea {
+                    id: optionMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (!deviceCard.controller) return
+                        if (deviceCard.input) deviceCard.controller.setDefaultInput(option.modelData)
+                        else deviceCard.controller.setDefaultOutput(option.modelData)
                     }
                 }
             }
-
-        }
-
-        Column {
-            width: deviceCard.nameWidth
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 3
-
-            Text {
-                width: parent.width
-                text: controller ? controller.nodeTitle(node) : ""
-                color: controller ? controller.panelFg : "#f1e7d0"
-                font.pixelSize: 12
-                font.bold: true
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                text: active ? (input ? "default input" : "default output") : (controller ? controller.nodeSubtitle(node) : "")
-                color: controller ? controller.mutedFg : "#9f8f7c"
-                font.pixelSize: 10
-                elide: Text.ElideRight
-            }
-
-        }
-
-        AudioUi.VolumeBar {
-            width: deviceCard.barWidth
-            controller: deviceCard.controller
-            node: deviceCard.node
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        Text {
-            width: 42
-            text: (controller ? controller.percent(node) : 0) + "%"
-            color: controller ? controller.panelFg : "#f1e7d0"
-            font.family: "monospace"
-            font.pixelSize: 11
-            horizontalAlignment: Text.AlignRight
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        Rectangle {
-            width: 56
-            height: 28
-            anchors.verticalCenter: parent.verticalCenter
-            color: active ? (controller ? controller.panelAccent : "#d7472f") : "transparent"
-            border.color: controller ? controller.panelAccent : "#d7472f"
-            border.width: 1
-
-            Text {
-                anchors.centerIn: parent
-                text: active ? "ON" : "USE"
-                color: active ? (controller ? controller.panelBg : "#15110f") : (controller ? controller.panelAccent : "#d7472f")
-                font.pixelSize: 10
-                font.family: "monospace"
-                font.bold: true
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (!controller)
-                        return ;
-
-                    if (input)
-                        controller.setDefaultInput(node);
-                    else
-                        controller.setDefaultOutput(node);
-                }
-            }
-
-        }
-
-    }
-
-    MouseArea {
-        id: hover
-
-        anchors.fill: parent
-        acceptedButtons: Qt.NoButton
-        hoverEnabled: true
-        onWheel: (wheel) => {
-            if (controller)
-                controller.wheelVolume(node, wheel);
-
         }
     }
-
 }

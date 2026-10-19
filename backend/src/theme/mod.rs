@@ -152,7 +152,7 @@ pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<A
     let outcomes =
         generators::run_all(&palette, source.as_deref().map(std::path::Path::new), include_zen);
 
-    // Egy hianyzo Zen profil vagy a root nelkuli SDDM nem hiba. Egy sajat
+    // Egy hianyzo Zen profil vagy egy nem telepitett greeter nem hiba. Egy sajat
     // fajlunk kiirhatatlansaga viszont igen: olyankor a tema nem lett
     // alkalmazva, es nem is jegyezzuk be.
     let failures = generators::required_failures(&outcomes);
@@ -208,7 +208,7 @@ pub fn set_wallpaper(path: &str) -> Result<()> {
     // nem eri el az eredetit. Enelkul a bejelentkezo kepernyo csak a kovetkezo
     // temavaltaskor kovetne a valtozast. Ha nincs paletta, nincs mit frissiteni.
     if let Ok(palette) = load_current() {
-        let _ = generators::sddm::generate(&palette, Some(std::path::Path::new(path)));
+        let _ = generators::greeter::generate(&palette, Some(std::path::Path::new(path)));
     }
     Ok(())
 }

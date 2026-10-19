@@ -16,6 +16,11 @@ Rectangle {
 
     signal committed(string value)
 
+    // Mentes utan uritheto (pl. egy "hozzaadas" mezonel).
+    function clear() {
+        input.text = "";
+    }
+
     function commit() {
         if (input.text !== field.value)
             field.committed(input.text);
@@ -43,6 +48,9 @@ Rectangle {
         anchors.leftMargin: 10
         anchors.rightMargin: 10
         verticalAlignment: TextInput.AlignVCenter
+        // A hosszu ertek (pl. egy OAuth client ID) a mezon belul gorgetodik,
+        // nem log ki a keretbol.
+        clip: true
         color: field.foreground
         font.pixelSize: 12
         text: field.value
@@ -60,6 +68,7 @@ Rectangle {
             text: field.placeholder
             color: field.muted
             font.pixelSize: 12
+            elide: Text.ElideRight
         }
 
     }

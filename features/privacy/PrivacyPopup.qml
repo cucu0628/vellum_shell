@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 // Names whoever is holding the microphone or the camera. It sits on the left
 // edge because the indicator that opens it lives next to the workspaces, and it
@@ -11,6 +12,7 @@ PanelWindow {
     property var theme: null
     property var statusController: null
     property bool opened: false
+    property int barHeight: 26
 
     readonly property var micUsers: statusController ? statusController.micUsers : []
     readonly property var cameraUsers: statusController ? statusController.cameraUsers : []
@@ -23,7 +25,7 @@ PanelWindow {
 
     onAnyActiveChanged: if (!anyActive) opened = false
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.privacy"
@@ -40,20 +42,20 @@ PanelWindow {
     Item {
         id: content
         anchors.left: parent.left
-        anchors.leftMargin: 10
+        anchors.leftMargin: 0
         enabled: privacyWindow.opened
-        y: 32
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: privacyWindow.barHeight
         width: Math.min(340, parent.width - 20)
-        height: privacyWindow.opened ? Math.min(panel.implicitHeight + 32, parent.height - 46) : 0
+        height: Math.min(panel.implicitHeight + 32, parent.height - privacyWindow.barHeight - 12)
         clip: true
-        opacity: privacyWindow.opened ? 1 : 0
 
-        Rectangle {
+        SharedUi.PopupFrame {
+            id: sheet
+            leftEar: false
+            shown: privacyWindow.opened
             anchors.fill: parent
-            color: privacyWindow.panelBg
-            border.color: privacyWindow.panelAccent
-            border.width: 1
-            clip: true
+            theme: privacyWindow.theme
 
             MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
 
@@ -63,45 +65,11 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 10
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
-
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        color: privacyWindow.panelAccent
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰈈"
-                            color: privacyWindow.panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Column {
-                        width: parent.width - 46
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-                        Text {
-                            width: parent.width
-                            text: "PRIVACY"
-                            color: privacyWindow.panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 3
-                            font.bold: true
-                        }
-                        Text {
-                            width: parent.width
-                            text: "Live microphone and camera access"
-                            color: privacyWindow.mutedFg
-                            font.pixelSize: 9
-                            elide: Text.ElideRight
-                        }
-                    }
+                    theme: privacyWindow.theme
+                    title: "Privacy"
+                    subtitle: "Live microphone and camera access"
                 }
 
                 Repeater {
@@ -120,13 +88,6 @@ PanelWindow {
                         height: sectionColumn.implicitHeight + 24
                         color: privacyWindow.inkBg
                         border.color: Qt.rgba(1, 1, 1, 0.07)
-
-                        Rectangle {
-                            anchors.left: parent.left
-                            width: 3
-                            height: parent.height
-                            color: sectionCard.users.length > 0 ? privacyWindow.panelAccent : privacyWindow.mutedFg
-                        }
 
                         Column {
                             id: sectionColumn
@@ -157,7 +118,7 @@ PanelWindow {
                                     verticalAlignment: Text.AlignVCenter
                                     font.pixelSize: 11
                                     font.bold: true
-                                    font.letterSpacing: 2
+                                    font.letterSpacing: 1
                                 }
                                 Text {
                                     width: 58
@@ -220,6 +181,5 @@ PanelWindow {
         }
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
 }

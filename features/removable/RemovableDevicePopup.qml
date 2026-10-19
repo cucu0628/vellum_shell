@@ -9,6 +9,7 @@ PanelWindow {
     property var theme: null
     property var deviceController: null
     property bool opened: false
+    property int barHeight: 26
 
     readonly property var devices: deviceController ? deviceController.devices : []
     readonly property string panelBg: theme ? theme.background : "#11130f"
@@ -36,7 +37,7 @@ PanelWindow {
         }
     }
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
     WlrLayershell.layer: WlrLayershell.Overlay
@@ -52,19 +53,22 @@ PanelWindow {
     Item {
         id: content
         anchors.right: parent.right
-        anchors.rightMargin: 10
-        y: 32
+        anchors.rightMargin: 0
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: popup.barHeight
         width: Math.min(410, parent.width - 20)
-        height: popup.opened ? Math.min(500, parent.height - 46, 120 + popup.devices.length * 78
-            + (deviceController && deviceController.errorMessage !== "" ? 38 : 0)) : 0
+        height: Math.min(500, parent.height - popup.barHeight - 12, 120 + popup.devices.length * 78
+            + (deviceController && deviceController.errorMessage !== "" ? 38 : 0))
         enabled: popup.opened
-        opacity: popup.opened ? 1 : 0
         clip: true
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: popup.opened
             anchors.fill: parent
             theme: popup.theme
 
@@ -84,7 +88,7 @@ PanelWindow {
 
                 Item {
                     width: parent.width
-                    height: parent.height - 62 - (deviceController && deviceController.errorMessage !== "" ? 28 : 0)
+                    height: parent.height - 54 - (deviceController && deviceController.errorMessage !== "" ? 28 : 0)
 
                     Text {
                         anchors.centerIn: parent
@@ -120,13 +124,6 @@ PanelWindow {
                                     color: popup.inkBg
                                     border.color: popup.lineBg
                                     opacity: busy ? 0.62 : 1
-
-                                    Rectangle {
-                                        anchors.left: parent.left
-                                        width: 3
-                                        height: parent.height
-                                        color: deviceRow.modelData.mounted ? popup.panelAccent : popup.mutedFg
-                                    }
 
                                     Text {
                                         anchors.left: parent.left

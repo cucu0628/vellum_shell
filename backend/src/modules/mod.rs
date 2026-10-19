@@ -6,6 +6,8 @@
 //!
 //! Semmi mas -- a hub, a protokoll es a QML kliens valtozatlan marad.
 
+pub mod calendar;
+pub mod clipboard;
 pub mod health;
 pub mod hypr;
 pub mod network;
@@ -22,6 +24,7 @@ use std::sync::Arc;
 pub fn registry() -> Vec<Arc<dyn Module>> {
     vec![
         Arc::new(health::Health::new()),
+        Arc::new(clipboard::Clipboard::new()),
         Arc::new(theme::Theme::new()),
         Arc::new(network::Network::new()),
         Arc::new(hypr::Hypr::new()),
@@ -30,5 +33,6 @@ pub fn registry() -> Vec<Arc<dyn Module>> {
         Arc::new(sysstats::SysStats::new()),
         Arc::new(vpn::Vpn::new()),
         Arc::new(weather::Weather::new()),
+        Arc::new(calendar::Calendar::new()),
     ]
 }

@@ -7,7 +7,7 @@ if (( EUID == 0 )); then
 fi
 
 install_packages=true
-install_sddm=false
+install_greeter=false
 theme_zen=false
 dry_run=false
 
@@ -16,7 +16,7 @@ usage() {
 Hasznalat: ./setup.sh [opciok]
 
   --skip-packages  Ne futtassa a csomagtelepitot.
-  --with-sddm      Telepitse es aktivalja a Vellum Ink SDDM temat is.
+  --with-greeter   Telepitse es aktivalja a Vellum greetert (greetd) is.
   --with-zen       Alkalmazza a temat a meglevo Zen Browser profilra is.
   --dry-run        Csak az ellenorzest es a tervet mutassa; ne modositson semmit.
   --plan           A --dry-run szinonimaja.
@@ -27,7 +27,7 @@ EOF
 while (( $# > 0 )); do
   case "$1" in
     --skip-packages) install_packages=false ;;
-    --with-sddm) install_sddm=true ;;
+    --with-greeter) install_greeter=true ;;
     --with-zen) theme_zen=true ;;
     --dry-run|--plan) dry_run=true ;;
     -h|--help) usage; exit 0 ;;
@@ -137,12 +137,12 @@ preflight() {
   fi
   plan+=("tema alkalmazasa (zen: $theme_zen)")
   plan+=("NetworkManager, bluetooth es PipeWire szolgaltatasok engedelyezese")
-  if [[ $install_sddm == true ]]; then
-    plan+=("Vellum Ink SDDM tema telepitese es aktivalasa")
+  if [[ $install_greeter == true ]]; then
+    plan+=("Vellum greeter telepitese, greetd aktivalasa (a tobbi display manager helyett)")
   fi
 
   if ! sudo -n true 2>/dev/null; then
-    warnings+=("a setup sudo jelszot fog kerni (PAM, szolgaltatasok, SDDM)")
+    warnings+=("a setup sudo jelszot fog kerni (PAM, szolgaltatasok, greeter)")
   fi
 }
 
@@ -208,8 +208,6 @@ mkdir -p \
   "$HOME/.config/gtk-4.0" \
   "$HOME/.config/btop/themes" \
   "$HOME/.config/fastfetch" \
-  "$HOME/.local/state/quickshell/vellum-shell/cliphist-images" \
-  "$HOME/.local/state/quickshell/vellum-shell/cliphist-thumbnails" \
   "$HOME/.local/share/applications/vellum-tui" \
   "$HOME/.local/share/applications/vellum-webapps" \
   "$HOME/.cache/quickshell" \
@@ -340,12 +338,10 @@ systemctl --user enable --now pipewire.socket pipewire-pulse.socket wireplumber.
   printf 'Figyelmeztetes: a PipeWire felhasznaloi szolgaltatasokat a kovetkezo bejelentkezes inditja el.\n' >&2
 
 
-if [[ $install_sddm == true ]]; then
-  sudo "$target_dir/scripts/sddm-install" --default --layout
-  if systemctl is-enabled plasmalogin.service >/dev/null 2>&1; then
-    sudo systemctl disable plasmalogin.service
-  fi
-  sudo systemctl enable sddm.service
+if [[ $install_greeter == true ]]; then
+  # Felhasznalokent: a rendszerreszhez maga ker sudo-t, a szinkronhoz viszont
+  # az elo munkamenet kell. A display manager a kovetkezo inditaskor valt.
+  "$target_dir/scripts/greeter-install" --enable
 fi
 
 if [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then

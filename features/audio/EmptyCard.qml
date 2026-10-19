@@ -5,9 +5,7 @@ Rectangle {
     property string message: ""
 
     color: controller ? controller.inkBg : "#1b1613"
-    border.color: controller ? controller.lineBg : Qt.rgba(1, 1, 1, 0.055)
-    border.width: 1
-    radius: 0
+    radius: 10
 
     Text {
         anchors.centerIn: parent

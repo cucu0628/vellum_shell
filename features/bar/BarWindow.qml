@@ -150,6 +150,7 @@ PanelWindow {
 
         WorkspaceGroup {
             theme: root.theme
+            screen: root.targetScreen
             visibleWorkspaceIds: root.visibleWorkspaceIds
             occupiedWorkspaceIds: root.occupiedWorkspaceIds
             settingsOpen: root.settingsOpen

@@ -33,7 +33,7 @@ impl Sandbox {
         let root = std::env::temp_dir().join(format!("vellum-golden-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let shell_dir = root.join(".config/quickshell/vellum_shell");
-        std::fs::create_dir_all(shell_dir.join("sddm/vellum-ink")).unwrap();
+        std::fs::create_dir_all(&shell_dir).unwrap();
 
         let repo = repo_root();
         copy_dir(&repo.join("themes"), &shell_dir.join("themes"));
@@ -62,7 +62,6 @@ impl Sandbox {
             self.shell_dir.join("gtk-theme.css"),
             self.shell_dir.join("zen-theme.css"),
             self.shell_dir.join("zen-content-theme.css"),
-            self.shell_dir.join("sddm/vellum-ink/theme.conf"),
         ] {
             let _ = std::fs::remove_file(path);
         }
@@ -121,10 +120,9 @@ fn generators_match_golden_baseline() {
 
     // Az egyes generatorok kimenete, a golden fajl nevehez rendelve.
     //
-    // Az sddm SZANDEKOSAN hianyzik: a kimenete azota bovult az EDID alapu
-    // monitor-azonositassal, mert a greeter X szervere mas connector-neveket
-    // hasznal, mint a Wayland munkamenet. A formatumat a sddm.rs egysegtesztje
-    // rogziti; a szinek lekepezese valtozatlan.
+    // A greeter SZANDEKOSAN hianyzik: a bash baseline meg az SDDM theme.conf-jat
+    // rogzitette, a greeter azota JSON-t olvas. A formatumat a greeter.rs
+    // egysegtesztje rogziti.
     //
     // A fastfetch is hianyzik: a logo forrasa idokozben ujratervezodott, igy a
     // rogzitett SVG baseline mar nem a jelenlegi forrasrol szol. A marker- es

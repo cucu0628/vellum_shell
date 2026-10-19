@@ -3,8 +3,8 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Io
 
-// A settings app allapota es minden backend-hivasa. Az `AppearanceController`
-// mintajat koveti: a nezet vekony, a logika itt van.
+// A settings app allapota es minden backend-hivasa. Az appearance feature
+// picker-controllereinek mintajat koveti: a nezet vekony, a logika itt van.
 //
 // A Hyprland ertekek harom helyrol jonnek ossze:
 //   * `hypr/read`   -- az elo ertekek, ezt mutatjak a vezerlok;

@@ -96,7 +96,6 @@ class PackagePlatformTests(unittest.TestCase):
 
         self.assertNotIn("power-profiles-daemon", fedora_packages)
         self.assertNotIn("tuned-ppd", fedora_packages)
-        self.assertNotIn("satty", fedora_packages)
         self.assertIn("rpm -q --whatprovides ppd-service", installer)
         self.assertIn("sudo dnf install tuned-ppd", installer)
 

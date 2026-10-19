@@ -42,6 +42,9 @@ Item {
     readonly property string surface: effective.SURFACE || "#181825"
     readonly property string muted: effective.LIGHT_FOREGROUND || "#bac2de"
     readonly property string outline: effective.MUTED || "#9399b2"
+    // Figyelmeztetes (pl. majdnem tele lemez). Szemantikus szin, nem akcentus;
+    // minden tema megadja az ORANGE kulcsot.
+    readonly property string warning: effective.ORANGE || "#fab387"
 
     width: 0
     height: 0

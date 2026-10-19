@@ -170,13 +170,8 @@ QtObject {
 
     // -- media ---------------------------------------------------------------
 
-    // A media panel egy adott fulon. Korabban az IPC kozvetlenul allitotta az
-    // `opened`-et, igy a tobbi fedoreteg nyitva maradt alatta.
-    function openMediaTab(tab, nextScreen) {
-        if (tab !== undefined && tab !== null) mediaPopup.currentTab = tab
-        setOverlayOpen("media", true, nextScreen)
-    }
-
+    // Az IPC is ezen at nyit, nem az `opened` kozvetlen allitasaval: igy a
+    // tobbi fedoreteg nem marad nyitva alatta.
     function setMediaOpen(open, nextScreen) { setOverlayOpen("media", open, nextScreen) }
 
     function toggleSettings() {

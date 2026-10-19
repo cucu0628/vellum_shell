@@ -19,7 +19,7 @@ Item {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -1
         text: !root.available || !root.adapterEnabled ? "󰂲" : (root.connected ? "󰂱" : "󰂯")
-        color: mouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
+        color: root.popupOpen ? root.theme.accent : root.theme.foreground
         opacity: root.available && root.adapterEnabled ? 1 : 0.55
         font.family: "Symbols Nerd Font Mono"
         font.pixelSize: 14
@@ -27,14 +27,11 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 120 } }
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: mouse.containsMouse || root.popupOpen ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: mouse.containsMouse
+        active: root.popupOpen
+        z: -1
     }
 
     SharedUi.Pressable {

@@ -36,7 +36,7 @@ QtObject {
         "name": "appearance",
         "terms": ["wallpaper", "background", "studio", "style"],
         "icon": "󰸌",
-        "subtitle": "Open Appearance Studio",
+        "subtitle": "Pick a wallpaper",
         "command": ipc("style", "wallpaper")
     }, {
         "name": "palette",

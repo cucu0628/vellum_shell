@@ -1,101 +1,24 @@
 import "." as AudioUi
 import QtQuick
+import "../../ui" as SharedUi
 
+// Egy alkalmazas hangja. Lejatszasnal sajat csuszkaval; felvetelnel csak azt
+// mutatja, ki hasznalja a mikrofont.
 Rectangle {
     id: streamRow
 
     property var controller: null
     property var node: null
     property bool input: false
-    readonly property real nameWidth: input ? Math.max(90, width - 114) : Math.min(190, Math.max(130, width * 0.36))
-    readonly property real barWidth: input ? 0 : Math.max(80, width - nameWidth - 114)
 
-    height: 48
-    color: streamHover.containsMouse ? (controller ? controller.inkBg : "#1b1613") : "transparent"
-    border.color: "transparent"
-    border.width: 0
-    radius: 0
+    readonly property bool muted: node && node.audio && node.audio.muted
+    readonly property string fg: controller ? controller.panelFg : "#f1e7d0"
+    readonly property string mutedColor: controller ? controller.mutedFg : "#9f8f7c"
+    readonly property string accent: controller ? controller.panelAccent : "#d7472f"
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 3
-        color: controller ? controller.panelAccent : "#d7472f"
-        opacity: streamHover.containsMouse ? 1 : 0
-    }
-
-    Row {
-        anchors.fill: parent
-        anchors.margins: 9
-        spacing: 10
-
-        Text {
-            width: 24
-            height: parent.height
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-            text: input ? (node && node.audio && node.audio.muted ? "󰍭" : "󰍬") : (node && node.audio && node.audio.muted ? "" : "")
-            font.family: "Symbols Nerd Font Mono"
-            color: node && node.audio && node.audio.muted ? (controller ? controller.mutedFg : "#9f8f7c") : (controller ? controller.panelAccent : "#d7472f")
-            font.pixelSize: 14
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    if (controller) {
-                        controller.toggleMute(node);
-                    }
-                }
-            }
-
-        }
-
-        Column {
-            width: streamRow.nameWidth
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
-
-            Text {
-                width: parent.width
-                text: controller ? controller.nodeTitle(node) : ""
-                color: controller ? controller.panelFg : "#f1e7d0"
-                font.pixelSize: 12
-                font.bold: true
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                text: controller ? controller.nodeSubtitle(node) : ""
-                color: controller ? controller.mutedFg : "#9f8f7c"
-                font.pixelSize: 10
-                elide: Text.ElideRight
-                visible: !input
-            }
-
-        }
-
-        AudioUi.VolumeBar {
-            width: streamRow.barWidth
-            visible: !input
-            controller: streamRow.controller
-            node: streamRow.node
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        Text {
-            width: 42
-            anchors.verticalCenter: parent.verticalCenter
-            text: (controller ? controller.percent(node) : 0) + "%"
-            color: controller ? controller.panelFg : "#f1e7d0"
-            font.family: "monospace"
-            font.pixelSize: 11
-            horizontalAlignment: Text.AlignRight
-        }
-
-    }
+    height: 44
+    radius: 8
+    color: streamHover.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
 
     MouseArea {
         id: streamHover
@@ -104,10 +27,92 @@ Rectangle {
         acceptedButtons: Qt.NoButton
         hoverEnabled: true
         onWheel: (wheel) => {
-            if (controller)
-                controller.wheelVolume(node, wheel);
-
+            if (streamRow.controller && !streamRow.input) streamRow.controller.wheelVolume(streamRow.node, wheel)
         }
     }
 
+    Rectangle {
+        id: icon
+
+        x: 12
+        anchors.verticalCenter: parent.verticalCenter
+        width: 28
+        height: 28
+        radius: 6
+        color: iconMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+
+        Text {
+            anchors.centerIn: parent
+            text: streamRow.input
+                ? (streamRow.muted ? "󰍭" : "󰍬")
+                : (streamRow.muted ? "󰖁" : "󰕾")
+            color: streamRow.muted ? streamRow.mutedColor : streamRow.fg
+            font.family: "Symbols Nerd Font Mono"
+            font.pixelSize: 14
+        }
+
+        SharedUi.Pressable {
+            id: iconMouse
+            anchors.fill: parent
+            accessibleName: streamRow.muted ? qsTr("Unmute") : qsTr("Mute")
+            onClicked: if (streamRow.controller) streamRow.controller.toggleMute(streamRow.node)
+        }
+    }
+
+    Column {
+        id: label
+
+        anchors.left: icon.right
+        anchors.leftMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        width: streamRow.input ? parent.width - x - 100 : Math.min(170, (parent.width - x) * 0.4)
+        spacing: 1
+
+        Text {
+            width: parent.width
+            text: streamRow.controller ? streamRow.controller.nodeTitle(streamRow.node) : ""
+            textFormat: Text.PlainText
+            color: streamRow.fg
+            font.pixelSize: 12
+            elide: Text.ElideRight
+        }
+
+        Text {
+            width: parent.width
+            text: streamRow.input
+                ? qsTr("Recording")
+                : (streamRow.controller ? streamRow.controller.nodeSubtitle(streamRow.node) : "")
+            textFormat: Text.PlainText
+            color: streamRow.input ? streamRow.accent : streamRow.mutedColor
+            font.pixelSize: 10
+            elide: Text.ElideRight
+            visible: text !== "" && text !== (streamRow.controller ? streamRow.controller.nodeTitle(streamRow.node) : "")
+        }
+    }
+
+    AudioUi.VolumeBar {
+        anchors.left: label.right
+        anchors.leftMargin: 14
+        anchors.right: percentText.left
+        anchors.rightMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
+        visible: !streamRow.input
+        controller: streamRow.controller
+        node: streamRow.node
+    }
+
+    Text {
+        id: percentText
+
+        anchors.right: parent.right
+        anchors.rightMargin: 14
+        anchors.verticalCenter: parent.verticalCenter
+        width: 38
+        horizontalAlignment: Text.AlignRight
+        visible: !streamRow.input
+        text: (streamRow.controller ? streamRow.controller.percent(streamRow.node) : 0) + "%"
+        color: streamRow.mutedColor
+        font.pixelSize: 11
+        font.features: { "tnum": 1 }
+    }
 }

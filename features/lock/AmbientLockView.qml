@@ -2,137 +2,116 @@ import QtQuick
 import "." as LockUi
 import "../../ui" as SharedUi
 
-// A tobbi monitor nezete: ugyanaz az ora es ugyanaz a jegy, panel nelkul. A
-// gepeles itt is elszall a jelszohoz, es a beirt karaktereket visszajelezzuk,
-// hogy latszodjon, melyik kepernyore erkezik a bevitel.
+// A tobbi monitor nezete: ugyanaz az ora ugyanott, mezo nelkul. A gepeles itt
+// is elszall a jelszohoz, es a beirt karaktereket visszajelezzuk, hogy
+// latszodjon, melyik kepernyore erkezik a bevitel.
 Item {
     id: ambientView
 
     required property var lockRoot
     property string screenName: ""
+    // A greeter ugyanezt a nezetet hasznalja, a sajat szovegeivel.
+    property string idleText: "Session locked"
+    property string inputHint: "Unlock on " + lockRoot.effectiveInputMonitorName
 
     readonly property bool clockShown: lockRoot.revealStep >= 2 && !lockRoot.closing
     readonly property bool bodyShown: lockRoot.revealStep >= 3 && !lockRoot.closing
-    readonly property int blockWidth: Math.round(Math.min(ambientView.width * 0.5, 460))
-    readonly property string stateText: lockRoot.failed
-        ? "ACCESS DENIED"
-        : (lockRoot.unlockInProgress ? "AUTHENTICATING" : "SESSION LOCKED")
+    readonly property int sideMargin: Math.round(Math.max(48, Math.min(96, ambientView.width * 0.06)))
+    readonly property color stateColor: lockRoot.failed ? lockRoot.alertColor : lockRoot.foreground
+    readonly property string stateText: lockRoot.failed || lockRoot.unlockInProgress || lockRoot.closing
+        ? lockRoot.statusText
+        : ambientView.idleText
 
     focus: true
 
+    SharedUi.ShellLogo {
+        x: ambientView.sideMargin
+        y: Math.round(ambientView.sideMargin * 0.75)
+        size: 22
+        color: ambientView.lockRoot.accent
+        opacity: ambientView.clockShown ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: ambientView.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
+        }
+    }
+
     Column {
-        anchors.centerIn: parent
-        anchors.verticalCenterOffset: -Math.round(ambientView.height * 0.03)
-        width: ambientView.blockWidth
-        spacing: 44
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: ambientView.sideMargin
+        anchors.bottomMargin: Math.round(ambientView.sideMargin * 1.1)
+        spacing: 32
 
-        LockUi.LockClock {
-            anchors.horizontalCenter: parent.horizontalCenter
+        LockUi.LockReveal {
             lockRoot: ambientView.lockRoot
-            centered: true
-            timeSize: Math.round(Math.max(88, Math.min(146, ambientView.height * 0.14)))
-            barWidth: ambientView.blockWidth
-            opacity: ambientView.clockShown ? 1 : 0
+            shown: ambientView.clockShown
+            width: clock.implicitWidth
+            height: clock.implicitHeight
 
-            transform: Translate {
-                y: ambientView.clockShown ? 0 : 14
-                Behavior on y {
-                    NumberAnimation { duration: ambientView.lockRoot.closing ? 160 : 520; easing.type: Easing.OutCubic }
-                }
-            }
+            LockUi.LockClock {
+                id: clock
 
-            Behavior on opacity {
-                NumberAnimation { duration: ambientView.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
+                lockRoot: ambientView.lockRoot
+                timeSize: Math.round(Math.max(120, Math.min(200, ambientView.height * 0.2)))
             }
         }
 
-        Column {
-            width: parent.width
-            spacing: 14
-            opacity: ambientView.bodyShown ? 1 : 0
+        LockUi.LockReveal {
+            lockRoot: ambientView.lockRoot
+            shown: ambientView.bodyShown
+            offset: 10
+            width: Math.min(360, ambientView.width - ambientView.sideMargin * 2)
+            height: stateColumn.implicitHeight
 
-            transform: Translate {
-                y: ambientView.bodyShown ? 0 : 12
-                Behavior on y {
-                    NumberAnimation { duration: ambientView.lockRoot.closing ? 160 : 520; easing.type: Easing.OutCubic }
-                }
-            }
+            Column {
+                id: stateColumn
 
-            Behavior on opacity {
-                NumberAnimation { duration: ambientView.lockRoot.closing ? 130 : 460; easing.type: Easing.OutCubic }
-            }
+                width: parent.width
+                spacing: 8
 
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 12
+                Row {
+                    spacing: 12
+                    height: 20
 
-                SharedUi.ShellLogo {
-                    anchors.verticalCenter: parent.verticalCenter
-                    size: 24
-                    color: ambientView.lockRoot.failed
-                        ? ambientView.lockRoot.alertColor
-                        : ambientView.lockRoot.accent
-                    opacity: ambientView.lockRoot.unlockInProgress ? 0.5 : 1
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ambientView.stateText
+                        color: ambientView.stateColor
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
 
-                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.InOutSine } }
+                        Behavior on color { ColorAnimation { duration: 160 } }
+                    }
 
-                    SequentialAnimation on rotation {
-                        running: ambientView.lockRoot.unlockInProgress
-                        loops: Animation.Infinite
-                        alwaysRunToEnd: true
-                        NumberAnimation { from: 0; to: 360; duration: 2600; easing.type: Easing.InOutSine }
+                    // A begepelt karakterek a tobbi kijelzon is latszanak.
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+
+                        Repeater {
+                            model: Math.min(ambientView.lockRoot.password.length, 24)
+
+                            Rectangle {
+                                width: 7
+                                height: 7
+                                radius: 3.5
+                                color: ambientView.lockRoot.accent
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                NumberAnimation on scale { from: 0.2; to: 1; duration: 180; easing.type: Easing.OutBack }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: ambientView.stateText
-                    color: ambientView.lockRoot.failed
-                        ? ambientView.lockRoot.alertColor
-                        : ambientView.lockRoot.foreground
-                    font.pixelSize: 12
-                    font.letterSpacing: 4
-                    font.weight: Font.DemiBold
-
-                    Behavior on color { ColorAnimation { duration: 160 } }
+                    width: parent.width
+                    text: ambientView.inputHint
+                    color: ambientView.lockRoot.muted
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
                 }
-            }
-
-            // A begepelt karakterek a tobbi kijelzon is latszanak.
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                height: 8
-                spacing: 7
-                visible: ambientView.lockRoot.password.length > 0
-
-                Repeater {
-                    model: Math.min(ambientView.lockRoot.password.length, 24)
-
-                    Rectangle {
-                        width: 6
-                        height: 6
-                        color: ambientView.lockRoot.failed
-                            ? ambientView.lockRoot.alertColor
-                            : ambientView.lockRoot.accent
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        NumberAnimation on scale {
-                            from: 0.3
-                            to: 1
-                            duration: 200
-                            easing.type: Easing.OutCubic
-                        }
-                    }
-                }
-            }
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "UNLOCK ON " + ambientView.lockRoot.effectiveInputMonitorName.toUpperCase()
-                color: ambientView.lockRoot.muted
-                font.pixelSize: 9
-                font.letterSpacing: 1.6
-                opacity: 0.7
             }
         }
     }

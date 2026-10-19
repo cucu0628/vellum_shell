@@ -94,31 +94,18 @@ Item {
             subtitle: statusController && statusController.connected
                 ? "Connected  ·  " + (statusController.connectionType === "ethernet" ? "Ethernet" : statusController.connectionName)
                 : "Offline"
-            trailingWidth: 67
+            trailingWidth: 64
 
-            Rectangle {
+            SharedUi.HeaderChip {
                 anchors.fill: parent
-                anchors.bottomMargin: 4
-                color: wifiEnabled ? panelAccent : inkBg
-                border.color: wifiEnabled ? panelAccent : mutedFg
-
-                Text {
-                    anchors.centerIn: parent
-                    text: wifiEnabled ? "WI-FI ON" : "WI-FI OFF"
-                    color: wifiEnabled ? panelBg : mutedFg
-                    font.family: "monospace"
-                    font.pixelSize: 8
-                    font.bold: true
-                }
-
-                SharedUi.Pressable {
-                    anchors.fill: parent
-                    enabled: !controller.radioBusy
-                    theme: networkPanel.theme
-                    accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
-                    onClicked: toggleWifi()
-                }
-
+                anchors.bottomMargin: 6
+                enabled: !controller.radioBusy
+                theme: networkPanel.theme
+                label: "Wi-Fi"
+                checkable: true
+                checked: networkPanel.wifiEnabled
+                accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
+                onClicked: toggleWifi()
             }
 
         }
@@ -128,13 +115,6 @@ Item {
             height: 72
             color: inkBg
             border.color: "transparent"
-
-            Rectangle {
-                anchors.left: parent.left
-                width: 3
-                height: parent.height
-                color: statusController && statusController.connected ? panelAccent : mutedFg
-            }
 
             Row {
                 anchors.fill: parent
@@ -244,12 +224,11 @@ Item {
             Text {
                 width: parent.width - 190
                 height: parent.height
-                text: scanning ? "SCANNING..." : "AVAILABLE WI-FI  ·  " + networks.length
-                color: panelAccent
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.letterSpacing: 2
-                font.bold: true
+                text: scanning ? "Scanning…" : "Available Wi-Fi  ·  " + networks.length
+                color: mutedFg
+                font.pixelSize: 10
+                font.letterSpacing: 0
+                font.weight: Font.Medium
                 verticalAlignment: Text.AlignVCenter
             }
 

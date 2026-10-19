@@ -18,14 +18,11 @@ Item {
     height: parent.height
     clip: true
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: centerMouse.containsMouse || root.popupOpen ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: centerMouse.containsMouse
+        active: root.popupOpen
+        z: -1
     }
 
     Rectangle {
@@ -54,7 +51,7 @@ Item {
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 text: "󰝚"
-                color: centerMouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
+                color: root.popupOpen ? root.theme.accent : root.theme.foreground
                 font.pixelSize: 13
                 Behavior on color { ColorAnimation { duration: 120 } }
             }
@@ -74,16 +71,18 @@ Item {
                     Rectangle {
                         required property int index
                         readonly property real rawLevel: root.cavaValues && root.cavaValues.length > index ? root.cavaValues[index] : 0
-                        readonly property real normalizedLevel: rawLevel <= 0 ? 0 : Math.min(1, Math.sqrt(rawLevel / 100))
+                        // A cava 0..100 kozott ad (automatikus erzekenyseggel). Linearisan
+                        // es szukebb skalan, hogy a jelzo ne jarjon folyton csucson.
+                        readonly property real normalizedLevel: Math.max(0, Math.min(1, rawLevel / 100))
                         readonly property real displayLevel: root.isPlaying ? normalizedLevel : 0
 
                         width: 2
-                        height: 3 + displayLevel * 13
+                        height: 3 + displayLevel * 9
                         anchors.verticalCenter: parent.verticalCenter
                         radius: width / 2
-                        color: centerMouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
+                        color: root.popupOpen ? root.theme.accent : root.theme.foreground
 
-                        Behavior on height { NumberAnimation { duration: 45; easing.type: Easing.OutQuad } }
+                        Behavior on height { NumberAnimation { duration: 60; easing.type: Easing.OutQuad } }
                         Behavior on color { ColorAnimation { duration: 120 } }
                     }
                 }
@@ -94,8 +93,8 @@ Item {
             width: 1
             height: 11
             anchors.verticalCenter: parent.verticalCenter
-            color: root.theme.accent
-            opacity: centerMouse.containsMouse || root.popupOpen ? 0.65 : 0.35
+            color: root.theme.foreground
+            opacity: 0.25
             Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
         }
 
@@ -103,7 +102,7 @@ Item {
             id: clockDisplay
             height: parent.height
             verticalAlignment: Text.AlignVCenter
-            color: centerMouse.containsMouse || root.popupOpen ? root.theme.accent : root.theme.foreground
+            color: root.popupOpen ? root.theme.accent : root.theme.foreground
             font.pixelSize: 12
             font.letterSpacing: 1
             Behavior on color { ColorAnimation { duration: 120 } }

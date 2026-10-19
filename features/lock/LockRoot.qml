@@ -179,15 +179,15 @@ ShellRoot {
         }
     }
 
-    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = panel,
-    // 4 = beviteli mezo es allapotsor.
+    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = felhasznalo
+    // es beviteli mezo.
     Timer {
         id: revealTimer
         interval: 110
         repeat: true
         onTriggered: {
             root.revealStep += 1
-            if (root.revealStep >= 4) revealTimer.stop()
+            if (root.revealStep >= 3) revealTimer.stop()
         }
     }
 
@@ -247,7 +247,7 @@ ShellRoot {
                 anchors.fill: parent
                 active: lockSurface.isInputScreen
 
-                sourceComponent: LockUi.LockCard {
+                sourceComponent: LockUi.InputLockView {
                     lockRoot: root
                     screenName: lockSurface.surfaceName
                 }

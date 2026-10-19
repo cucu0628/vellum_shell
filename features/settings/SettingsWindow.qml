@@ -13,6 +13,7 @@ FloatingWindow {
 
     property var backend: null
     property var barLayout: null
+    property var mpris: null
     property var theme: null
     required property string shellDir
     property alias activePage: settingsController.activePage
@@ -41,6 +42,10 @@ FloatingWindow {
         "id": "defaults",
         "label": "Default applications",
         "icon": "󰏖"
+    }, {
+        "id": "calendar",
+        "label": "Calendar",
+        "icon": "󰃭"
     }, {
         "id": "system",
         "label": "System / Diagnostics",
@@ -208,6 +213,8 @@ FloatingWindow {
                     return topbarPage;
                 case "defaults":
                     return defaultAppsPage;
+                case "calendar":
+                    return calendarPage;
                 case "system":
                     return systemPage;
                 case "autostart":
@@ -266,6 +273,7 @@ FloatingWindow {
 
         BarLayoutPage {
             controller: window.barLayout
+            mpris: window.mpris
             theme: window.theme
         }
 
@@ -276,6 +284,16 @@ FloatingWindow {
 
         DefaultAppsPage {
             controller: defaultAppsState
+            theme: window.theme
+        }
+
+    }
+
+    Component {
+        id: calendarPage
+
+        CalendarPage {
+            backend: window.backend
             theme: window.theme
         }
 

@@ -2,8 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 
 // Vellum: a calligraphic V with two folded-paper strokes.
-// Keep geometry in sync with assets/vellum-logo.svg and
-// sddm/vellum-ink/VellumLogo.qml.
+// Keep geometry in sync with assets/vellum-logo.svg.
 Item {
     id: logo
 

@@ -11,6 +11,7 @@ PanelWindow {
 
     property var theme: null
     property bool opened: false
+    property int barHeight: 26
     property bool outputPickerOpen: false
     property bool inputPickerOpen: false
     readonly property string panelBg: theme ? theme.background : "#15110f"
@@ -149,7 +150,7 @@ PanelWindow {
             inputPickerOpen = false;
         }
     }
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.audio"
@@ -180,15 +181,19 @@ PanelWindow {
         id: content
 
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: 0
         enabled: audioWindow.opened
-        y: 32
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: audioWindow.barHeight
         width: Math.min(560, parent.width - 20)
-        height: opened ? Math.min(parent.height - 46, panelColumn.implicitHeight + 32) : 0
+        height: Math.min(parent.height - audioWindow.barHeight - 12, panelColumn.implicitHeight + 32)
         clip: true
-        opacity: opened ? 1 : 0
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: audioWindow.opened
             anchors.fill: parent
             theme: audioWindow.theme
 
@@ -213,40 +218,22 @@ PanelWindow {
                     id: panelColumn
 
                     width: parent.width
-                    spacing: 10
+                    spacing: 8
 
                     SharedUi.PopupHeader {
                         width: parent.width
                         theme: audioWindow.theme
                         title: "Audio"
-                        subtitle: Pipewire.ready ? "PipeWire mixer" : "Waiting for PipeWire"
-                        trailingWidth: 86
+                        subtitle: Pipewire.ready ? "" : "Waiting for PipeWire"
+                        trailingWidth: 84
 
-                        Rectangle {
+                        SharedUi.HeaderChip {
                             anchors.fill: parent
                             anchors.bottomMargin: 6
-                            color: advMouse.containsMouse ? panelAccent : inkBg
-                            border.color: panelAccent
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "ADVANCED"
-                                color: advMouse.containsMouse ? panelBg : panelAccent
-                                font.family: "monospace"
-                                font.pixelSize: 8
-                                font.bold: true
-                            }
-
-                            MouseArea {
-                                id: advMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: launchAdvanced()
-                            }
-
+                            theme: audioWindow.theme
+                            label: "Advanced"
+                            accessibleName: qsTr("Open advanced audio settings")
+                            onClicked: launchAdvanced()
                         }
 
                     }
@@ -254,144 +241,76 @@ PanelWindow {
                     AudioUi.SectionHeader {
                         width: parent.width
                         controller: audioWindow
-                        title: "OUTPUT DEVICES"
-                        count: outputDevices.length
+                        title: "OUTPUT"
                     }
 
-                    Column {
-                        width: parent.width
-                        spacing: 6
+                    Repeater {
+                        model: currentOutputDevices
 
-                        Repeater {
-                            model: currentOutputDevices
-
-                            delegate: AudioUi.DeviceCard {
-                                width: parent.width
-                                controller: audioWindow
-                                node: modelData
-                                input: false
-                                active: audioWindow.isDefaultOutput(modelData)
-                            }
-
-                        }
-
-                        AudioUi.EmptyCard {
-                            width: parent.width
+                        delegate: AudioUi.DeviceCard {
+                            width: panelColumn.width
                             controller: audioWindow
-                            visible: outputDevices.length === 0
-                            height: outputDevices.length === 0 ? 48 : 0
-                            message: Pipewire.ready ? "No output devices" : "PipeWire is not ready"
-                        }
-
-                        AudioUi.PickerToggle {
-                            width: parent.width
-                            controller: audioWindow
-                            visible: otherOutputDevices.length > 0
-                            height: otherOutputDevices.length > 0 ? 30 : 0
-                            title: "Other outputs"
-                            count: otherOutputDevices.length
+                            node: modelData
+                            input: false
+                            active: audioWindow.isDefaultOutput(modelData)
+                            others: otherOutputDevices
                             expanded: outputPickerOpen
-                            onClicked: outputPickerOpen = !outputPickerOpen
+                            onToggleExpanded: outputPickerOpen = !outputPickerOpen
                         }
 
-                        Column {
-                            width: parent.width
-                            spacing: 4
-                            visible: outputPickerOpen && otherOutputDevices.length > 0
+                    }
 
-                            Repeater {
-                                model: otherOutputDevices
-
-                                delegate: AudioUi.CompactDeviceRow {
-                                    width: parent.width
-                                    controller: audioWindow
-                                    node: modelData
-                                    input: false
-                                }
-
-                            }
-
-                        }
-
+                    AudioUi.EmptyCard {
+                        width: parent.width
+                        controller: audioWindow
+                        visible: outputDevices.length === 0
+                        height: visible ? 48 : 0
+                        message: Pipewire.ready ? "No output devices" : "PipeWire is not ready"
                     }
 
                     AudioUi.SectionHeader {
                         width: parent.width
                         controller: audioWindow
-                        title: "INPUT DEVICES"
-                        count: inputDevices.length
+                        title: "INPUT"
                     }
 
-                    Column {
-                        width: parent.width
-                        spacing: 6
+                    Repeater {
+                        model: currentInputDevices
 
-                        Repeater {
-                            model: currentInputDevices
-
-                            delegate: AudioUi.DeviceCard {
-                                width: parent.width
-                                controller: audioWindow
-                                node: modelData
-                                input: true
-                                active: audioWindow.isDefaultInput(modelData)
-                            }
-
-                        }
-
-                        AudioUi.EmptyCard {
-                            width: parent.width
+                        delegate: AudioUi.DeviceCard {
+                            width: panelColumn.width
                             controller: audioWindow
-                            visible: inputDevices.length === 0
-                            height: inputDevices.length === 0 ? 48 : 0
-                            message: Pipewire.ready ? "No input devices" : "PipeWire is not ready"
-                        }
-
-                        AudioUi.PickerToggle {
-                            width: parent.width
-                            controller: audioWindow
-                            visible: otherInputDevices.length > 0
-                            height: otherInputDevices.length > 0 ? 30 : 0
-                            title: "Other inputs"
-                            count: otherInputDevices.length
+                            node: modelData
+                            input: true
+                            active: audioWindow.isDefaultInput(modelData)
+                            others: otherInputDevices
                             expanded: inputPickerOpen
-                            onClicked: inputPickerOpen = !inputPickerOpen
-                        }
-
-                        Column {
-                            width: parent.width
-                            spacing: 4
-                            visible: inputPickerOpen && otherInputDevices.length > 0
-
-                            Repeater {
-                                model: otherInputDevices
-
-                                delegate: AudioUi.CompactDeviceRow {
-                                    width: parent.width
-                                    controller: audioWindow
-                                    node: modelData
-                                    input: true
-                                }
-
-                            }
-
+                            onToggleExpanded: inputPickerOpen = !inputPickerOpen
                         }
 
                     }
 
+                    AudioUi.EmptyCard {
+                        width: parent.width
+                        controller: audioWindow
+                        visible: inputDevices.length === 0
+                        height: visible ? 48 : 0
+                        message: Pipewire.ready ? "No input devices" : "PipeWire is not ready"
+                    }
+
+                    // Lejatszo es felvevo alkalmazasok egy listaban.
                     AudioUi.SectionHeader {
                         width: parent.width
                         controller: audioWindow
-                        title: "APP PLAYBACK"
-                        count: playbackStreams.length
-                        visible: playbackStreams.length > 0
-                        height: playbackStreams.length > 0 ? 18 : 0
+                        title: "APPS"
+                        visible: playbackStreams.length + recordingStreams.length > 0
+                        height: visible ? 24 : 0
                     }
 
                     Column {
                         width: parent.width
-                        spacing: 6
-                        visible: playbackStreams.length > 0
+                        spacing: 2
+                        visible: playbackStreams.length + recordingStreams.length > 0
 
                         Repeater {
                             model: playbackStreams
@@ -404,22 +323,6 @@ PanelWindow {
                             }
 
                         }
-
-                    }
-
-                    AudioUi.SectionHeader {
-                        width: parent.width
-                        controller: audioWindow
-                        title: "RECORDING APPS"
-                        count: recordingStreams.length
-                        visible: recordingStreams.length > 0
-                        height: recordingStreams.length > 0 ? 18 : 0
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: 6
-                        visible: recordingStreams.length > 0
 
                         Repeater {
                             model: recordingStreams
@@ -436,7 +339,6 @@ PanelWindow {
                     }
 
                 }
-
             }
 
         }
@@ -444,14 +346,6 @@ PanelWindow {
         Behavior on height {
             NumberAnimation {
                 duration: 210
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
                 easing.type: Easing.OutCubic
             }
 

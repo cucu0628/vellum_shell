@@ -30,7 +30,6 @@ arch_repo_packages=(
   btop
   brightnessctl
   cava
-  cliphist
   coreutils
   curl
   desktop-file-utils
@@ -41,6 +40,7 @@ arch_repo_packages=(
   gawk
   git
   glib2
+  greetd
   grep
   grim
   hyprland
@@ -67,8 +67,6 @@ arch_repo_packages=(
   qt6ct
   quickshell
   rust
-  satty
-  sddm
   sed
   slurp
   sudo
@@ -136,7 +134,6 @@ fedora_packages=(
   brightnessctl
   cargo
   cava
-  cliphist
   coreutils
   curl
   desktop-file-utils
@@ -149,6 +146,7 @@ fedora_packages=(
   gcc
   git
   glib2
+  greetd
   grep
   grim
   gtk4-devel
@@ -172,7 +170,6 @@ fedora_packages=(
   qt6ct
   quickshell
   rust
-  sddm
   sed
   slurp
   sudo
@@ -236,11 +233,6 @@ install_fedora_source_tools() {
       git clone --depth 1 https://github.com/Jappie3/wayfreeze.git "$wayfreeze_src"
       cargo install --locked --path "$wayfreeze_src" --root "$HOME/.local"
     )
-  fi
-
-  if ! command -v satty >/dev/null 2>&1 && [[ ! -x $HOME/.local/bin/satty ]]; then
-    printf 'A Satty telepítése a Rust csomagtárból...\n'
-    cargo install --locked --root "$HOME/.local" satty
   fi
 }
 
@@ -314,9 +306,8 @@ install_fedora_packages() {
       missing_commands+=("$required_command")
     fi
   done
-  if ! command -v wayfreeze >/dev/null 2>&1 && [[ ! -x $HOME/.local/bin/wayfreeze ]]; then
-    missing_commands+=("wayfreeze")
-  fi
+  # A wayfreeze nem kotelezo: nelkule a kepernyokep a hyprpickerrel fagyaszt,
+  # vagy fagyasztas nelkul keszul (lasd scripts/screenshot-capture).
   if (( ${#missing_commands[@]} > 0 )); then
     printf 'Hiba: a Fedora telepítés után is hiányzik: %s\n' "${missing_commands[*]}" >&2
     printf 'Ellenőrizd, hogy támogatott Fedora kiadást használsz, és a COPR/DNF tranzakció sikeres volt.\n' >&2

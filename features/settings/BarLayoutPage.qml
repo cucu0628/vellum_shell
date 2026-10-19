@@ -1,10 +1,13 @@
 import QtQuick
+import Quickshell.Services.Mpris
 import "../../ui" as SharedUi
 
 Item {
     id: page
 
     required property var controller
+    // core/MprisController: a lejatszo-kivetelek kezelese.
+    property var mpris: null
     property var theme: null
 
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
@@ -100,7 +103,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: toolbar.bottom
-        anchors.bottom: parent.bottom
+        anchors.bottom: mediaSection.top
+        anchors.bottomMargin: 16
         spacing: 10
 
         BarLayoutLane {
@@ -153,6 +157,145 @@ Item {
             zone: "hidden"
             title: "Hidden"
             theme: page.theme
+        }
+    }
+
+    // -- lejatszo-kivetelek ---------------------------------------------------
+    // A sav jelzoje es a dashboard nem mutatja az itt kihagyott lejatszokat.
+    Item {
+        id: mediaSection
+
+        // A futo lejatszok es a mar felvett kivetelek, nev szerint egyszer.
+        readonly property var entries: {
+            var names = []
+            var seen = {}
+            var running = Mpris.players.values
+            for (var i = 0; i < running.length; i++) {
+                var name = running[i].identity || running[i].dbusName || ""
+                if (name !== "" && !seen[name.toLowerCase()]) {
+                    seen[name.toLowerCase()] = true
+                    names.push({ "name": name, "running": true })
+                }
+            }
+            var ignored = page.mpris ? page.mpris.ignoredPlayers : []
+            for (var j = 0; j < ignored.length; j++) {
+                if (!seen[ignored[j].toLowerCase()]) {
+                    seen[ignored[j].toLowerCase()] = true
+                    names.push({ "name": ignored[j], "running": false })
+                }
+            }
+            return names
+        }
+
+        function isIgnored(name) {
+            var ignored = page.mpris ? page.mpris.ignoredPlayers : []
+            for (var i = 0; i < ignored.length; i++) {
+                if (ignored[i].toLowerCase() === name.toLowerCase()) return true
+            }
+            return false
+        }
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: mediaColumn.implicitHeight
+        visible: page.mpris !== null
+
+        Column {
+            id: mediaColumn
+
+            width: parent.width
+            spacing: 8
+
+            SettingsSection {
+                width: parent.width
+                theme: page.theme
+                title: "Media players"
+            }
+
+            Text {
+                width: parent.width
+                text: "Ignored players never show up in the top bar or the dashboard. Click a player to switch it."
+                color: page.muted
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+            }
+
+            Flow {
+                width: parent.width
+                spacing: 8
+
+                Repeater {
+                    model: mediaSection.entries
+
+                    Rectangle {
+                        id: playerChip
+
+                        required property var modelData
+                        readonly property bool ignored: mediaSection.isIgnored(modelData.name)
+
+                        width: chipRow.implicitWidth + 24
+                        height: 32
+                        radius: 6
+                        color: chipMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.04)
+
+                        Row {
+                            id: chipRow
+
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: playerChip.ignored ? "󰈉" : "󰈈"
+                                color: playerChip.ignored ? page.muted : page.accent
+                                font.family: "Symbols Nerd Font Mono"
+                                font.pixelSize: 14
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: playerChip.modelData.name
+                                textFormat: Text.PlainText
+                                color: playerChip.ignored ? page.muted : page.foreground
+                                font.pixelSize: 12
+                                font.strikeout: playerChip.ignored
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: playerChip.ignored ? "Ignored" : (playerChip.modelData.running ? "Shown" : "")
+                                color: page.muted
+                                font.pixelSize: 10
+                                visible: text !== ""
+                            }
+                        }
+
+                        SharedUi.Pressable {
+                            id: chipMouse
+
+                            anchors.fill: parent
+                            theme: page.theme
+                            accessibleName: (playerChip.ignored ? "Show " : "Ignore ") + playerChip.modelData.name
+                            onClicked: page.mpris.setIgnored(playerChip.modelData.name, !playerChip.ignored)
+                        }
+                    }
+                }
+
+                // Nev szerint is felveheto (pl. ha a lejatszo most nem fut).
+                TextSetting {
+                    id: addPlayerField
+
+                    width: 240
+                    height: 32
+                    theme: page.theme
+                    placeholder: "Add a player name to ignore"
+                    onCommitted: (value) => {
+                        if (value.trim() !== "") page.mpris.setIgnored(value, true)
+                        addPlayerField.clear()
+                    }
+                }
+            }
         }
     }
 

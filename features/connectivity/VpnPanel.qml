@@ -102,25 +102,6 @@ Item {
                     : (connected
                         ? "Connected" + (protocol !== "" ? "  ·  " + protocol : "") + (checking ? "  ·  updating" : "")
                         : "Disconnected"))
-            trailingWidth: 47
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.bottomMargin: 4
-                color: connected ? panelAccent : inkBg
-                border.color: connected ? panelAccent : mutedFg
-
-                Text {
-                    anchors.centerIn: parent
-                    text: connected ? "ON" : "OFF"
-                    color: connected ? panelBg : mutedFg
-                    font.family: "monospace"
-                    font.pixelSize: 8
-                    font.bold: true
-                }
-
-            }
-
         }
 
         Rectangle {
@@ -128,13 +109,6 @@ Item {
             height: 72
             color: inkBg
             border.color: "transparent"
-
-            Rectangle {
-                anchors.left: parent.left
-                width: 3
-                height: parent.height
-                color: connected ? panelAccent : mutedFg
-            }
 
             Row {
                 anchors.fill: parent
@@ -211,13 +185,11 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: busy
-                    ? (action === "connect" ? "CONNECTING..." : "DISCONNECTING...")
-                    : (connected ? "DISCONNECT" : "QUICK CONNECT")
+                    ? (action === "connect" ? "Connecting…" : "Disconnecting…")
+                    : (connected ? "Disconnect" : "Quick connect")
                 color: connected ? panelAccent : panelBg
-                font.family: "monospace"
-                font.pixelSize: 11
-                font.bold: true
-                font.letterSpacing: 2
+                font.pixelSize: 12
+                font.weight: Font.Medium
             }
 
             MouseArea {
@@ -236,12 +208,11 @@ Item {
             Text {
                 width: parent.width - 170
                 height: parent.height
-                text: locationSelection ? "COUNTRIES  ·  " + countries.length : "SERVER"
-                color: panelAccent
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.letterSpacing: 2
-                font.bold: true
+                text: locationSelection ? "Countries  ·  " + countries.length : "Server"
+                color: mutedFg
+                font.pixelSize: 10
+                font.letterSpacing: 0
+                font.weight: Font.Medium
                 verticalAlignment: Text.AlignVCenter
             }
 

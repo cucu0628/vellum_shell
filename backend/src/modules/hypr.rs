@@ -18,6 +18,7 @@
 //! felhasznalo a sajat konfigjaban allitott valamit.
 
 use crate::edid;
+use crate::greeter;
 use crate::module::{MethodDescription, Module, ModuleDescription, ModuleError, StateSink};
 use crate::theme::paths;
 use crate::theme::render::write_if_changed;
@@ -71,6 +72,19 @@ const SETTINGS_WINDOW_RULE: &str = r#"hl.window_rule({
     size = { 1040, 700 },
     float = true,
     center = true,
+})
+"#;
+
+/// A shell lenyilo paneljei (`quickshell.audio`, `quickshell.media`, ...) sajat
+/// csuszo animacioval jelennek meg. A Hyprland layer-animacioja (fade) erre
+/// ratenne egy atlatszosagi atmenetet, ezert ezekrol levesszuk. A sav maga a
+/// `quickshell` namespace-t hasznalja, arra a szabaly nem illeszkedik. A
+/// Hyprland a teljes namespace-re illeszt, ezert kell a `.*`; a nev miatt egy
+/// ismetelt `eval` nem halmoz fel masolatokat.
+const POPUP_LAYER_RULE: &str = r#"hl.layer_rule({
+    name = "vellum-popups",
+    match = { namespace = "^(quickshell\\..*)$" },
+    no_anim = true,
 })
 "#;
 
@@ -203,6 +217,13 @@ impl Hypr {
         })
     }
 
+    /// Snapshot egy lezart valtoztatas utan. A greeter is ekkor kapja meg az uj
+    /// elrendezest -- egy meg nem erositett elonezet nem kerul bele.
+    fn settled_snapshot() -> Value {
+        sync_greeter_layout();
+        Self::snapshot()
+    }
+
     /// Elonezet inditasa: ervenyesites, elo alkalmazas, es egy fegyverbe
     /// allitott visszaallitas. A store-hoz **nem** nyulunk -- az csak a
     /// megerositeskor valtozik.
@@ -288,7 +309,7 @@ impl Hypr {
         }
         drop(state);
 
-        if let Ok(snapshot) = tokio::task::spawn_blocking(Hypr::snapshot).await {
+        if let Ok(snapshot) = tokio::task::spawn_blocking(Hypr::settled_snapshot).await {
             sink.push(snapshot);
         }
     }
@@ -351,7 +372,7 @@ impl Module for Hypr {
             tracing::warn!(%err, "a hypr Lua modulok nem irhatoak");
         }
 
-        sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+        sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
 
         let Some(path) = event_socket_path() else {
             // Nem Hyprland session: a snapshot megvan, streamelni nincs mit.
@@ -395,7 +416,7 @@ impl Module for Hypr {
 
                 let _state = self.state.lock().await;
                 let applied = tokio::task::spawn_blocking(move || set_options(values)).await??;
-                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
                 Ok(applied)
             }
 
@@ -403,7 +424,7 @@ impl Module for Hypr {
                 let monitors = parse_monitors(&params)?;
                 let _state = self.state.lock().await;
                 let applied = tokio::task::spawn_blocking(move || set_monitors(monitors)).await??;
-                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
                 Ok(applied)
             }
 
@@ -421,7 +442,7 @@ impl Module for Hypr {
                 let mut state = self.state.lock().await;
                 let confirmed = self.confirm_preview(&mut state, &token).await?;
                 drop(state);
-                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
                 Ok(confirmed)
             }
 
@@ -430,7 +451,7 @@ impl Module for Hypr {
                 let mut state = self.state.lock().await;
                 let reverted = self.revert_preview(&mut state, &token).await?;
                 drop(state);
-                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
                 Ok(reverted)
             }
 
@@ -443,7 +464,7 @@ impl Module for Hypr {
 
                 let _state = self.state.lock().await;
                 let store = tokio::task::spawn_blocking(move || reset(&scope)).await??;
-                sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+                sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
                 Ok(serde_json::to_value(store)?)
             }
 
@@ -460,6 +481,10 @@ fn prepare() -> Result<Value> {
     // elott. Hyprland nelkul a shell tovabbra is degradaltan indul.
     Store::load().render()?;
     let available = hyprctl(&["eval", SETTINGS_WINDOW_RULE]).is_ok();
+    // A layer-szabaly csak kozmetikai: ha elbukik, a panelek attol meg mukodnek.
+    if available && let Err(err) = hyprctl(&["eval", POPUP_LAYER_RULE]) {
+        tracing::warn!(%err, "a popup layer-szabaly nem allithato be");
+    }
     Ok(json!({ "available": available }))
 }
 
@@ -563,6 +588,37 @@ fn snapshot_settings(live: &[LiveMonitor]) -> Vec<MonitorSetting> {
             disabled: monitor.disabled,
         })
         .collect()
+}
+
+/// A greeter compositora a felhasznalo elo elrendezeset es billentyuzet-
+/// kiosztasat kapja. Hyprland nelkul (vagy telepitetlen greeternel) csendben
+/// kimarad: a greeter ilyenkor a legutobb kiirt allapotot hasznalja.
+pub fn sync_greeter_layout() {
+    let Ok(live) = live_monitors() else {
+        return;
+    };
+    if live.is_empty() {
+        return;
+    }
+
+    let options =
+        read_option_values(&["input:kb_layout", "input:kb_variant", "input:kb_options"]);
+    let text = |key: &str| {
+        options
+            .get(key)
+            .and_then(Value::as_str)
+            // A Hyprland az ures stringet igy jeloli.
+            .filter(|value| *value != "[[EMPTY]]")
+            .unwrap_or_default()
+            .to_string()
+    };
+    let keyboard = greeter::Keyboard {
+        layout: text("input:kb_layout"),
+        variant: text("input:kb_variant"),
+        options: text("input:kb_options"),
+    };
+
+    greeter::write_layout(&snapshot_settings(&live), &keyboard);
 }
 
 fn next_token() -> String {
@@ -886,8 +942,8 @@ fn first_overlap(layout: &[ResolvedMonitor]) -> Option<(String, String)> {
 // -- olvasas -----------------------------------------------------------------
 
 /// A csatlakoztatott kijelzok, a kikapcsoltakat is beleertve, EDID-azonositoval
-/// kiegeszitve. Az EDID azert kell, mert a connector nevek nem stabilak --
-/// ugyanaz az indoklas, mint az SDDM greeternel (`crate::edid`).
+/// kiegeszitve. Az EDID azert kell, mert a connector nevek nem stabilak
+/// (`crate::edid`).
 fn monitors() -> Value {
     let Ok(text) = hyprctl(&["-j", "monitors", "all"]) else {
         return Value::Array(Vec::new());
@@ -921,12 +977,15 @@ fn monitors() -> Value {
 /// Egyetlen `hyprctl --batch` hivas az osszes ismert kulcsra. Kulon
 /// folyamatonkent futtatva ez huszonket process lenne minden megnyitaskor.
 fn read_options() -> Value {
-    let query =
-        OPTION_KEYS.iter().map(|key| format!("getoption {key}")).collect::<Vec<_>>().join(" ; ");
+    Value::Object(read_option_values(OPTION_KEYS))
+}
+
+fn read_option_values(keys: &[&str]) -> Map<String, Value> {
+    let query = keys.iter().map(|key| format!("getoption {key}")).collect::<Vec<_>>().join(" ; ");
 
     let mut values = Map::new();
     let Ok(text) = hyprctl(&["-j", "--batch", &query]) else {
-        return Value::Object(values);
+        return values;
     };
 
     for line in text.lines() {
@@ -945,7 +1004,7 @@ fn read_options() -> Value {
         }
     }
 
-    Value::Object(values)
+    values
 }
 
 /// A `getoption` valasza tipusfuggo mezoben hozza az erteket. A `css` forma
@@ -1044,6 +1103,7 @@ fn render_tuning_lua(options: &BTreeMap<String, Value>) -> String {
     let mut out = String::from(HEADER);
     out.push('\n');
     out.push_str(SETTINGS_WINDOW_RULE);
+    out.push_str(POPUP_LAYER_RULE);
     out.push_str(&render_options_lua(options));
     out
 }
@@ -1180,7 +1240,7 @@ async fn watch_events(path: &std::path::Path, sink: &StateSink) -> Result<()> {
             }
         }
 
-        sink.push(tokio::task::spawn_blocking(Hypr::snapshot).await?);
+        sink.push(tokio::task::spawn_blocking(Hypr::settled_snapshot).await?);
     }
 }
 
@@ -1213,7 +1273,7 @@ mod tests {
         assert_eq!(
             rendered,
             format!(
-                "{HEADER}\n{SETTINGS_WINDOW_RULE}\nhl.config({{\n    \
+                "{HEADER}\n{SETTINGS_WINDOW_RULE}{POPUP_LAYER_RULE}\nhl.config({{\n    \
                  decoration = {{\n        rounding = 6,\n        blur = {{\n            \
                  enabled = true,\n        }},\n    }},\n    \
                  general = {{\n        gaps_in = 8,\n    }},\n    \

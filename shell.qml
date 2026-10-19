@@ -144,6 +144,15 @@ ShellRoot {
 
     Core.MprisController {
         id: mprisController
+        shellDir: shellRoot.shellDir
+    }
+
+    // Mindig fut (masodpercenkent egy /proc-olvasas a backendben), hogy a
+    // dashboard CPU-grafikonja megnyitaskor mar teljes legyen.
+    MediaFeature.SystemStatsController {
+        id: systemStats
+        backend: shellRoot.shellBackend
+        active: true
     }
 
     Core.CavaController {
@@ -218,6 +227,7 @@ ShellRoot {
             sourceComponent: Component {
                 SettingsFeature.SettingsWindow {
                     backend: shellRoot.shellBackend
+                    mpris: mprisController
                     barLayout: shellRoot.barLayoutState
                     theme: shellRoot.shellTheme
                     shellDir: shellRoot.shellDir
@@ -237,6 +247,7 @@ ShellRoot {
         popupComponent: Component {
             LauncherFeature.LauncherPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: appLauncher.screen
                 homeDir: shellRoot.homeDir
                 shellDir: shellRoot.shellDir
@@ -246,6 +257,7 @@ ShellRoot {
 
     ClipboardFeature.ClipboardController {
         id: clipboardStore
+        backend: shellRoot.shellBackend
     }
 
     App.LazyPopup {
@@ -253,6 +265,7 @@ ShellRoot {
         popupComponent: Component {
             ClipboardFeature.ClipboardPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 clipboardController: clipboardStore
                 screen: clipboardHistory.screen
             }
@@ -266,8 +279,10 @@ ShellRoot {
                 backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 wallpaperController: wallpaperStore
+                barHeight: shellRoot.barHeight
                 mode: themeSwitcher.mode
                 screen: themeSwitcher.screen
+                onModeRequested: (nextMode) => themeSwitcher.mode = nextMode
             }
         }
     }
@@ -277,6 +292,7 @@ ShellRoot {
         popupComponent: Component {
             AudioFeature.AudioPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: audioPopup.screen
             }
         }
@@ -288,6 +304,7 @@ ShellRoot {
         popupComponent: Component {
             ConnectivityFeature.ConnectivityPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 backend: shellRoot.shellBackend
                 statusController: networkStatusController
                 vpnCli: vpnController
@@ -303,6 +320,7 @@ ShellRoot {
         popupComponent: Component {
             PrivacyFeature.PrivacyPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 statusController: privacyController
                 screen: privacyPopup.screen
             }
@@ -314,6 +332,7 @@ ShellRoot {
         popupComponent: Component {
             BluetoothFeature.BluetoothPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 statusController: bluetoothStatusController
                 screen: bluetoothPopup.screen
                 shellDir: shellRoot.shellDir
@@ -326,6 +345,7 @@ ShellRoot {
         popupComponent: Component {
             RemovableFeature.RemovableDevicePopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 deviceController: removableDeviceController
                 screen: removablePopup.screen
             }
@@ -343,6 +363,7 @@ ShellRoot {
         popupComponent: Component {
             AiFeature.AiUsagePopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: aiPopup.screen
                 shellDir: shellRoot.shellDir
             }
@@ -362,6 +383,7 @@ ShellRoot {
     NotificationFeature.NotificationsHost {
         id: notifications
         theme: theme
+        barHeight: shellRoot.barHeight
     }
 
     OsdFeature.VolumeOsd {
@@ -399,6 +421,7 @@ ShellRoot {
         lockProvider: lockRoot
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
         screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
+        activePlayer: shellRoot.activePlayer
     }
 
     // AGRESSZÍV MONITOR SZŰRÉS (Csak egyedi nevű monitorok)
@@ -430,7 +453,7 @@ ShellRoot {
             occupiedWorkspaceIds: shellRoot.occupiedWorkspaceIds
             layoutController: shellRoot.barLayoutState
             activePlayer: shellRoot.activePlayer
-            hasMediaSource: Mpris.players.values.length > 0
+            hasMediaSource: mprisController.players.length > 0
             cavaValues: cavaController.values
             settingsOpen: settingsApp.opened
             centerPopupOpen: mediaPopup.opened && mediaPopup.screen === targetScreen
@@ -478,22 +501,28 @@ ShellRoot {
 
     App.LazyPopup {
         id: mediaPopup
-        property int currentTab: 0
-        property string selectedPlayerDbusName: ""
+        // A valasztott lejatszo a kozos MprisControllerben el: a sav jelzoje is
+        // ugyanazt mutatja, es a popup lebontasa utan is megmarad.
+        property alias selectedPlayerDbusName: mprisController.pinnedDbusName
+        // Az IPC kerhet kinagyitott kartyat ("calendar" / "weather"); csak az
+        // adott megnyitasra szol, zaraskor torlodik.
+        property string initialCard: ""
+        onOpenedChanged: if (!opened) initialCard = ""
         popupComponent: Component {
             MediaFeature.MediaPopup {
+                stats: systemStats
+                players: mprisController.players
+                initialCard: mediaPopup.initialCard
                 backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 screen: mediaPopup.screen
-                currentTab: mediaPopup.currentTab
                 selectedPlayerDbusName: mediaPopup.selectedPlayerDbusName
                 barHeight: shellRoot.barHeight
                 activePlayer: shellRoot.activePlayer
-                cavaValues: cavaController.values
+                cavaValues: cavaController.spectrum
                 calendarNow: shellRoot.calendarNow
                 monthNames: shellRoot.monthNames
                 dayNames: shellRoot.dayNames
-                onCurrentTabChanged: mediaPopup.currentTab = currentTab
                 onSelectedPlayerDbusNameChanged: mediaPopup.selectedPlayerDbusName = selectedPlayerDbusName
             }
         }

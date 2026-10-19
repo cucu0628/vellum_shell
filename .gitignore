@@ -6,8 +6,7 @@ zen-content-theme.css
 current-wallpaper
 current-theme
 bar-layout.json
+media-ignore
 gtk-theme.css
-sddm/vellum-ink/Xsetup
-sddm/vellum-ink/background.jpg
 push-both.sh
 backend/target/

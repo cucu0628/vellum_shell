@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # A Vellum Shell eltavolitasa.
 #
-#   scripts/uninstall [--dry-run] [--with-sddm] [--purge-state]
+#   scripts/uninstall [--dry-run] [--with-greeter] [--purge-state]
 #
 # Amit a setup.sh telepitett, azt visszabontja: a symlinket, a backendet, a
 # generalt fajlokat es a sajat konfigokba beirt sorokat. A felhasznalo adataihoz
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 dry_run=false
-with_sddm=false
+with_greeter=false
 purge_state=false
 
 usage() {
@@ -20,7 +20,7 @@ usage() {
 Hasznalat: scripts/uninstall [opciok]
 
   --dry-run       Csak mutassa, mit torolne.
-  --with-sddm     Tavolitsa el a Vellum Ink SDDM temat is (sudo kell hozza).
+  --with-greeter  Tavolitsa el a Vellum greetert is (sudo kell hozza).
   --purge-state   Torolje a shell allapotat is (vagolap-elozmeny, gyorsitotar).
   -h, --help      Mutassa ezt a sugot.
 EOF
@@ -29,7 +29,7 @@ EOF
 while (( $# > 0 )); do
   case "$1" in
     --dry-run) dry_run=true ;;
-    --with-sddm) with_sddm=true ;;
+    --with-greeter) with_greeter=true ;;
     --purge-state) purge_state=true ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'Ismeretlen opcio: %s\n' "$1" >&2; usage >&2; exit 2 ;;
@@ -180,13 +180,16 @@ else
   note "/etc/pam.d/vellum-shell mar nincs"
 fi
 
-if [[ $with_sddm == true ]]; then
-  printf '\nSDDM tema\n'
-  if [[ -d /usr/share/sddm/themes/vellum-ink ]]; then
-    act sudo rm -rf /usr/share/sddm/themes/vellum-ink
-    note "az /etc/sddm.conf.d/ bejegyzeseit kezzel nezd at (Current=vellum-ink)"
+if [[ $with_greeter == true ]]; then
+  printf '\nGreeter\n'
+  if [[ -d /usr/share/vellum-greeter ]]; then
+    act sudo rm -rf /usr/share/vellum-greeter /var/lib/vellum-greeter /var/cache/vellum-greeter \
+      /etc/tmpfiles.d/vellum-greeter.conf
+    # A greetd a sajat konfigja nelkul nem indulna: azt nem toroljuk, csak
+    # jelezzuk, hol van az elozo valtozat.
+    note "az /etc/greetd/config.toml meg a Vellum greeterre mutat; az elozo: /etc/greetd/config.toml.before-vellum-*"
   else
-    note "a vellum-ink tema nincs telepitve"
+    note "a Vellum greeter nincs telepitve"
   fi
 fi
 

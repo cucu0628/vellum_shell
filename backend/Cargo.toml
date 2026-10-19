@@ -19,18 +19,27 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
+# A Google Naptar PKCE-jehez (base64url) es veletlen/SHA-256 forrasahoz. Mindketto
+# mar ott van a fuggosegi faban (reqwest/rustls), igy nem hoz uj kodot.
+base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
 libc = "0.2"
 material-colors = { version = "0.4.2", features = ["image"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
+ring = "0.17"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["rt", "macros", "net", "io-util", "sync", "time", "signal"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# A vagolap-kezelo kozvetlenul a Wayland data-control protokollal beszel:
+# nincs szukseg cliphistre vagy wl-clipboardra. Tiszta Rust kliens, libwayland
+# nelkul.
+wayland-client = "0.31"
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
 zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
 
 [profile.release]

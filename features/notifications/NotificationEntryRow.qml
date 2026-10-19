@@ -1,5 +1,9 @@
 import QtQuick
+import Quickshell.Widgets
+import "../../ui" as SharedUi
 
+// Egy ertesites az ertesitesi kozpontban: ikon, alkalmazas es ido, cim,
+// szoveg, alatta a muveletek. A torles hoverre jelenik meg.
 Rectangle {
     id: row
 
@@ -7,11 +11,11 @@ Rectangle {
     property var entry: null
     property int rowHeight: 62
     property bool grouped: false
-    readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
+    readonly property color accentColor: panelAccent
     readonly property var entryActions: entry && entry.actions ? entry.actions : []
     readonly property var visibleActions: {
         var result = []
@@ -22,22 +26,19 @@ Rectangle {
         return result
     }
     readonly property bool critical: entry ? entry.critical === true : false
+    readonly property bool hovered: itemMouse.containsMouse || deleteMouse.containsMouse
 
     signal activated()
     signal deleteRequested()
     signal actionRequested(var action)
 
-    height: rowHeight + (actionFlow.visible ? actionFlow.implicitHeight + 8 : 0)
-    color: itemMouse.containsMouse ? inkBg : "transparent"
-    border.color: row.critical ? row.panelAccent : "transparent"
-    border.width: 1
+    height: rowHeight + (actionFlow.visible ? actionFlow.implicitHeight + 6 : 0)
+    radius: 8
+    color: row.critical
+        ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, row.hovered ? 0.14 : 0.08)
+        : (row.hovered ? Qt.rgba(1, 1, 1, 0.05) : "transparent")
 
-    Rectangle {
-        width: 3
-        height: parent.height
-        color: row.panelAccent
-        opacity: row.critical || itemMouse.containsMouse ? 1 : (row.grouped ? 0.25 : 0)
-    }
+    Behavior on color { ColorAnimation { duration: 110 } }
 
     MouseArea {
         id: itemMouse
@@ -50,187 +51,156 @@ Rectangle {
         }
     }
 
-    Row {
-        anchors.fill: parent
-        anchors.margins: 9
-        anchors.leftMargin: 11
-        anchors.bottomMargin: actionFlow.visible ? actionFlow.implicitHeight + 9 : 9
-        spacing: 9
+    ClippingRectangle {
+        id: iconBox
 
-        Rectangle {
-            width: 36
-            height: 36
-            anchors.verticalCenter: parent.verticalCenter
-            color: row.inkBg
-            border.color: row.mutedFg
-            border.width: 1
-            clip: true
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        y: (row.rowHeight - height) / 2
+        width: 36
+        height: 36
+        radius: 8
+        color: row.inkBg
 
-            Image {
-                id: entryImage
+        Image {
+            id: entryImage
 
-                anchors.fill: parent
-                anchors.margins: 6
-                source: row.entry ? row.entry.icon : ""
-                sourceSize: Qt.size(72, 72)
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                cache: false
-                smooth: true
-                visible: source !== ""
-            }
-
-            Text {
-                textFormat: Text.PlainText
-                anchors.centerIn: parent
-                text: row.critical ? "󰀦" : "󰂚"
-                color: row.panelAccent
-                font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 13
-                visible: entryImage.source === ""
-            }
-
+            anchors.fill: parent
+            anchors.margins: 6
+            source: row.entry ? row.entry.icon : ""
+            sourceSize: Qt.size(72, 72)
+            fillMode: Image.PreserveAspectFit
+            asynchronous: true
+            cache: false
+            smooth: true
+            visible: source !== ""
         }
 
-        Column {
-            width: parent.width - 82
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+        Text {
+            anchors.centerIn: parent
+            text: row.critical ? "󰀦" : "󰂚"
+            color: row.critical ? row.panelAccent : row.mutedFg
+            font.family: "Symbols Nerd Font Mono"
+            font.pixelSize: 14
+            visible: entryImage.source.toString() === ""
+        }
+    }
 
-            Row {
-                width: parent.width
+    Column {
+        anchors.left: iconBox.right
+        anchors.leftMargin: 12
+        anchors.right: parent.right
+        anchors.rightMargin: 44
+        y: (row.rowHeight - height) / 2
+        spacing: 2
 
-                Text {
-                    textFormat: Text.PlainText
-                    width: parent.width - 42
-                    text: row.grouped
-                        ? (row.entry && row.entry.summary ? row.entry.summary : "Notification")
-                        : (row.entry ? row.entry.appName.toUpperCase() : "")
-                    color: row.grouped ? row.panelFg : row.panelAccent
-                    font.pixelSize: row.grouped ? 12 : 7
-                    font.bold: true
-                    font.letterSpacing: row.grouped ? 0 : 2
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    textFormat: Text.PlainText
-                    width: 42
-                    text: row.entry ? row.entry.time : ""
-                    color: row.mutedFg
-                    font.pixelSize: 8
-                    horizontalAlignment: Text.AlignRight
-                }
-
-            }
+        Item {
+            width: parent.width
+            height: 14
 
             Text {
+                anchors.left: parent.left
+                anchors.right: timeText.left
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                text: row.grouped
+                    ? (row.entry && row.entry.summary ? row.entry.summary : qsTr("Notification"))
+                    : (row.entry ? row.entry.appName : "")
                 textFormat: Text.PlainText
-                width: parent.width
-                text: row.entry && row.entry.summary ? row.entry.summary : "Notification"
-                color: row.panelFg
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
+                color: row.grouped ? row.panelFg : row.mutedFg
+                font.pixelSize: row.grouped ? 12 : 10
+                font.weight: row.grouped ? Font.Medium : Font.Normal
                 elide: Text.ElideRight
-                visible: !row.grouped
             }
 
             Text {
+                id: timeText
+
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: row.entry ? row.entry.time : ""
                 textFormat: Text.PlainText
-                width: parent.width
-                text: row.entry ? row.entry.body : ""
                 color: row.mutedFg
-                font.pixelSize: 9
-                elide: Text.ElideRight
-                visible: text !== ""
+                font.pixelSize: 10
             }
-
         }
 
-        Rectangle {
-            width: 28
-            height: 28
-            anchors.verticalCenter: parent.verticalCenter
-            color: deleteMouse.containsMouse ? row.panelAccent : "transparent"
-            border.color: deleteMouse.containsMouse ? row.panelAccent : row.mutedFg
-            border.width: 1
-
-            Text {
-                textFormat: Text.PlainText
-                anchors.centerIn: parent
-                text: "󰅖"
-                color: deleteMouse.containsMouse ? row.panelBg : row.mutedFg
-                font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 12
-            }
-
-            MouseArea {
-                id: deleteMouse
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: row.deleteRequested()
-            }
-
+        Text {
+            width: parent.width
+            text: row.entry && row.entry.summary ? row.entry.summary : qsTr("Notification")
+            textFormat: Text.PlainText
+            color: row.panelFg
+            font.pixelSize: 12
+            font.weight: Font.Medium
+            elide: Text.ElideRight
+            visible: !row.grouped
         }
 
+        Text {
+            width: parent.width
+            text: row.entry ? row.entry.body : ""
+            textFormat: Text.PlainText
+            color: row.mutedFg
+            font.pixelSize: 11
+            elide: Text.ElideRight
+            visible: text !== ""
+        }
+    }
+
+    // Torles: csak hoverre latszik, de mindig kattinthato (billentyuzettel is).
+    Rectangle {
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        y: (row.rowHeight - height) / 2
+        width: 28
+        height: 28
+        radius: 6
+        opacity: row.hovered || deleteMouse.activeFocus ? 1 : 0
+        color: deleteMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+
+        Behavior on opacity { NumberAnimation { duration: 110 } }
+
+        Text {
+            anchors.centerIn: parent
+            text: "󰅖"
+            color: deleteMouse.containsMouse ? row.panelFg : row.mutedFg
+            font.family: "Symbols Nerd Font Mono"
+            font.pixelSize: 12
+        }
+
+        SharedUi.Pressable {
+            id: deleteMouse
+
+            anchors.fill: parent
+            theme: row.theme
+            accessibleName: qsTr("Remove notification")
+            onClicked: row.deleteRequested()
+        }
     }
 
     Flow {
         id: actionFlow
 
         anchors.left: parent.left
-        anchors.leftMargin: 56
+        anchors.leftMargin: 58
         anchors.right: parent.right
-        anchors.rightMargin: 9
+        anchors.rightMargin: 10
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 7
-        spacing: 5
+        anchors.bottomMargin: 8
+        spacing: 6
         visible: row.visibleActions.length > 0
 
         Repeater {
             model: row.visibleActions
 
-            Rectangle {
-                property var action: modelData
+            SharedUi.HeaderChip {
+                required property var modelData
 
-                width: Math.min(130, Math.max(54, entryActionText.implicitWidth + 16))
-                height: 21
-                color: entryActionMouse.containsMouse ? row.panelAccent : row.inkBg
-                border.color: row.panelAccent
-                border.width: 1
-
-                Text {
-                    textFormat: Text.PlainText
-                    id: entryActionText
-
-                    anchors.centerIn: parent
-                    width: parent.width - 10
-                    text: parent.action ? parent.action.text.toString().trim().toUpperCase() : ""
-                    color: entryActionMouse.containsMouse ? row.panelBg : row.panelAccent
-                    font.pixelSize: 8
-                    font.bold: true
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                MouseArea {
-                    id: entryActionMouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: mouse => {
-                        mouse.accepted = true
-                        row.actionRequested(parent.action)
-                    }
-                }
-
+                width: Math.min(150, implicitWidth)
+                theme: row.theme
+                label: modelData.text.toString().trim()
+                onClicked: row.actionRequested(modelData)
             }
-
         }
-
     }
-
 }

@@ -1,5 +1,8 @@
 import QtQuick
 
+// Visszafogott keresomezo: lekerekitett, vekony keret, ami fokuszban sem
+// vastagodik, csak akcentes lesz. A jel es a betumeret a torzsszoveg
+// skalajan marad, igy a mezo nem nyomja el az alatta levo listat.
 Rectangle {
     id: field
 
@@ -11,8 +14,8 @@ Rectangle {
     property color accent: "#d7472f"
     property color muted: "#9f8f7c"
     property color surface: "#1b1613"
-    property int inputLeftMargin: 40
-    property int inputVerticalPadding: 12
+    property int inputLeftMargin: 34
+    property int inputVerticalPadding: 10
     signal textEdited(string text)
     signal keyPressed(var event)
 
@@ -24,20 +27,25 @@ Rectangle {
         input.forceActiveFocus()
     }
 
-    height: 46
-    radius: 0
+    height: 40
+    radius: 8
     color: surface
-    border.color: input.activeFocus ? accent : muted
-    border.width: input.activeFocus ? 2 : 1
+    border.width: 1
+    border.color: input.activeFocus
+        ? Qt.rgba(accent.r, accent.g, accent.b, 0.55)
+        : Qt.rgba(muted.r, muted.g, muted.b, 0.22)
     Behavior on border.color { ColorAnimation { duration: 120 } }
 
     Text {
+        width: field.inputLeftMargin - 12
         text: field.indicator
-        color: field.accent
-        font.pixelSize: 18
+        color: input.activeFocus ? field.accent : field.muted
+        font.pixelSize: 15
+        horizontalAlignment: Text.AlignHCenter
         anchors.left: parent.left
-        anchors.leftMargin: 13
+        anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
+        Behavior on color { ColorAnimation { duration: 120 } }
     }
 
     TextInput {
@@ -50,7 +58,10 @@ Rectangle {
         height: parent.height - field.inputVerticalPadding
         verticalAlignment: TextInput.AlignVCenter
         color: field.foreground
-        font.pixelSize: 15
+        selectionColor: Qt.rgba(field.accent.r, field.accent.g, field.accent.b, 0.35)
+        selectedTextColor: field.foreground
+        font.pixelSize: 13
+        clip: true
         focus: field.opened
         onTextChanged: field.textEdited(text)
         Keys.onPressed: (event) => field.keyPressed(event)
@@ -61,6 +72,8 @@ Rectangle {
             visible: parent.text === ""
             anchors.fill: parent
             verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 13
+            elide: Text.ElideRight
         }
     }
 }

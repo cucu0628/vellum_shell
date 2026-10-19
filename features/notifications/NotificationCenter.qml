@@ -7,10 +7,11 @@ Item {
 
     property var theme: null
     property bool opened: false
+    property int barHeight: 26
     property bool dnd: false
     property var history: []
     property var groups: []
-    readonly property bool transitionActive: opened || menuContent.opacity > 0
+    readonly property bool transitionActive: opened || sheet.reveal > 0
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
@@ -56,15 +57,19 @@ Item {
         id: menuContent
 
         anchors.right: parent.right
-        anchors.rightMargin: 10
-        y: 32
+        anchors.rightMargin: 0
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: center.barHeight
         width: Math.min(380, parent.width - 20)
-        height: center.opened ? Math.min(parent.height - 46, menuPanelColumn.implicitHeight + 32) : 0
-        opacity: center.opened ? 1 : 0
+        height: Math.min(parent.height - center.barHeight - 12, menuPanelColumn.implicitHeight + 32)
         enabled: center.opened
         clip: true
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: center.opened
             anchors.fill: parent
             theme: center.theme
 
@@ -96,48 +101,36 @@ Item {
                         theme: center.theme
                         title: "Notifications"
                         subtitle: center.history.length + (center.history.length === 1 ? " recent item" : " recent items")
-                        trailingWidth: 80
+                        trailingWidth: 84
 
-                        Rectangle {
+                        SharedUi.HeaderChip {
                             anchors.fill: parent
                             anchors.bottomMargin: 6
-                            color: center.dnd ? center.panelAccent : center.inkBg
-                            border.color: center.panelAccent
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: center.dnd ? "DND ON" : "DND"
-                                color: center.dnd ? center.panelBg : center.panelAccent
-                                font.family: "monospace"
-                                font.pixelSize: 8
-                                font.bold: true
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.dndToggleRequested()
-                            }
-
+                            theme: center.theme
+                            label: "Silence"
+                            checkable: true
+                            checked: center.dnd
+                            accessibleName: center.dnd ? qsTr("Turn do not disturb off") : qsTr("Turn do not disturb on")
+                            onClicked: center.dndToggleRequested()
                         }
 
                     }
 
+                    // Ures listanal a fejlec alcime mar elmondja ugyanezt.
                     Row {
                         width: parent.width
-                        height: 18
+                        height: visible ? 18 : 0
+                        visible: center.history.length > 0
                         spacing: 8
 
                         Text {
                             width: parent.width - 136
-                            text: "RECENT  /  " + center.history.length
-                                + (center.groups.length > 0 && center.groups.length !== center.history.length ? "  ·  " + center.groups.length + " APPS" : "")
-                            color: center.panelAccent
-                            font.family: "monospace"
-                            font.pixelSize: 8
-                            font.letterSpacing: 2
-                            font.bold: true
+                            text: "Recent  ·  " + center.history.length
+                                + (center.groups.length > 0 && center.groups.length !== center.history.length ? "  ·  " + center.groups.length + (center.groups.length === 1 ? " app" : " apps") : "")
+                            color: center.mutedFg
+                            font.pixelSize: 10
+                            font.letterSpacing: 0
+                            font.weight: Font.Medium
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -145,11 +138,9 @@ Item {
                         Text {
                             width: 64
                             height: parent.height
-                            text: center.hasGroupedApps ? (center.allGroupsExpanded ? "COLLAPSE" : "EXPAND") : ""
-                            color: expandAllMouse.containsMouse ? center.panelAccent : center.mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 9
-                            font.bold: true
+                            text: center.hasGroupedApps ? (center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")) : ""
+                            color: expandAllMouse.containsMouse ? center.panelFg : center.mutedFg
+                            font.pixelSize: 10
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
 
@@ -168,16 +159,16 @@ Item {
                         Text {
                             width: 56
                             height: parent.height
-                            text: center.history.length > 0 ? "CLEAR" : ""
-                            color: center.mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 9
-                            font.bold: true
+                            text: center.history.length > 0 ? qsTr("Clear all") : ""
+                            color: clearAllMouse.containsMouse ? center.panelFg : center.mutedFg
+                            font.pixelSize: 10
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
 
                             MouseArea {
+                                id: clearAllMouse
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 enabled: center.history.length > 0
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: center.clearRequested()
@@ -201,8 +192,7 @@ Item {
 
                             Text {
                                 text: "󰂜"
-                                color: center.panelAccent
-                                opacity: 0.55
+                                color: center.mutedFg
                                 font.family: "Symbols Nerd Font Mono"
                                 font.pixelSize: 17
                             }
@@ -283,14 +273,6 @@ Item {
         Behavior on height {
             NumberAnimation {
                 duration: 210
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
                 easing.type: Easing.OutCubic
             }
 

@@ -9,6 +9,8 @@ Item {
     required property var lockProvider
     required property var focusedScreenProvider
     required property var screenshotCaptureProvider
+    // Az eppen szolo (vagy utolso) MPRIS lejatszo a medagombokhoz.
+    property var activePlayer: null
     property string pendingAboutAction: ""
 
     width: 0
@@ -20,8 +22,9 @@ Item {
         aboutMonitorDelay.restart()
     }
 
-    function openMediaTab(tab) {
-        coordinator.openMediaTab(tab, focusedScreenProvider())
+    function openMedia(card) {
+        coordinator.mediaPopup.initialCard = card || ""
+        coordinator.setMediaOpen(true, focusedScreenProvider())
     }
 
     Timer {
@@ -132,10 +135,25 @@ Item {
         target: "media"
 
         function toggle(): void { coordinator.toggleCenterPopup(focusedScreenProvider()) }
-        function open(): void { root.openMediaTab(coordinator.mediaPopup.currentTab) }
-        function overview(): void { root.openMediaTab(0) }
-        function player(): void { root.openMediaTab(1) }
-        function weather(): void { root.openMediaTab(2) }
+        function open(): void { root.openMedia() }
+        // A dashboard mar egyetlen lap; a regi fulnevek megmaradnak, hogy a
+        // meglevo billentyuparancsok es szkriptek ne torjenek el.
+        function overview(): void { root.openMedia() }
+        function player(): void { root.openMedia() }
+        // A dashboard egy kinagyitott kartyaval.
+        function weather(): void { root.openMedia("weather") }
+        function calendar(): void { root.openMedia("calendar") }
+        // Medagombok: nem kell hozzajuk playerctl, a shell maga vezerli az
+        // aktiv lejatszot.
+        function playPause(): void {
+            if (root.activePlayer && root.activePlayer.canTogglePlaying) root.activePlayer.togglePlaying()
+        }
+        function next(): void {
+            if (root.activePlayer && root.activePlayer.canGoNext) root.activePlayer.next()
+        }
+        function previous(): void {
+            if (root.activePlayer && root.activePlayer.canGoPrevious) root.activePlayer.previous()
+        }
         function close(): void { coordinator.setMediaOpen(false) }
     }
 

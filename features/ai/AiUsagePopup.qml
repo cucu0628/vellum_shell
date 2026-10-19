@@ -10,6 +10,7 @@ PanelWindow {
     property var theme: null
     required property string shellDir
     property bool opened: false
+    property int barHeight: 26
     property bool refreshing: false
     property var claude: emptyProvider("claude", "Claude Code")
     property var codex: emptyProvider("codex", "Codex")
@@ -70,7 +71,7 @@ PanelWindow {
     readonly property real panelContentHeight: 126 + providerHeight(claude) + providerHeight(codex)
 
     onOpenedChanged: if (opened) refresh(false)
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.ai-usage"
@@ -87,15 +88,19 @@ PanelWindow {
     Item {
         id: content
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: 0
         enabled: opened
-        y: 32
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: aiWindow.barHeight
         width: Math.min(430, parent.width - 20)
-        height: opened ? Math.min(panelContentHeight, parent.height - 46) : 0
+        height: Math.min(panelContentHeight, parent.height - aiWindow.barHeight - 12)
         clip: true
-        opacity: opened ? 1 : 0
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: aiWindow.opened
             anchors.fill: parent
             theme: aiWindow.theme
 
@@ -144,13 +149,6 @@ PanelWindow {
                         color: inkBg
                         border.color: Qt.rgba(1, 1, 1, 0.07)
 
-                        Rectangle {
-                            anchors.left: parent.left
-                            width: 3
-                            height: parent.height
-                            color: providerCard.provider.ready ? panelAccent : mutedFg
-                        }
-
                         Column {
                             anchors.fill: parent
                             anchors.leftMargin: 16
@@ -170,7 +168,7 @@ PanelWindow {
                                     verticalAlignment: Text.AlignVCenter
                                     font.pixelSize: 11
                                     font.bold: true
-                                    font.letterSpacing: 2
+                                    font.letterSpacing: 1
                                 }
                                 Text {
                                     width: 130
@@ -349,7 +347,6 @@ PanelWindow {
         }
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
 
     Process {

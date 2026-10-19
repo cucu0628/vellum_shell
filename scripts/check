@@ -85,7 +85,7 @@ if [[ -n $qmllint_bin ]]; then
   # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
   # figyelmeztetest (uncreatable-type, unqualified access). Csak a hibakon
   # bukunk el; a figyelmeztetesek szamat kiirjuk, hogy a novekedes latszodjon.
-  qml_output=$("$qmllint_bin" shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml \
+  qml_output=$("$qmllint_bin" shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml \
     features/*/*.qml 2>&1 || true)
 
   if grep -q '^Error:' <<<"$qml_output"; then

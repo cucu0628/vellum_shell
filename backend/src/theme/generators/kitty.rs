@@ -12,7 +12,21 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
     let output = paths::shell_dir().join("kitty-theme.conf");
     let template = load_template("kitty.conf.tmpl", BUILTIN);
     let changed = write_if_changed(&output, &render(&template, &vars(palette)))?;
+    if changed && crate::theme::side_effects_enabled() {
+        reload_running();
+    }
     Ok(Some((output, changed)))
+}
+
+/// A futo kitty ablakok SIGUSR1-re ujraolvassak a konfigjukat: igy a nyitott
+/// terminalok is azonnal az uj szineket kapjak, nem csak az ujak. Ha nem fut
+/// kitty (vagy nincs pkill), az nem hiba.
+fn reload_running() {
+    let _ = std::process::Command::new("pkill")
+        .args(["-USR1", "-x", "kitty"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
 }
 
 /// A szarmaztatott ertekek pontosan a korabbi bash script tartalekjait kovetik.

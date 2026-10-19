@@ -16,6 +16,7 @@ PanelWindow {
     property var statusController: null
     property var vpnCli: null
     property bool opened: false
+    property int barHeight: 26
     property int currentTab: 0
     readonly property bool vpnTab: currentTab === 1
     readonly property int panelHeight: vpnTab ? vpnPanel.preferredHeight : networkPanel.preferredHeight
@@ -25,7 +26,7 @@ PanelWindow {
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.connectivity"
@@ -51,15 +52,19 @@ PanelWindow {
         focus: connectivityWindow.opened
         Keys.onEscapePressed: connectivityWindow.opened = false
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: 0
         enabled: opened
-        y: 32
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: connectivityWindow.barHeight
         width: Math.min(430, parent.width - 20)
-        height: opened ? Math.min(connectivityWindow.panelHeight + 74, parent.height - 46) : 0
+        height: Math.min(connectivityWindow.panelHeight + 74, parent.height - connectivityWindow.barHeight - 12)
         clip: true
-        opacity: opened ? 1 : 0
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: connectivityWindow.opened
             anchors.fill: parent
             theme: connectivityWindow.theme
 
@@ -85,7 +90,7 @@ PanelWindow {
                     Repeater {
                         model: [{
                             "icon": "󰤨",
-                            "label": "NETWORK"
+                            "label": "Network"
                         }, {
                             "icon": "󰦝",
                             "label": "VPN"
@@ -97,19 +102,21 @@ PanelWindow {
                             required property int index
                             required property var modelData
                             readonly property bool selected: connectivityWindow.currentTab === index
-                            readonly property string labelColor: selected ? panelAccent : (tabMouse.containsMouse ? panelFg : mutedFg)
+                            readonly property string labelColor: selected || tabMouse.containsMouse ? panelFg : mutedFg
 
                             width: (tabs.width - tabs.spacing) / 2
                             height: tabs.height
-                            color: tabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
+                            color: "transparent"
 
+                            // Egyetlen jelzo az elso tabon, ami a kivalasztotthoz csuszik.
                             Rectangle {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
+                                visible: tab.index === 0
                                 anchors.bottom: parent.bottom
-                                height: tab.selected ? 2 : 1
-                                color: tab.selected ? panelAccent : mutedFg
-                                opacity: tab.selected ? 1 : 0.22
+                                x: connectivityWindow.currentTab * (tab.width + tabs.spacing) + (tab.width - width) / 2
+                                width: 72
+                                height: 2
+                                color: panelAccent
+                                Behavior on x { NumberAnimation { duration: 320; easing.type: Easing.OutQuint } }
                             }
 
                             Row {
@@ -119,19 +126,17 @@ PanelWindow {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: tab.modelData.icon
-                                    color: tab.labelColor
+                                    color: tab.selected ? panelAccent : mutedFg
                                     font.family: "Symbols Nerd Font Mono"
-                                    font.pixelSize: 15
+                                    font.pixelSize: 13
                                 }
 
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: tab.modelData.label
                                     color: tab.labelColor
-                                    font.family: "monospace"
-                                    font.pixelSize: 9
-                                    font.letterSpacing: 2
-                                    font.bold: true
+                                    font.pixelSize: 12
+                                    font.weight: tab.selected ? Font.Medium : Font.Normal
                                 }
 
                                 // A live dot for the tab that is not on screen,
@@ -200,14 +205,6 @@ PanelWindow {
         Behavior on height {
             NumberAnimation {
                 duration: 210
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
                 easing.type: Easing.OutCubic
             }
 

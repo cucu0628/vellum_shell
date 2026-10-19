@@ -149,6 +149,13 @@ pub trait Module: Send + Sync + 'static {
         Ok(())
     }
 
+    /// Mindig fusson-e a streamelo hurok, feliratkozotol fuggetlenul. Kivetel,
+    /// nem szabaly: a vagolap-elozmenynek akkor is gyulnie kell, amikor a shell
+    /// eppen nem nezi. A daemon indulaskor egyszer "feliratkozik" ezekre.
+    fn always_on(&self) -> bool {
+        false
+    }
+
     /// Parancsok. A `sink` azert van itt is, hogy egy parancs (pl. `theme.apply`)
     /// azonnal kozzetehesse az uj allapotot.
     async fn call(

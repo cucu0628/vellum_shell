@@ -181,6 +181,14 @@ async fn run_daemon(socket: &std::path::Path) -> Result<()> {
     let hub = Hub::new(modules::registry());
     let socket = socket.to_path_buf();
 
+    // Az `always_on` modulok feliratkozo nelkul is futnak: a daemon tart rajuk
+    // egy soha el nem engedett feliratkozast.
+    for description in hub.describe() {
+        if hub.is_always_on(description.topic) {
+            hub.acquire(description.topic).await?;
+        }
+    }
+
     let server = {
         let hub = std::sync::Arc::clone(&hub);
         let socket = socket.clone();

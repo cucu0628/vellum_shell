@@ -12,6 +12,7 @@ PanelWindow {
     property var statusController: null
     required property string shellDir
     property bool opened: false
+    property int barHeight: 26
     property string errorMessage: ""
     property string pairingAddress: ""
     property string pairingLabel: ""
@@ -234,7 +235,7 @@ PanelWindow {
         if (!opened && adapter && adapter.discovering) adapter.discovering = false
     }
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
     WlrLayershell.layer: WlrLayershell.Overlay
@@ -288,18 +289,21 @@ PanelWindow {
         id: content
 
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: 0
         enabled: bluetoothWindow.opened
-        y: 32
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: bluetoothWindow.barHeight
         width: Math.min(430, parent.width - 20)
-        height: opened ? Math.min(570, parent.height - 46, Math.max(284, 220 + Math.min(deviceList.length, 6) * 56) + (pairingBusy ? 84 : 0)) : 0
+        height: Math.min(570, parent.height - bluetoothWindow.barHeight - 12, Math.max(284, 220 + Math.min(deviceList.length, 6) * 56) + (pairingBusy ? 84 : 0))
         clip: true
-        opacity: opened ? 1 : 0
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: bluetoothWindow.opened
             anchors.fill: parent
             theme: bluetoothWindow.theme
 
@@ -319,32 +323,18 @@ PanelWindow {
                         : (statusController && statusController.connected
                             ? "Connected  ·  " + statusController.primaryName
                             : (adapterEnabled ? "Ready to connect" : "Bluetooth is off"))
-                    trailingWidth: 67
+                    trailingWidth: 64
 
-                    Rectangle {
+                    SharedUi.HeaderChip {
                         anchors.fill: parent
-                        anchors.bottomMargin: 4
-                        color: adapterEnabled ? panelAccent : inkBg
-                        border.color: adapterEnabled ? panelAccent : mutedFg
-                        border.width: 1
-                        opacity: adapterAvailable ? 1 : 0.45
-                        Behavior on color { ColorAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: adapterEnabled ? "BT ON" : "BT OFF"
-                            color: adapterEnabled ? panelBg : mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 8
-                            font.bold: true
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: bluetoothWindow.adapterAvailable
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: toggleAdapter()
-                        }
+                        anchors.bottomMargin: 6
+                        enabled: bluetoothWindow.adapterAvailable
+                        theme: bluetoothWindow.theme
+                        label: "On"
+                        checkable: true
+                        checked: bluetoothWindow.adapterEnabled
+                        accessibleName: bluetoothWindow.adapterEnabled ? qsTr("Turn Bluetooth off") : qsTr("Turn Bluetooth on")
+                        onClicked: toggleAdapter()
                     }
                 }
 
@@ -352,13 +342,6 @@ PanelWindow {
                     width: parent.width
                     height: 72
                     color: inkBg
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        width: 3
-                        height: parent.height
-                        color: statusController && statusController.connected ? panelAccent : mutedFg
-                    }
 
                     Row {
                         anchors.fill: parent
@@ -389,11 +372,11 @@ PanelWindow {
                             Text {
                                 width: parent.width
                                 text: primaryDevice
-                                    ? primaryDevice.address + (primaryDevice.batteryAvailable ? "    BATTERY  " + Math.round(primaryDevice.battery * 100) + "%" : "")
-                                    : deviceList.length + (deviceList.length === 1 ? " DEVICE FOUND" : " DEVICES FOUND")
+                                    ? primaryDevice.address + (primaryDevice.batteryAvailable ? "  ·  battery " + Math.round(primaryDevice.battery * 100) + "%" : "")
+                                    : deviceList.length + (deviceList.length === 1 ? " device found" : " devices found")
                                 color: mutedFg
                                 font.pixelSize: 12
-                                font.letterSpacing: 0.5
+                                font.letterSpacing: 0
                                 elide: Text.ElideRight
                             }
                         }
@@ -407,12 +390,11 @@ PanelWindow {
                     Text {
                         width: parent.width - 190
                         height: parent.height
-                        text: discovering ? "SCANNING..." : "DEVICES  ·  " + deviceList.length
-                        color: panelAccent
-                        font.family: "monospace"
-                        font.pixelSize: 8
-                        font.letterSpacing: 2
-                        font.bold: true
+                        text: discovering ? "Scanning…" : "Devices  ·  " + deviceList.length
+                        color: mutedFg
+                        font.pixelSize: 10
+                        font.letterSpacing: 0
+                        font.weight: Font.Medium
                         verticalAlignment: Text.AlignVCenter
                     }
 

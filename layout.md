@@ -8,6 +8,7 @@ Ez a dokumentum a shell végleges, feature-alapú szerkezetét írja le. A gyök
 vellum_shell/
 ├── shell.qml                         # Stabil fő belépési pont, csak kompozíció
 ├── LockShell.qml                     # Stabil külön processzes lock belépési pont
+├── GreeterShell.qml                  # greetd greeter belépési pont (telepítve shell.qml)
 ├── layout.md                         # Architektúra és célstruktúra
 ├── README.md                         # Telepítés, használat és IPC dokumentáció
 ├── AGENTS.md                         # Közreműködői útmutató (a CLAUDE.md ide mutat)
@@ -28,6 +29,11 @@ vellum_shell/
 │   │   │   ├── protocol.rs           # Newline-delimited JSON protokoll
 │   │   │   └── server.rs             # Unix socket szerver
 │   │   ├── modules/
+│   │   │   ├── calendar.rs           # Google Naptár: OAuth (loopback + PKCE) és események
+│   │   │   ├── clipboard/
+│   │   │   │   ├── mod.rs            # Vágólap-előzmény modul (mindig fut)
+│   │   │   │   ├── store.rs          # Előzmény a lemezen: index, tartalom, előnézetek
+│   │   │   │   └── wayland.rs        # wlr-data-control figyelő és forrás
 │   │   │   ├── health.rs             # Verzió, pid, uptime; a huzalozás próbája
 │   │   │   ├── hypr.rs               # Hyprland monitorok és kompozitor-opciók
 │   │   │   ├── mod.rs
@@ -49,7 +55,6 @@ vellum_shell/
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── neovim.rs         # Neovim colorscheme (LazyVim)
 │   │   │   │   ├── qt6ct.rs           # Qt6/portal színpaletta
-│   │   │   │   ├── sddm.rs           # SDDM greeter theme.conf
 │   │   │   │   └── zen.rs            # Zen Browser stíluslapok és profil-bekötés
 │   │   │   ├── color.rs              # Színműveletek (mix, luminancia, árnyalat)
 │   │   │   ├── material.rs           # Natív Material You paletta háttérképből
@@ -59,6 +64,7 @@ vellum_shell/
 │   │   │   └── render.rs             # Sablonmotor és atomikus fájlkiírás
 │   │   ├── dbus.rs                   # Megosztott rendszerbusz-kapcsolat
 │   │   ├── edid.rs                   # Monitor-azonosítás EDID-ből
+│   │   ├── greeter.rs                # A greeter állapotmappája és a layout.conf
 │   │   ├── lib.rs                    # Könyvtár gyökér a teszteknek és a binárisnak
 │   │   ├── main.rs                   # CLI és daemon belépési pont
 │   │   ├── module.rs                 # A `Module` trait és a modul-önleírás
@@ -71,7 +77,6 @@ vellum_shell/
 │   │   ├── kitty.conf.tmpl
 │   │   ├── nvim-colors.lua.tmpl
 │   │   ├── qt6ct-colors.conf.tmpl
-│   │   ├── sddm-theme.conf.tmpl
 │   │   ├── zen-content-theme.css.tmpl
 │   │   └── zen-theme.css.tmpl
 │   ├── tests/                        # Golden baseline és a rögzítő script
@@ -88,6 +93,7 @@ vellum_shell/
 │   ├── Backend.qml
 │   ├── BatteryStatusController.qml   # Opcionális rendszerakku állapot
 │   ├── BluetoothStatusController.qml # Bluez adapter és eszközlista nézete
+│   ├── CalendarController.qml        # Google Naptár a backend `calendar` topicjából, napi index
 │   ├── CavaController.qml            # Hangvizualizáció, csak lejátszás közben fut
 │   ├── MprisController.qml           # Aktív médialejátszó kiválasztása
 │   ├── NetworkStatusController.qml   # Aktív kapcsolat a backend `network` topicjából
@@ -105,20 +111,20 @@ vellum_shell/
 │   ├── ai/
 │   │   └── AiUsagePopup.qml          # Codex/Claude előfizetés-használat panel
 │   ├── appearance/
-│   │   ├── AppearanceController.qml
-│   │   ├── AppearanceStudio.qml
-│   │   ├── PaletteRail.qml           # Palettasáv a Studióban
-│   │   ├── StudioDock.qml            # A Studio alsó dokkja
-│   │   └── WallpaperRail.qml         # Háttérkép-sáv a Studióban
+│   │   ├── AppearanceStudio.qml      # Teljes képernyős ablak: háttérkép- és témanézet
+│   │   ├── SkewCarousel.qml          # Közös ferde carousel (wallpaperCarousel nyomán)
+│   │   ├── ThemeCard.qml             # Paletta-kártya a carouselben
+│   │   ├── ThemePickerController.qml # Téma: élő előnézet, Enterre `theme apply`
+│   │   ├── Upright.qml               # Ferde kártyán belül egyenesen álló réteg
+│   │   ├── WallpaperCard.qml         # Háttérkép-kártya a carouselben
+│   │   └── WallpaperPickerController.qml # Háttérkép: Enterre `setWallpaper`
 │   ├── audio/
 │   │   ├── AudioPopup.qml
-│   │   ├── CompactDeviceRow.qml
-│   │   ├── DeviceCard.qml
+│   │   ├── DeviceCard.qml            # Alapértelmezett eszköz, benne az eszközváltó lista
 │   │   ├── EmptyCard.qml
-│   │   ├── PickerToggle.qml
 │   │   ├── SectionHeader.qml         # Általános szekciófejléc
-│   │   ├── StreamRow.qml
-│   │   └── VolumeBar.qml
+│   │   ├── StreamRow.qml             # Lejátszó vagy felvevő alkalmazás
+│   │   └── VolumeBar.qml             # Lekerekített hangerő-csúszka gombbal
 │   ├── bar/
 │   │   ├── AiStatusItem.qml          # AI használat jelző a sávon
 │   │   ├── AudioStatusItem.qml
@@ -149,11 +155,20 @@ vellum_shell/
 │   ├── lock/
 │   │   ├── AmbientLockView.qml       # Többi monitor ambient nézete
 │   │   ├── AuthenticationController.qml
+│   │   ├── GreeterAccounts.qml       # Felhasználók, munkamenetek, utolsó választás
+│   │   ├── GreeterActionButton.qml   # Energia- és kiosztásgomb
+│   │   ├── GreeterChoice.qml         # Felfelé nyíló felhasználó- / munkamenet-választó
+│   │   ├── GreeterInputView.qml      # Greeter beviteli monitor
+│   │   ├── GreeterRoot.qml           # GreeterShell.qml belső implementációja
+│   │   ├── GreeterSessionController.qml # greetd hitelesítés és indítás
+│   │   ├── GreeterThemeController.qml # Paletta, háttérkép, kiosztás /var/lib/vellum-greeter-ből
 │   │   ├── LockBackground.qml        # Elhomályosuló asztali háttérkép, fátyol, ensō vízjel
-│   │   ├── LockCard.qml              # Beviteli monitor panelje
-│   │   ├── LockClock.qml             # Óra, dátum, napi haladásjelző
+│   │   ├── InputLockView.qml         # Beviteli monitor: óra, felhasználó, jelszómező
+│   │   ├── LockClock.qml             # Serif óra a hét napjával és a dátummal
+│   │   ├── LockReveal.qml            # Közös fokozatos megjelenés
 │   │   ├── LockRoot.qml              # LockShell.qml belső implementációja
 │   │   ├── LockScreenSettingsController.qml
+│   │   ├── LockStatusLine.qml        # Hitelesítési állapot a mező alatt
 │   │   ├── LockThemeController.qml   # Paletta és háttérkép a `theme` topicból
 │   │   ├── PasswordField.qml
 │   │   └── PowerStatusController.qml
@@ -164,13 +179,14 @@ vellum_shell/
 │   │   ├── ThroughputController.qml  # Le-/feltöltési sebesség a /proc/net/dev-ből
 │   │   └── VpnPanel.qml              # Proton VPN fül tartalma
 │   ├── media/
-│   │   ├── CalendarCard.qml
-│   │   ├── MediaCard.qml
-│   │   ├── MediaPopup.qml
+│   │   ├── CalendarCard.qml            # Havi rács, eseményes napokon ponttal
+│   │   ├── CalendarDetail.qml          # Kinagyított naptár; bekötve a nap eseményeivel
+│   │   ├── MediaPopup.qml              # Dashboard: lejátszó felül, alatta naptár/időjárás/rendszer
 │   │   ├── PlaybackPositionController.qml
+│   │   ├── PlayerBand.qml              # Borítós lejátszósáv, csendben vékony sorrá húzódik
 │   │   ├── SystemStatsCard.qml
 │   │   ├── SystemStatsController.qml
-│   │   └── WeatherCard.qml
+│   │   └── WeatherSummaryCard.qml
 │   ├── notifications/
 │   │   ├── NotificationCenter.qml
 │   │   ├── NotificationEntryRow.qml  # Egyetlen értesítés sor akciógombokkal
@@ -195,6 +211,7 @@ vellum_shell/
 │   │   ├── BarLayoutLane.qml         # Drag-and-drop célzóna
 │   │   ├── BarLayoutPage.qml         # Topbar elrendezésszerkesztő
 │   │   ├── BarModuleCard.qml         # Mozgatható modul-kártya
+│   │   ├── CalendarPage.qml          # Google Naptár bejelentkezés és naptárválasztás
 │   │   ├── DefaultAppsController.qml # MIME-alapú alapértelmezett alkalmazások
 │   │   ├── DefaultAppsPage.qml       # Alapértelmezett alkalmazások oldala
 │   │   ├── DisplayPage.qml           # Monitorok, visszaszámlálós megerősítéssel
@@ -232,6 +249,7 @@ vellum_shell/
 │   ├── community-install             # AUR (Arch) vagy COPR (Fedora)
 │   ├── fastfetch-panel               # Az about ablak tartalma
 │   ├── floating-terminal
+│   ├── greeter-install               # greetd greeter telepítése / előnézete
 │   ├── keybindings-list
 │   ├── launch-bluetooth
 │   ├── launch-wifi
@@ -240,8 +258,6 @@ vellum_shell/
 │   ├── pkg-install
 │   ├── pkg-remove
 │   ├── screenshot-capture
-│   ├── sddm-install
-│   ├── sddm-layout
 │   ├── settings-autostart
 │   ├── shell-start
 │   ├── theme-current
@@ -251,20 +267,8 @@ vellum_shell/
 │   ├── weather-location
 │   ├── webapp-install
 │   └── webapp-remove
-├── sddm/                             # Vellum Ink greeter téma
-│   └── vellum-ink/
-│       ├── InkAmbient.qml            # Greeter ambient nézet
-│       ├── InkBackground.qml         # Elhomályosuló háttérkép, fátyol, ensō vízjel
-│       ├── InkCard.qml               # Greeter bejelentkező kártya
-│       ├── InkClock.qml              # Greeter óra
-│       ├── VellumLogo.qml            # Kalligrafikus V jegy (ui/ShellLogo.qml másolata)
-│       ├── InkPasswordField.qml      # Greeter jelszómező
-│       ├── InkPicker.qml             # Felhasználó- / munkamenet-választó
-│       ├── InkPickerList.qml         # Greeter választólista
-│       ├── InkPowerButton.qml        # Kiosztás- és energiagomb
-│       ├── Main.qml                  # SDDM greeter belépési pont
-│       ├── metadata.desktop
-│       └── theme.conf                # Generált: paletta, monitor, háttérkép neve
+├── greeter/
+│   └── hyprland.lua                  # A greeter compositor konfigja (root tulajdonú)
 ├── systemd/                          # A backend user service-e
 │   └── vellum-shelld.service
 ├── themes/                           # Deklaratív színpaletták
@@ -284,16 +288,18 @@ vellum_shell/
 │   │   └── theme.conf
 │   ├── sakura-blossom/
 │   │   └── theme.conf
-│   └── tokyo-night/
+│   ├── tokyo-night/
+│   │   └── theme.conf
+│   └── varnished-horizon/
 │       └── theme.conf
 ├── ui/                               # Feature-független vizuális elemek
 │   ├── ActionButton.qml              # Feliratos, billentyűzettel kezelhető gomb
 │   ├── CalendarGrid.qml              # Közös 6x7 naptárrács
-│   ├── DashPanel.qml                 # Dashboard panelkeret fejléccel és elválasztóval
-│   ├── DashTile.qml                  # Dashboard adatcsempe (érték, ikon, felirat)
+│   ├── DashPanel.qml                 # Dashboard panelkeret fejléccel
 │   ├── FocusRing.qml                 # Egységes billentyűzet-fókuszjelzés
 │   ├── Pressable.qml                 # Kattintás, billentyűzet és Accessible egy helyen
-│   ├── PopupFrame.qml                # Popupok közös kerete
+│   ├── HeaderChip.qml                # Csendes kapcsoló/gomb a popupfejlécben
+│   ├── PopupFrame.qml                # Popupok közös, a sávból lenyíló kerete
 │   ├── PopupHeader.qml               # Popupok közös fejléce
 │   ├── SearchField.qml               # Közös keresőmező
 │   ├── SettingRow.qml                # Beállítássor: címke, leírás, vezérlő
@@ -400,8 +406,9 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - Clipboard backend és perzisztencia controller.
 - Közös keresőmező és naptárrács.
 - Audio és Power levélkomponensek.
-- Appearance controller és az alsó dokk a wallpaper coverflow és palette
-  sávval. Nincs mock felület: az előnézet maga az élő shell.
+- Appearance Studio: teljes képernyős, ferde carousel két külön nézettel
+  (háttérkép és téma), mindkettő saját controllerrel és saját commit-tal.
+  A téma előnézete az élő shell; a háttérkép csak Enterre vált.
 - Az about panel helyett lebegő kitty ablak, benne fastfetch
   (`features/about/FastfetchTerminal.qml`).
 - A felesleges gyökér popup wrapperek megszűntek; a `shell.qml` közvetlenül importálja a feature-típusokat.
@@ -413,16 +420,19 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
   enged fel a homály, a fátyol, a vignetta és a vízjel. A `WlSessionLock`-ot csak
   akkor engedjük el, amikor a felület már pontosan az asztali háttérkép, így az
   utolsó képkocka és az asztal között nincs ugrás.
-- Az SDDM greeter ugyanezt a nyelvet kapta, a greeter-többlettel együtt
-  (felhasználó- és munkamenet-választó, kiosztás, energia). A háttérképet a
-  téma-generátor másolja a téma mappájába (`background.jpg`, 1280 px JPEG), mert
-  a `/home` 0700: az `sddm` felhasználó az eredetit nem éri el.
+- A bejelentkező képernyő SDDM helyett greetd + Quickshell egy minimális
+  Hyprlandben (`greeter/hyprland.lua`): ugyanazok a lock-komponensek, plusz
+  felhasználó- és munkamenet-választó, kiosztás, energia. X szerver nincs, a
+  monitorok neve és elrendezése a munkamenetével egyezik. A palettát, a
+  háttérkép másolatát (1920 px JPEG) és az elrendezést a backend a
+  `/var/lib/vellum-greeter/` mappába írja, mert a `/home`-ot a greeter nem éri el.
 - Rust backend: protokoll, hub, lazy topicok és a `core/Backend.qml` kliens
   automatikus újracsatlakozással.
 - Téma-motor: paletta, színmatek és a nyolc generátor egy helyen, natív Material
   You-val (a `matugen` függőség megszűnt; a `jq`-t a screenshot- és lockscreen
   segédscriptek továbbra is használják). A kimenetet golden teszt védi.
-- Állapot modulok: `network`, `vpn`, `removable`, `privacy`, `sysstats`, `weather`.
+- Állapot modulok: `network`, `vpn`, `removable`, `privacy`, `sysstats`, `weather`,
+  `calendar`.
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
 - Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, oldalsávos

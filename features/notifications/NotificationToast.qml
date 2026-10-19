@@ -1,7 +1,11 @@
 import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
+import Quickshell.Widgets
+import "../../ui" as SharedUi
 
+// A felugro ertesites. Ugyanaz a lenyilo lap, mint a sav panelei: a jobb felso
+// sarokban a sav aljahoz tapad, onnan csuszik le. A kepernyo szelen nincs ful.
 Item {
     id: toast
 
@@ -10,6 +14,7 @@ Item {
     property var actions: []
     property bool shown: false
     property bool animateTransitions: true
+    readonly property real reveal: frame.reveal
     readonly property var visibleActions: {
         var result = []
         for (var i = 0; i < actions.length; i++) {
@@ -24,11 +29,12 @@ Item {
         }
         return false
     }
-    readonly property string panelBg: theme ? theme.background : "#15110f"
+    readonly property bool critical: notification !== null && notification.urgency === NotificationUrgency.Critical
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
+    readonly property color accentColor: panelAccent
 
     signal activated()
     signal actionRequested(var action)
@@ -39,25 +45,28 @@ Item {
         return (value || "").toString().replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").trim();
     }
 
-    width: 360
-    height: shown ? Math.max(94, toastBody.implicitHeight + 28) : 0
-    opacity: shown ? 1 : 0
+    // A test 360 px; a bal oldali ful ehhez jon hozza.
+    width: 360 + frame.cornerRadius
+    height: Math.max(84, toastBody.implicitHeight + 32)
+    // A lap a sav mogul csuszik le; a sajat teruletere vagjuk, kulonben az
+    // ertesitesi kozpont (teljes kepernyos ablak) alatt a sav ele kerulne.
     clip: true
 
-    Rectangle {
-        anchors.fill: parent
-        color: toast.panelBg
-        border.color: toast.panelAccent
-        border.width: 1
-        radius: 0
+    SharedUi.PopupFrame {
+        id: frame
 
+        anchors.fill: parent
+        theme: toast.theme
+        rightEar: false
+        squareRight: true
+        shown: toast.shown
+        animated: toast.animateTransitions
+
+        // Kritikus ertesitesnel egy halvany akcentes tonus az egesz lapon.
         Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 3
-            color: toast.panelAccent
-            opacity: toast.notification && toast.notification.urgency === NotificationUrgency.Low ? 0.45 : 1
+            anchors.fill: parent
+            color: Qt.rgba(toast.accentColor.r, toast.accentColor.g, toast.accentColor.b, 0.08)
+            visible: toast.critical
         }
 
         MouseArea {
@@ -71,214 +80,150 @@ Item {
             }
         }
 
-        Row {
-            anchors.fill: parent
-            anchors.margins: 14
-            anchors.leftMargin: 18
-            spacing: 12
+        ClippingRectangle {
+            id: iconBox
 
-            Rectangle {
-                width: 42
-                height: 42
-                anchors.verticalCenter: parent.verticalCenter
-                color: toast.inkBg
-                border.color: toast.mutedFg
-                border.width: 1
-                radius: 0
-                clip: true
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.leftMargin: 16
+            anchors.topMargin: 16
+            width: 40
+            height: 40
+            radius: 8
+            color: toast.inkBg
 
-                Image {
-                    id: notifyImage
+            Image {
+                id: notifyImage
 
-                    anchors.fill: parent
-                    anchors.margins: 7
-                    source: toast.shown && toast.notification && toast.notification.image !== "" ? toast.notification.image : (toast.shown && toast.notification && toast.notification.appIcon !== "" ? Quickshell.iconPath(toast.notification.appIcon, true) : "")
-                    sourceSize: Qt.size(96, 96)
-                    visible: source !== ""
-                    fillMode: Image.PreserveAspectFit
-                    asynchronous: true
-                    cache: false
-                    smooth: true
-                }
-
-                Text {
-                    textFormat: Text.PlainText
-                    anchors.centerIn: parent
-                    text: toast.notification && toast.notification.urgency === NotificationUrgency.Critical ? "󰀦" : "󰂚"
-                    color: toast.panelAccent
-                    font.pixelSize: 17
-                    visible: notifyImage.source === ""
-                }
-
+                anchors.fill: parent
+                anchors.margins: notifyImage.isPicture ? 0 : 7
+                readonly property bool isPicture: toast.notification !== null && toast.notification.image !== ""
+                source: toast.shown && toast.notification && toast.notification.image !== ""
+                    ? toast.notification.image
+                    : (toast.shown && toast.notification && toast.notification.appIcon !== ""
+                        ? Quickshell.iconPath(toast.notification.appIcon, true) : "")
+                sourceSize: Qt.size(96, 96)
+                visible: source !== ""
+                fillMode: isPicture ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+                asynchronous: true
+                cache: false
+                smooth: true
             }
 
-            Column {
-                id: toastBody
+            Text {
+                anchors.centerIn: parent
+                text: toast.critical ? "󰀦" : "󰂚"
+                color: toast.critical ? toast.panelAccent : toast.mutedFg
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 17
+                visible: notifyImage.source.toString() === ""
+            }
+        }
 
-                width: parent.width - 54
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
+        Column {
+            id: toastBody
 
-                Row {
-                    width: parent.width
-                    height: 14
-                    spacing: 8
+            anchors.left: iconBox.right
+            anchors.leftMargin: 12
+            anchors.right: parent.right
+            anchors.rightMargin: 44
+            anchors.top: parent.top
+            anchors.topMargin: 16
+            spacing: 3
 
-                    Text {
-                        textFormat: Text.PlainText
-                        text: toast.notification ? toast.cleanText(toast.notification.appName || "Notification").toUpperCase() : "NOTIFICATION"
-                        color: toast.panelAccent
-                        font.pixelSize: 9
-                        font.letterSpacing: 3
-                        font.bold: true
-                        elide: Text.ElideRight
-                        width: parent.width - 140
-                    }
-
-                    Text {
-                        textFormat: Text.PlainText
-                        text: toast.notification && toast.notification.urgency === NotificationUrgency.Critical ? "CRITICAL" : ""
-                        color: toast.panelAccent
-                        font.pixelSize: 9
-                        font.bold: true
-                        horizontalAlignment: Text.AlignRight
-                        width: 62
-                    }
-
-                    Item {
-                        width: 62
-                        height: 1
-                    }
-
-                }
+            Row {
+                width: parent.width
+                spacing: 8
 
                 Text {
+                    text: toast.notification ? toast.cleanText(toast.notification.appName || "Notification") : ""
                     textFormat: Text.PlainText
-                    width: parent.width
-                    text: toast.notification ? toast.cleanText(toast.notification.summary) : ""
-                    color: toast.panelFg
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                }
-
-                Text {
-                    textFormat: Text.PlainText
-                    width: parent.width
-                    text: toast.notification ? toast.cleanText(toast.notification.body) : ""
                     color: toast.mutedFg
-                    opacity: 1
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
+                    font.pixelSize: 10
                     elide: Text.ElideRight
-                    visible: text !== ""
+                    width: Math.min(implicitWidth, parent.width - (criticalLabel.visible ? criticalLabel.width + 8 : 0))
                 }
 
-                Flow {
-                    width: parent.width
-                    spacing: 5
-                    visible: toast.visibleActions.length > 0
-
-                    Repeater {
-                        model: toast.visibleActions
-
-                        Rectangle {
-                            property var action: modelData
-
-                            width: Math.min(148, Math.max(58, actionText.implicitWidth + 18))
-                            height: 23
-                            color: actionMouse.containsMouse ? toast.panelAccent : toast.inkBg
-                            border.color: toast.panelAccent
-                            border.width: 1
-
-                            Text {
-                                textFormat: Text.PlainText
-                                id: actionText
-
-                                anchors.centerIn: parent
-                                width: parent.width - 12
-                                text: parent.action ? toast.cleanText(parent.action.text).toUpperCase() : ""
-                                color: actionMouse.containsMouse ? toast.panelBg : toast.panelAccent
-                                font.pixelSize: 8
-                                font.bold: true
-                                elide: Text.ElideRight
-                                horizontalAlignment: Text.AlignHCenter
-                            }
-
-                            MouseArea {
-                                id: actionMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onEntered: toast.hoverChanged(true)
-                                onExited: toast.hoverChanged(false)
-                                onClicked: mouse => {
-                                    mouse.accepted = true
-                                    toast.actionRequested(parent.action)
-                                }
-                            }
-                        }
-                    }
+                Text {
+                    id: criticalLabel
+                    text: qsTr("Critical")
+                    color: toast.panelAccent
+                    font.pixelSize: 10
+                    font.weight: Font.Medium
+                    visible: toast.critical
                 }
-
             }
 
+            Text {
+                width: parent.width
+                text: toast.notification ? toast.cleanText(toast.notification.summary) : ""
+                textFormat: Text.PlainText
+                color: toast.panelFg
+                font.pixelSize: 13
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Text {
+                width: parent.width
+                text: toast.notification ? toast.cleanText(toast.notification.body) : ""
+                textFormat: Text.PlainText
+                color: toast.mutedFg
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
+                visible: text !== ""
+            }
+
+            Flow {
+                width: parent.width
+                spacing: 6
+                topPadding: 6
+                visible: toast.visibleActions.length > 0
+
+                Repeater {
+                    model: toast.visibleActions
+
+                    SharedUi.HeaderChip {
+                        required property var modelData
+
+                        width: Math.min(160, implicitWidth)
+                        theme: toast.theme
+                        label: toast.cleanText(modelData.text)
+                        onClicked: toast.actionRequested(modelData)
+                    }
+                }
+            }
         }
 
         Rectangle {
             anchors.top: parent.top
             anchors.right: parent.right
-            anchors.margins: 9
-            width: 58
-            height: 21
-            color: dismissMouse.containsMouse ? toast.panelAccent : toast.inkBg
-            border.color: toast.panelAccent
-            border.width: 1
+            anchors.topMargin: 10
+            anchors.rightMargin: 10
+            width: 28
+            height: 28
+            radius: 6
+            color: dismissMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
 
             Text {
-                textFormat: Text.PlainText
                 anchors.centerIn: parent
-                text: "DISMISS"
-                color: dismissMouse.containsMouse ? toast.panelBg : toast.panelAccent
-                font.pixelSize: 8
-                font.bold: true
-                font.letterSpacing: 1
+                text: "󰅖"
+                color: dismissMouse.containsMouse ? toast.panelFg : toast.mutedFg
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 13
             }
 
-            MouseArea {
+            SharedUi.Pressable {
                 id: dismissMouse
 
                 anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                theme: toast.theme
+                accessibleName: qsTr("Dismiss notification")
                 onClicked: toast.dismissed()
             }
-
         }
-
     }
-
-    Behavior on height {
-        enabled: toast.animateTransitions
-
-        NumberAnimation {
-            duration: 210
-            easing.type: Easing.OutCubic
-        }
-
-    }
-
-    Behavior on opacity {
-        enabled: toast.animateTransitions
-
-        NumberAnimation {
-            duration: 160
-            easing.type: Easing.OutCubic
-        }
-
-    }
-
 }

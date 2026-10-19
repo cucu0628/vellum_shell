@@ -1,5 +1,8 @@
 import QtQuick
+import Quickshell.Widgets
 
+// Egy vagolap-bejegyzes: elonezet (kep vagy szoveg-ikon), a tartalom eleje,
+// alatta tipus / meret / mikor. A rogzitett elem jobb oldalt tut kap.
 Rectangle {
     id: resultRow
 
@@ -13,122 +16,103 @@ Rectangle {
     property color mutedFg: "#9f8f7c"
     property color inkBg: "#1b1613"
 
+    readonly property bool isImage: entry !== null && entry.isImage === true
+    readonly property bool pinned: entry !== null && entry.pinned === true
+
     signal hovered(int index)
     signal activated(int index)
 
-    function requestPreview() {
-        if (controller && entry && entry.isImage) controller.ensurePreview(entry)
-    }
-
-    height: 58
-    radius: 0
+    height: 48
+    radius: 8
     color: selected || resultMouse.containsMouse ? inkBg : "transparent"
-    border.color: "transparent"
-    border.width: 0
-    onEntryChanged: requestPreview()
-    Component.onCompleted: requestPreview()
 
-    Rectangle {
-        width: 2
-        height: parent.height
-        anchors.left: parent.left
-        anchors.verticalCenter: parent.verticalCenter
-        radius: 0
-        color: resultRow.panelAccent
-        opacity: resultRow.selected ? 1 : 0
-    }
+    Behavior on color { ColorAnimation { duration: 110 } }
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: 12
+        anchors.leftMargin: 8
         anchors.rightMargin: 12
         spacing: 12
 
-        Rectangle {
-            width: resultRow.entry && resultRow.entry.isImage ? 52 : 28
-            height: resultRow.entry && resultRow.entry.isImage ? 44 : 28
-            radius: 0
-            color: resultRow.panelBg
-            border.color: resultRow.entry && resultRow.entry.isImage ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
-            border.width: resultRow.entry && resultRow.entry.isImage ? 1 : 0
+        ClippingRectangle {
+            width: resultRow.isImage ? 44 : 32
+            height: resultRow.isImage ? 34 : 32
+            radius: 6
+            color: Qt.rgba(resultRow.mutedFg.r, resultRow.mutedFg.g, resultRow.mutedFg.b, 0.1)
             anchors.verticalCenter: parent.verticalCenter
-            clip: true
 
             Image {
-                id: entryThumbImage
+                id: thumb
 
                 anchors.fill: parent
-                anchors.margins: 2
                 source: resultRow.controller ? resultRow.controller.previewSource(resultRow.entry) : ""
-                sourceSize: Qt.size(136, 112)
+                sourceSize: Qt.size(88, 68)
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                smooth: true
-                cache: false
                 visible: source !== "" && status === Image.Ready
             }
 
             Text {
-                textFormat: Text.PlainText
                 anchors.centerIn: parent
-                text: resultRow.entry && resultRow.entry.isImage ? "" : ""
+                visible: !thumb.visible
+                text: resultRow.isImage ? "󰋩" : "󰅍"
                 font.family: "Symbols Nerd Font Mono"
-                font.pixelSize: 17
-                color: resultRow.panelAccent
-                visible: !resultRow.entry || !resultRow.entry.isImage || entryThumbImage.status !== Image.Ready
+                font.pixelSize: 15
+                color: resultRow.mutedFg
             }
-
         }
 
         Column {
-            width: parent.width - 100 - (resultRow.entry && resultRow.entry.isImage ? 52 : 28)
-            spacing: 3
+            width: parent.width - x - trailing.width - parent.spacing
             anchors.verticalCenter: parent.verticalCenter
+            spacing: 1
 
             Text {
-                textFormat: Text.PlainText
-                text: resultRow.entry ? (resultRow.entry.isImage ? resultRow.entry.subtitle : resultRow.entry.title) : ""
-                color: resultRow.selected ? resultRow.panelAccent : resultRow.panelFg
-                font.pixelSize: 13
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-                maximumLineCount: resultRow.entry && resultRow.entry.isImage ? 1 : 2
                 width: parent.width
-                wrapMode: Text.WordWrap
-            }
-
-            Text {
+                text: resultRow.entry ? resultRow.entry.title : ""
                 textFormat: Text.PlainText
-                text: resultRow.entry && resultRow.controller
-                    ? resultRow.controller.entryTypeLabel(resultRow.entry) + "  ·  CLIPBOARD HISTORY"
-                    : ""
-                color: resultRow.mutedFg
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.letterSpacing: 1
-                font.weight: Font.DemiBold
+                color: resultRow.panelFg
+                font.pixelSize: 13
                 elide: Text.ElideRight
                 maximumLineCount: 1
-                width: parent.width
             }
 
+            Text {
+                width: parent.width
+                text: resultRow.controller ? resultRow.controller.describe(resultRow.entry) : ""
+                textFormat: Text.PlainText
+                color: resultRow.mutedFg
+                font.pixelSize: 10
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
         }
 
-        Text {
-            textFormat: Text.PlainText
-            width: 72
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            text: resultRow.selected
-                ? "PASTE  ↵"
-                : (resultRow.entry && resultRow.controller ? resultRow.controller.entryTypeLabel(resultRow.entry) : "")
-            color: resultRow.selected ? resultRow.panelAccent : resultRow.mutedFg
-            font.family: "monospace"
-            font.pixelSize: 8
-            font.letterSpacing: resultRow.selected ? 0 : 1.1
-            opacity: resultRow.selected ? 1 : 0.65
-        }
+        Item {
+            id: trailing
 
+            width: 64
+            height: parent.height
+
+            Text {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: resultRow.selected
+                text: qsTr("Paste ↵")
+                color: resultRow.panelAccent
+                font.pixelSize: 11
+            }
+
+            Text {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !resultRow.selected && resultRow.pinned
+                text: "󰐃"
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 13
+                color: resultRow.mutedFg
+            }
+        }
     }
 
     MouseArea {
@@ -140,12 +124,4 @@ Rectangle {
         onEntered: resultRow.hovered(resultRow.resultIndex)
         onClicked: resultRow.activated(resultRow.resultIndex)
     }
-
-    Behavior on color {
-        ColorAnimation {
-            duration: 110
-        }
-
-    }
-
 }

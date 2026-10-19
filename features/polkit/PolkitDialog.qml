@@ -108,9 +108,10 @@ PanelWindow {
             id: card
             anchors.fill: parent
             theme: window.theme
-            border.color: window.frameColor
+            attached: false
+            edgeColor: window.frameColor
 
-            Behavior on border.color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on edgeColor { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
 
             MouseArea {
                 anchors.fill: parent

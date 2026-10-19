@@ -49,19 +49,19 @@ PanelWindow {
         x: Math.max(10, Math.min(trayMenu.width - width - 10, trayMenu.menuX - width / 2 + 8))
         y: trayMenu.barHeight
         width: 260
-        height: menuColumn.implicitHeight + 18
+        height: menuColumn.implicitHeight + 16
         clip: true
 
         SharedUi.PopupFrame {
             anchors.fill: parent
-            anchors.topMargin: -2
             theme: trayMenu.theme
+            shown: trayMenu.visible
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
             Column {
                 id: menuColumn
-                anchors { fill: parent; margins: 9; topMargin: 12 }
+                anchors { fill: parent; margins: 8 }
                 spacing: 3
 
                 Repeater {
@@ -75,16 +75,6 @@ PanelWindow {
                         opacity: modelData.enabled === false ? 0.45 : 1
 
                         Behavior on color { ColorAnimation { duration: 120 } }
-
-                        Rectangle {
-                            visible: !modelData.isSeparator
-                            width: 3
-                            height: parent.height
-                            anchors.left: parent.left
-                            color: panelAccent
-                            opacity: itemMouse.containsMouse ? 1 : 0
-                            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-                        }
 
                         Rectangle {
                             visible: modelData.isSeparator
