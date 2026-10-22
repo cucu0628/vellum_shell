@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import "app" as App
@@ -86,6 +85,7 @@ ShellRoot {
     Core.ThemeStore {
         id: theme
         backend: shellRoot.shellBackend
+        shellDir: shellRoot.shellDir
     }
     readonly property var shellTheme: theme
 
@@ -185,13 +185,10 @@ ShellRoot {
         onTriggered: shellRoot.showVolumeOsd()
     }
 
-    Process {
-        id: processLauncher
-    }
-
+    // Levalasztva indul: egy kozos Process-szel a gyors masodik kattintas
+    // elveszett volna, mert a futo peldanyt nem lehet ujrainditani.
     function launchBarCommand(command) {
-        processLauncher.command = command
-        processLauncher.running = true
+        Quickshell.execDetached(command)
     }
 
     function focusedScreen() {

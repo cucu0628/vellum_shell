@@ -161,7 +161,7 @@ PanelWindow {
                                         text: modelData.device
                                         color: privacyWindow.mutedFg
                                         font.family: "monospace"
-                                        font.pixelSize: 8
+                                        font.pixelSize: 9
                                         elide: Text.ElideRight
                                     }
                                 }

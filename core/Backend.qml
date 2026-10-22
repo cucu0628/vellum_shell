@@ -33,7 +33,7 @@ Item {
     // szandekosan nincs koztuk -- az konfiguracio, ami a daemon kiesese utan is
     // ervenyes marad, es a torlese az egesz shellt alapertelmezett szinekre
     // ejtene.
-    readonly property var volatileTopics: ["network", "vpn", "removable", "privacy", "sysstats", "weather", "hypr", "calendar"]
+    readonly property var volatileTopics: ["network", "vpn", "removable", "privacy", "sysstats", "weather", "hypr", "calendar", "session", "brightness"]
 
     // A Socket sajat magat regisztralja ide. Nem a Loader.item-et hasznaljuk,
     // mert az meg null, amikor a frissen letrehozott Socket mar csatlakozott.
@@ -41,7 +41,27 @@ Item {
 
     // topic -> a topic legutobbi allapota. Nem `state`: az utkozne a
     // QQuickItem beepitett state propertyjevel.
-    property var topics: ({})
+    //
+    // Topiconkent kulon property, nem egyetlen map: egy map minden uzenetnel uj
+    // objektum lett volna, es a masodpercenkenti `sysstats` frissites igy az
+    // osszes `backend.topics.*` kotest (tema, halozat, VPN...) ujraertekelte.
+    // Uj backend topic = egy uj sor itt es a `topicNames`-ben.
+    readonly property QtObject topics: QtObject {
+        property var brightness
+        property var calendar
+        property var clipboard
+        property var health
+        property var hypr
+        property var network
+        property var privacy
+        property var removable
+        property var session
+        property var sysstats
+        property var theme
+        property var vpn
+        property var weather
+    }
+    readonly property var topicNames: ["brightness", "calendar", "clipboard", "health", "hypr", "network", "privacy", "removable", "session", "sysstats", "theme", "vpn", "weather"]
 
     signal topicUpdated(string topic, var data)
 
@@ -50,6 +70,7 @@ Item {
     visible: false
 
     property var _pending: ({})       // keres id -> callback
+    property var _deadlines: ({})     // keres id -> lejarat (ms, Date.now())
     property var _refcounts: ({})     // topic -> hany feliratkozo
     property int _nextId: 1
     property int _backoff: 250
@@ -70,13 +91,24 @@ Item {
         if (count === 1) _send({ op: "unsubscribe", topics: [topic] })
     }
 
+    // Ha a daemon fogadja a kerest, de nem valaszol, a hivo ennyi ido utan
+    // "timeout" hibat kap, ahelyett hogy orokre varna. A backend sajat
+    // idokorlatai (CLI 20 s, hosszu parancs 30 s) ez alatt maradnak; ami ennel
+    // tovabb tarthat (kulcstar-feloldas), az a `timeoutMs`-sel kerjen tobbet.
+    property int callTimeout: 60000
+
     // Parancs kuldese. A callback (ha van) igy hivodik: cb(data, error).
     // Hiba eseten `error` egy { code, message } objektum.
-    function call(domain, method, params, callback) {
+    function call(domain, method, params, callback, timeoutMs) {
         var id = _nextId++
-        if (callback) _pending[id] = callback
+        if (callback) {
+            _pending[id] = callback
+            _deadlines[id] = Date.now() + (timeoutMs > 0 ? timeoutMs : callTimeout)
+            pendingSweep.start()
+        }
         if (!_send({ op: "call", id: id, domain: domain, method: method, params: params || {} })) {
             delete _pending[id]
+            delete _deadlines[id]
             if (callback) callback(null, {
                 code: "disconnected",
                 message: "a backend nem elerheto"
@@ -107,10 +139,8 @@ Item {
         }
 
         if (message.topic !== undefined) {
-            var next = {}
-            for (var key in backend.topics) next[key] = backend.topics[key]
-            next[message.topic] = message.data
-            backend.topics = next
+            if (topicNames.indexOf(message.topic) >= 0) topics[message.topic] = message.data
+            else console.warn("Backend: ismeretlen topic:", message.topic)
             topicUpdated(message.topic, message.data)
             return
         }
@@ -119,6 +149,7 @@ Item {
         var callback = _pending[message.id]
         if (!callback) return
         delete _pending[message.id]
+        delete _deadlines[message.id]
         if (message.ok) callback(message.data, null)
         else callback(null, message.error || { code: "unknown", message: "" })
     }
@@ -147,6 +178,7 @@ Item {
         // nem veszhet el a regi pending allapot takaritasakor.
         var pending = _pending
         _pending = {}
+        _deadlines = {}
         for (var id in pending) {
             pending[id](null, { code: "disconnected", message: "megszakadt a kapcsolat a backenddel" })
         }
@@ -159,15 +191,12 @@ Item {
     // aktualiskent. Ujracsatlakozaskor a daemon amugy is azonnal kuld friss
     // snapshotot minden elo feliratkozasra.
     function _dropVolatileTopics() {
-        var next = {}
-        var dropped = []
-        for (var key in topics) {
-            if (volatileTopics.indexOf(key) >= 0) dropped.push(key)
-            else next[key] = topics[key]
+        for (var i = 0; i < volatileTopics.length; i++) {
+            var key = volatileTopics[i]
+            if (topics[key] === undefined || topics[key] === null) continue
+            topics[key] = null
+            topicUpdated(key, null)
         }
-        if (dropped.length === 0) return
-        topics = next
-        for (var i = 0; i < dropped.length; i++) topicUpdated(dropped[i], null)
     }
 
     // A Quickshell Socket egy sikertelen vagy megszakadt kapcsolat utan nem
@@ -213,6 +242,29 @@ Item {
                 }
 
                 onError: backend._scheduleReconnect()
+            }
+        }
+    }
+
+    // A lejart hivasok takaritasa. Csak addig fut, amig van valaszra varo hivas.
+    Timer {
+        id: pendingSweep
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            var now = Date.now()
+            var expired = []
+            var waiting = false
+            for (var id in backend._deadlines) {
+                if (backend._deadlines[id] <= now) expired.push(id)
+                else waiting = true
+            }
+            if (!waiting) stop()
+            for (var i = 0; i < expired.length; i++) {
+                var callback = backend._pending[expired[i]]
+                delete backend._pending[expired[i]]
+                delete backend._deadlines[expired[i]]
+                if (callback) callback(null, { code: "timeout", message: "a backend nem valaszolt idoben" })
             }
         }
     }

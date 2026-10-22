@@ -1,10 +1,19 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 Item {
     id: store
 
     property var stats: ({})
+
+    // A naplofajl minden inditasnal egy sorral no. Betolteskor, ha tul hosszu,
+    // a legutobbi `keepLines` sort tartjuk meg: a pontszam 15 inditasnal mar
+    // telitodik, igy ennyi bejegyzes boven eleg.
+    readonly property int maxLines: 2000
+    readonly property int keepLines: 1000
+    readonly property string logDir: "${XDG_CACHE_HOME:-$HOME/.cache}/quickshell"
+    readonly property string logFile: logDir + "/launcher-frecent.tsv"
 
     width: 0
     height: 0
@@ -20,7 +29,10 @@ Item {
     }
 
     function load() {
-        statsLoader.command = ["sh", "-c", "mkdir -p \"$HOME/.cache/quickshell\"; awk -F '\\t' '{ c[$1]++; l[$1]=$2 } END { for (id in c) printf \"%s\\t%d\\t%s\\n\", id, c[id], l[id] }' \"$HOME/.cache/quickshell/launcher-frecent.tsv\" 2>/dev/null"]
+        statsLoader.command = ["sh", "-c", "dir=\"" + logDir + "\"; file=\"" + logFile + "\"; mkdir -p \"$dir\"; "
+            + "if [ -f \"$file\" ] && [ \"$(wc -l < \"$file\")\" -gt " + maxLines + " ]; then "
+            + "tail -n " + keepLines + " \"$file\" > \"$file.tmp\" && mv \"$file.tmp\" \"$file\"; fi; "
+            + "awk -F '\\t' '{ c[$1]++; l[$1]=$2 } END { for (id in c) printf \"%s\\t%d\\t%s\\n\", id, c[id], l[id] }' \"$file\" 2>/dev/null"]
         statsLoader.running = true
     }
 
@@ -37,21 +49,18 @@ Item {
     function record(id) {
         if (!id || id === "") return
         var now = Math.floor(Date.now() / 1000)
-        var currentStats = stats
-        var current = currentStats[id] || { count: 0, last: 0 }
-        current.count = current.count + 1
-        current.last = now
-        currentStats[id] = current
-        stats = currentStats
-        statsWriter.command = ["sh", "-c", "mkdir -p \"$HOME/.cache/quickshell\"; printf '%s\\t%s\\n' " + shellQuote(id) + " " + shellQuote(now.toString()) + " >> \"$HOME/.cache/quickshell/launcher-frecent.tsv\""]
-        statsWriter.running = true
+        // Uj objektum, kulonben a `stats` valtozasarol senki nem kapna jelzest.
+        var nextStats = {}
+        for (var key in stats) nextStats[key] = stats[key]
+        var current = nextStats[id] || { count: 0, last: 0 }
+        nextStats[id] = { count: current.count + 1, last: now }
+        stats = nextStats
+        // Levalasztott hozzafuzes: ket gyors inditas sem irja felul egymast, mint
+        // egy kozos, meg futo Process ujrainditasa.
+        Quickshell.execDetached(["sh", "-c", "mkdir -p \"" + logDir + "\"; printf '%s\\t%s\\n' \"$1\" \"$2\" >> \"" + logFile + "\"",
+            "sh", id, now.toString()])
     }
 
-    function shellQuote(value) {
-        return "'" + value.replace(/'/g, "'\\''") + "'"
-    }
-
-    Process { id: statsWriter }
     Process {
         id: statsLoader
         stdout: StdioCollector { onStreamFinished: store.parse(this.text || "") }

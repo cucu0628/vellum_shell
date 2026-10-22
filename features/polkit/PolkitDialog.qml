@@ -147,8 +147,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: window.failed ? "DENIED" : "REQUIRED"
                             color: window.frameColor
-                            font.family: "monospace"
-                            font.pixelSize: 8
+                            font.pixelSize: 9
                             font.bold: true
                             font.letterSpacing: 1
                         }
@@ -185,8 +184,8 @@ PanelWindow {
                         textFormat: Text.PlainText
                         text: "AUTHENTICATE AS"
                         color: window.panelAccent
-                        font.pixelSize: 9
-                        font.letterSpacing: 3
+                        font.pixelSize: 10
+                        font.letterSpacing: 1.5
                         font.bold: true
                     }
 
@@ -365,8 +364,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: "CANCEL"
                                 color: window.mutedFg
-                                font.family: "monospace"
-                                font.pixelSize: 8
+                                font.pixelSize: 10
                                 font.bold: true
                                 font.letterSpacing: 1
                             }
@@ -399,8 +397,7 @@ PanelWindow {
                                 color: submitMouse.containsMouse && window.response !== ""
                                     ? window.panelBg
                                     : window.panelAccent
-                                font.family: "monospace"
-                                font.pixelSize: 8
+                                font.pixelSize: 10
                                 font.bold: true
                                 font.letterSpacing: 1
                             }

@@ -14,7 +14,6 @@ Item {
     // zene kozben egy pillanatra megallna a kijelzes. 32 sav 30 fps-sel
     // merve ~1% CPU.
     readonly property int barCount: 32
-    readonly property string configPath: "/tmp/vellum-shell-cava-" + Date.now() + "-" + Math.floor(Math.random() * 1000000) + ".conf"
 
     width: 0
     height: 0
@@ -49,7 +48,11 @@ Item {
 
     Process {
         id: cavaProcess
-        command: ["sh", "-c", "cat > '" + controller.configPath + "' <<'EOF'\n"
+        // A konfig a mktemp sajat, 0600-as fajljaba kerul (nem egy kitalalhato
+        // /tmp nevre). A torles kesleltetett: az `exec` utan mar nincs shell,
+        // ami egy EXIT trapet lefuttatna, a cava pedig csak indulaskor olvas.
+        command: ["sh", "-c", "cfg=$(mktemp \"${XDG_RUNTIME_DIR:-/tmp}/vellum-cava.XXXXXX\") || exit 1\n"
+            + "cat > \"$cfg\" <<'EOF'\n"
             + "[general]\n"
             + "framerate=30\n"
             + "bars=" + controller.barCount + "\n"
@@ -73,8 +76,8 @@ Item {
             + "ignore=2\n"
             + "monstercat=1.5\n"
             + "EOF\n"
-            + "trap \"rm -f '" + controller.configPath + "'\" EXIT\n"
-            + "exec cava -p '" + controller.configPath + "' < /dev/null"]
+            + "(sleep 5; rm -f \"$cfg\") >/dev/null 2>&1 &\n"
+            + "exec cava -p \"$cfg\" < /dev/null"]
 
         onRunningChanged: {
             if (running) return
