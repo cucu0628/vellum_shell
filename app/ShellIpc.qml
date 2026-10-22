@@ -11,6 +11,10 @@ Item {
     required property var screenshotCaptureProvider
     // Az eppen szolo (vagy utolso) MPRIS lejatszo a medagombokhoz.
     property var activePlayer: null
+    // Az alapertelmezett kimenet es bemenet: core/AudioSummaryController.
+    property var audioController: null
+    // A beepitett kijelzo fenyereje: core/BrightnessController.
+    property var brightnessController: null
     property string pendingAboutAction: ""
 
     width: 0
@@ -129,6 +133,22 @@ Item {
         function toggle(): void { coordinator.toggleAudio(focusedScreenProvider()) }
         function open(): void { coordinator.setAudioOpen(true, focusedScreenProvider()) }
         function close(): void { coordinator.setAudioOpen(false) }
+        // Az alapertelmezett kimenet 5%-os lepesben; az OSD a PipeWire
+        // valtozasabol magatol megjelenik.
+        function volumeUp(): void { if (root.audioController) root.audioController.stepVolume(true) }
+        function volumeDown(): void { if (root.audioController) root.audioController.stepVolume(false) }
+        function mute(): void { if (root.audioController) root.audioController.toggleMute() }
+        function micMute(): void { if (root.audioController) root.audioController.toggleMicMute() }
+    }
+
+    IpcHandler {
+        target: "brightness"
+
+        // 5%-os lepes; hattervilagitas vagy daemon nelkul nem csinal semmit.
+        // A billentyuk a `vellum call brightness step` parancsot hasznaljak,
+        // ami a shell nelkul is mukodik.
+        function up(): void { if (root.brightnessController) root.brightnessController.step(5) }
+        function down(): void { if (root.brightnessController) root.brightnessController.step(-5) }
     }
 
     IpcHandler {

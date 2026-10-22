@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Notifications
 
 Item {
@@ -20,6 +21,16 @@ Item {
     property var groups: []
     property var expandedGroups: Object.create(null)
     readonly property bool hasToast: toastVisible && currentNotification !== null
+
+    // Az elozmeny es a DND a shell ujrainditasa (theme-refresh, osszeomlas)
+    // utan is megmarad. Szandekosan a $XDG_RUNTIME_DIR-ben: az kijelentkezeskor
+    // urul, igy egy ertesitesben kapott kod vagy uzenet nem kerul tartosan a
+    // lemezre. A visszatoltott bejegyzeseknek nincs elo ertesitese, ezert
+    // muveletuk sincs.
+    readonly property string storePath: Quickshell.env("XDG_RUNTIME_DIR")
+        ? Quickshell.env("XDG_RUNTIME_DIR") + "/vellum-shell-notifications.json"
+        : ""
+    property bool storeLoaded: false
 
     width: 0
     height: 0
@@ -371,6 +382,82 @@ Item {
         if (wasCurrent) Qt.callLater(showNextToast)
     }
 
+    // Az ikon csak akkor ervenyes egy uj shellben, ha fajl vagy ikontema-nev:
+    // az ertesitesbe kuldott kepadat (`image://qsimage/...`) a regi peldannyal
+    // egyutt eltunt.
+    function storableIcon(icon) {
+        var value = (icon || "").toString()
+        if (value.indexOf("image://icon/") === 0 || value.indexOf("file:") === 0 || value.indexOf("/") === 0) return value
+        return ""
+    }
+
+    function storedHistory(entries) {
+        var stored = []
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i]
+            stored.push({
+                appName: entry.appName || "",
+                summary: entry.summary || "",
+                body: entry.body || "",
+                icon: storableIcon(entry.icon),
+                critical: entry.critical === true,
+                time: entry.time || "",
+                unread: entry.unread === true
+            })
+        }
+        return stored
+    }
+
+    function restoredHistory(stored) {
+        var entries = []
+        if (!Array.isArray(stored)) return entries
+        for (var i = 0; i < stored.length && entries.length < historyLimit; i++) {
+            var record = stored[i]
+            if (!record || typeof record !== "object") continue
+            entries.push({
+                id: nextEntryId++,
+                appName: String(record.appName || "Notification"),
+                summary: String(record.summary || ""),
+                body: String(record.body || ""),
+                icon: storableIcon(record.icon),
+                critical: record.critical === true,
+                time: String(record.time || ""),
+                unread: record.unread === true,
+                notification: null,
+                actions: [],
+                defaultAction: null
+            })
+        }
+        return entries
+    }
+
+    // A betoltes elott mar beerkezett ertesitesek elore kerulnek.
+    function applyStored(text) {
+        var saved = null
+        try {
+            saved = JSON.parse(text || "null")
+        } catch (e) {
+            saved = null
+        }
+        if (saved && typeof saved === "object") {
+            var restored = restoredHistory(saved.history)
+            var merged = history.concat(restored).slice(0, historyLimit)
+            var unread = 0
+            for (var i = 0; i < merged.length; i++) {
+                if (merged[i].unread) unread++
+            }
+            history = merged
+            unreadCount = unread
+            if (saved.dnd === true) dnd = true
+        }
+        storeLoaded = true
+    }
+
+    function saveStore() {
+        if (storePath === "" || !storeLoaded) return
+        historyStore.setText(JSON.stringify({ version: 1, dnd: dnd, history: storedHistory(history) }))
+    }
+
     function clearHistory() {
         var notifications = []
         for (var i = 0; i < history.length; i++) {
@@ -391,12 +478,35 @@ Item {
         if (toastVisible) expireTimer.restart()
     }
 
-    onHistoryChanged: rebuildGroups()
+    onHistoryChanged: {
+        rebuildGroups()
+        if (storeLoaded) saveTimer.restart()
+    }
     onGroupingEnabledChanged: {
         expandedGroups = Object.create(null)
         rebuildGroups()
     }
-    onDndChanged: if (dnd) toastQueue = []
+    onDndChanged: {
+        if (dnd) toastQueue = []
+        if (storeLoaded) saveTimer.restart()
+    }
+
+    FileView {
+        id: historyStore
+
+        path: controller.storePath
+        atomicWrites: true
+        printErrors: false
+        onLoaded: controller.applyStored(historyStore.text())
+        onLoadFailed: controller.storeLoaded = true
+    }
+
+    // Egy ertesites-zapor ne irjon minden egyes bejegyzesnel.
+    Timer {
+        id: saveTimer
+        interval: 500
+        onTriggered: controller.saveStore()
+    }
 
     NotificationServer {
         actionsSupported: true

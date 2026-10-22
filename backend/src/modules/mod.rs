@@ -6,6 +6,7 @@
 //!
 //! Semmi mas -- a hub, a protokoll es a QML kliens valtozatlan marad.
 
+pub mod brightness;
 pub mod calendar;
 pub mod clipboard;
 pub mod health;
@@ -32,6 +33,7 @@ pub fn registry() -> Vec<Arc<dyn Module>> {
         Arc::new(removable::Removable::new()),
         Arc::new(privacy::Privacy::new()),
         Arc::new(session::Session::new()),
+        Arc::new(brightness::Brightness::new()),
         Arc::new(sysstats::SysStats::new()),
         Arc::new(vpn::Vpn::new()),
         Arc::new(weather::Weather::new()),

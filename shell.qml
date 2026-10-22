@@ -108,6 +108,11 @@ ShellRoot {
         id: workspaceController
     }
 
+    Core.BrightnessController {
+        id: brightnessController
+        backend: shellRoot.shellBackend
+    }
+
     Core.AudioSummaryController {
         id: audioSummaryController
         onSinkChanged: audioSinkRefreshTimer.restart()
@@ -419,6 +424,8 @@ ShellRoot {
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
         screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
         activePlayer: shellRoot.activePlayer
+        audioController: audioSummaryController
+        brightnessController: brightnessController
     }
 
     // AGRESSZÍV MONITOR SZŰRÉS (Csak egyedi nevű monitorok)
