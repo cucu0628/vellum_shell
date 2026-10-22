@@ -200,7 +200,10 @@ impl Module for Calendar {
                     "login",
                     "Elinditja a Google bejelentkezest; a valasz `url` mezoje a bongeszoben megnyitando cim.",
                 ),
-                MethodDescription::new("cancelLogin", "Megszakitja a folyamatban levo bejelentkezest."),
+                MethodDescription::new(
+                    "cancelLogin",
+                    "Megszakitja a folyamatban levo bejelentkezest.",
+                ),
                 MethodDescription::new(
                     "logout",
                     "Kijelentkezik: visszavonja es torli a tarolt tokent.",
@@ -681,9 +684,11 @@ impl Calendar {
         time_max: &str,
     ) -> Result<Vec<Event>> {
         let mut base = Url::parse(API_ROOT)?;
-        base.path_segments_mut()
-            .map_err(|_| anyhow::anyhow!("ervenytelen API cim"))?
-            .extend(["calendars", calendar.id.as_str(), "events"]);
+        base.path_segments_mut().map_err(|_| anyhow::anyhow!("ervenytelen API cim"))?.extend([
+            "calendars",
+            calendar.id.as_str(),
+            "events",
+        ]);
 
         let mut events = Vec::new();
         let mut page_token: Option<String> = None;
@@ -1073,11 +1078,7 @@ fn convert_event(item: ApiEvent, calendar: &CalendarInfo) -> Option<Event> {
     let mut event = Event {
         id: item.id,
         calendar: calendar.id.clone(),
-        title: if item.summary.trim().is_empty() {
-            "(No title)".to_string()
-        } else {
-            item.summary
-        },
+        title: if item.summary.trim().is_empty() { "(No title)".to_string() } else { item.summary },
         location: item.location,
         color: calendar.color.clone(),
         link: item.html_link,
@@ -1464,8 +1465,8 @@ mod tests {
 
     #[test]
     fn auth_url_carries_pkce_and_offline_access() {
-        let url = auth_url("id.apps.googleusercontent.com", "http://127.0.0.1:4242", "ch", "st")
-            .unwrap();
+        let url =
+            auth_url("id.apps.googleusercontent.com", "http://127.0.0.1:4242", "ch", "st").unwrap();
         let parsed = Url::parse(&url).unwrap();
         let pairs: HashMap<String, String> = parsed.query_pairs().into_owned().collect();
         assert_eq!(pairs["redirect_uri"], "http://127.0.0.1:4242");
@@ -1492,8 +1493,7 @@ mod tests {
 
         // A regi formatum meg olvashato, hogy atkoltoztetheto legyen.
         let legacy: Account =
-            serde_json::from_str(r#"{"refreshToken":"1//old","email":"me@example.com"}"#)
-                .unwrap();
+            serde_json::from_str(r#"{"refreshToken":"1//old","email":"me@example.com"}"#).unwrap();
         assert_eq!(legacy.refresh_token, "1//old");
     }
 

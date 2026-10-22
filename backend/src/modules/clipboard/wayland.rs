@@ -43,7 +43,10 @@ const SECRET_HINT: &str = "x-kde-passwordManagerHint";
 
 #[derive(Debug)]
 pub enum WatchEvent {
-    Captured { mime: String, data: Vec<u8> },
+    Captured {
+        mime: String,
+        data: Vec<u8>,
+    },
     /// A forras alkalmazas kilepett, a vagolap kiurult.
     Cleared,
 }
@@ -72,9 +75,12 @@ impl Control {
 
 /// Elinditja a figyelo szalat. Ha nincs Wayland-kapcsolat vagy a compositor
 /// nem tamogatja a protokollt, azonnal hibat ad.
-pub fn spawn(events: mpsc::UnboundedSender<WatchEvent>) -> Result<(Control, std::thread::JoinHandle<Result<()>>)> {
+pub fn spawn(
+    events: mpsc::UnboundedSender<WatchEvent>,
+) -> Result<(Control, std::thread::JoinHandle<Result<()>>)> {
     let conn = Connection::connect_to_env().context("nincs Wayland-kapcsolat")?;
-    let (globals, mut queue) = registry_queue_init::<State>(&conn).context("a Wayland registry nem olvashato")?;
+    let (globals, mut queue) =
+        registry_queue_init::<State>(&conn).context("a Wayland registry nem olvashato")?;
     let qh = queue.handle();
 
     let manager: ZwlrDataControlManagerV1 = globals
@@ -98,7 +104,8 @@ pub fn spawn(events: mpsc::UnboundedSender<WatchEvent>) -> Result<(Control, std:
 
     let control = Control { tx, wake: Arc::new(wake_write) };
     let handle = std::thread::Builder::new().name("vellum-clipboard".into()).spawn(move || {
-        let result = event_loop(&conn, &mut queue, &mut state, &manager, &device, &qh, &wake_read, &rx);
+        let result =
+            event_loop(&conn, &mut queue, &mut state, &manager, &device, &qh, &wake_read, &rx);
         if let Err(err) = &result {
             tracing::warn!(%err, "a vagolap-figyelo leallt");
         }
@@ -131,7 +138,11 @@ fn event_loop(
         };
 
         let mut fds = [
-            libc::pollfd { fd: guard.connection_fd().as_raw_fd(), events: libc::POLLIN, revents: 0 },
+            libc::pollfd {
+                fd: guard.connection_fd().as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            },
             libc::pollfd { fd: wake.as_raw_fd(), events: libc::POLLIN, revents: 0 },
         ];
         // SAFETY: ket ervenyes pollfd, vegtelen varakozas.
@@ -148,11 +159,11 @@ fn event_loop(
             return Err(anyhow!("a Wayland-kapcsolat megszakadt"));
         }
         if fds[0].revents & libc::POLLIN != 0 {
-            if let Err(err) = guard.read() {
-                if !matches!(&err, wayland_client::backend::WaylandError::Io(io) if io.kind() == std::io::ErrorKind::WouldBlock)
-                {
-                    return Err(err.into());
-                }
+            // A WouldBlock nem hiba: ilyenkor egyszeruen nincs mit olvasni.
+            if let Err(err) = guard.read()
+                && !matches!(&err, wayland_client::backend::WaylandError::Io(io) if io.kind() == std::io::ErrorKind::WouldBlock)
+            {
+                return Err(err.into());
             }
         } else {
             drop(guard);
@@ -231,11 +242,7 @@ fn choose_mime(mimes: &[String]) -> Option<String> {
     let has = |wanted: &str| mimes.iter().any(|mime| mime == wanted);
     // Szoveg az elsodleges: egy bongeszobol masolt szoveg mellett gyakran ott
     // egy kep-ikon is, de a felhasznalo a szoveget masolta.
-    TEXT_MIMES
-        .iter()
-        .chain(IMAGE_MIMES.iter())
-        .find(|mime| has(mime))
-        .map(|mime| mime.to_string())
+    TEXT_MIMES.iter().chain(IMAGE_MIMES.iter()).find(|mime| has(mime)).map(|mime| mime.to_string())
 }
 
 fn read_all(fd: OwnedFd) -> Option<Vec<u8>> {
@@ -283,7 +290,15 @@ impl Dispatch<wl_registry::WlRegistry, GlobalListContents> for State {
 }
 
 impl Dispatch<WlSeat, ()> for State {
-    fn event(_: &mut Self, _: &WlSeat, _: <WlSeat as Proxy>::Event, _: &(), _: &Connection, _: &QueueHandle<Self>) {}
+    fn event(
+        _: &mut Self,
+        _: &WlSeat,
+        _: <WlSeat as Proxy>::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+    }
 }
 
 impl Dispatch<ZwlrDataControlManagerV1, ()> for State {
@@ -353,16 +368,19 @@ impl Dispatch<ZwlrDataControlSourceV1, ()> for State {
     ) {
         match event {
             zwlr_data_control_source_v1::Event::Send { fd, .. } => {
-                let Some((_, data)) = state.source.as_ref().filter(|(id, _)| *id == source.id()) else {
+                let Some((_, data)) = state.source.as_ref().filter(|(id, _)| *id == source.id())
+                else {
                     return;
                 };
                 let data = Arc::clone(data);
                 // Kulon szalon irjuk: egy lassan olvaso alkalmazas ne allitsa meg
                 // a hurkot.
-                let _ = std::thread::Builder::new().name("vellum-clipboard-send".into()).spawn(move || {
-                    let mut file = std::fs::File::from(fd);
-                    let _ = file.write_all(&data);
-                });
+                let _ = std::thread::Builder::new().name("vellum-clipboard-send".into()).spawn(
+                    move || {
+                        let mut file = std::fs::File::from(fd);
+                        let _ = file.write_all(&data);
+                    },
+                );
             }
             zwlr_data_control_source_v1::Event::Cancelled => {
                 if state.source.as_ref().is_some_and(|(id, _)| *id == source.id()) {

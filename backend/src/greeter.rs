@@ -257,8 +257,7 @@ mod tests {
 
     #[test]
     fn an_unwritable_or_missing_target_is_not_an_error() {
-        let dir =
-            std::env::temp_dir().join(format!("vellum-greeter-write-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("vellum-greeter-write-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         assert_eq!(write_if_writable(&dir.join("theme.json"), b"x"), None);
 

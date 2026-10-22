@@ -117,7 +117,10 @@ fn install_into_profile(chrome_output: &Path, content_output: &Path) -> Result<(
         std::fs::create_dir_all(&chrome_dir)?;
 
         write_if_changed(&chrome_dir.join(CHROME_COPY), &std::fs::read_to_string(chrome_output)?)?;
-        write_if_changed(&chrome_dir.join(CONTENT_COPY), &std::fs::read_to_string(content_output)?)?;
+        write_if_changed(
+            &chrome_dir.join(CONTENT_COPY),
+            &std::fs::read_to_string(content_output)?,
+        )?;
 
         upsert_import(&chrome_dir.join("userChrome.css"), CHROME_COPY, &["/zen-theme.css\");"])?;
         upsert_import(
@@ -220,7 +223,8 @@ mod tests {
     use super::*;
 
     fn temp_file(name: &str, contents: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("vellum-zen-test-{}-{name}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("vellum-zen-test-{}-{name}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("userChrome.css");
         std::fs::write(&path, contents).unwrap();

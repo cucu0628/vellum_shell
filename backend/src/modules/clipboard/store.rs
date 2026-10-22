@@ -83,8 +83,10 @@ impl Store {
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
             .unwrap_or_default();
         // Olyan bejegyzes, aminek eltunt a tartalma, nem masolhato vissza.
-        let entries: Vec<Entry> =
-            entries.into_iter().filter(|entry| dir.join("blobs").join(entry.id.to_string()).exists()).collect();
+        let entries: Vec<Entry> = entries
+            .into_iter()
+            .filter(|entry| dir.join("blobs").join(entry.id.to_string()).exists())
+            .collect();
         let next_id = entries.iter().map(|entry| entry.id).max().map_or(1, |id| id + 1);
         Self { dir, entries, next_id }
     }
@@ -112,8 +114,10 @@ impl Store {
         }
 
         let hash = fingerprint(data);
-        if let Some(index) =
-            self.entries.iter().position(|entry| entry.hash == hash && entry.size == data.len() as u64)
+        if let Some(index) = self
+            .entries
+            .iter()
+            .position(|entry| entry.hash == hash && entry.size == data.len() as u64)
         {
             let mut entry = self.entries.remove(index);
             entry.time = now();
@@ -184,7 +188,8 @@ impl Store {
     }
 
     pub fn data(&self, id: u64) -> Result<Vec<u8>> {
-        std::fs::read(self.blob_path(id)).with_context(|| format!("a {id}. bejegyzes nem olvashato"))
+        std::fs::read(self.blob_path(id))
+            .with_context(|| format!("a {id}. bejegyzes nem olvashato"))
     }
 
     pub fn delete(&mut self, id: u64) -> Result<bool> {
@@ -213,7 +218,8 @@ impl Store {
     /// Rogzites vagy feloldas. Hibaval ter vissza, ha a rogzitesi keret betelt.
     pub fn set_pinned(&mut self, id: u64, pinned: bool) -> Result<bool, PinError> {
         let pinned_count = self.entries.iter().filter(|entry| entry.pinned).count();
-        let entry = self.entries.iter_mut().find(|entry| entry.id == id).ok_or(PinError::NotFound)?;
+        let entry =
+            self.entries.iter_mut().find(|entry| entry.id == id).ok_or(PinError::NotFound)?;
         if entry.pinned == pinned {
             return Ok(false);
         }

@@ -196,11 +196,7 @@ impl Disk {
         }
 
         let used_blocks = stat.f_blocks.saturating_sub(stat.f_bfree);
-        Self {
-            used_blocks,
-            usable_blocks: used_blocks + stat.f_bavail,
-            block_size: stat.f_frsize,
-        }
+        Self { used_blocks, usable_blocks: used_blocks + stat.f_bavail, block_size: stat.f_frsize }
     }
 
     fn used_bytes(&self) -> u64 {

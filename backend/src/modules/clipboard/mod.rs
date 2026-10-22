@@ -39,7 +39,10 @@ impl Default for Clipboard {
 
 impl Clipboard {
     pub fn new() -> Self {
-        Self { store: Arc::new(Mutex::new(Store::open(Store::default_dir()))), control: Mutex::new(None) }
+        Self {
+            store: Arc::new(Mutex::new(Store::open(Store::default_dir()))),
+            control: Mutex::new(None),
+        }
     }
 
     fn available(&self) -> bool {
@@ -61,7 +64,8 @@ impl Clipboard {
     ) -> Result<T> {
         let store = Arc::clone(&self.store);
         tokio::task::spawn_blocking(move || {
-            let mut store = store.lock().map_err(|_| anyhow::anyhow!("a vagolap-tarolo zarolasa serult"))?;
+            let mut store =
+                store.lock().map_err(|_| anyhow::anyhow!("a vagolap-tarolo zarolasa serult"))?;
             Ok(work(&mut store))
         })
         .await?
@@ -71,7 +75,9 @@ impl Clipboard {
     async fn copy(&self, id: u64) -> Result<()> {
         let (kind, mime, data) = self
             .with_store(move |store| -> Result<_> {
-                let entry = store.get(id).ok_or_else(|| ModuleError::not_found(format!("nincs {id}. bejegyzes")))?;
+                let entry = store
+                    .get(id)
+                    .ok_or_else(|| ModuleError::not_found(format!("nincs {id}. bejegyzes")))?;
                 Ok((entry.kind, entry.mime.clone(), store.data(id)?))
             })
             .await??;
@@ -81,12 +87,10 @@ impl Clipboard {
             Kind::Image => vec![mime],
         };
 
-        let control = self
-            .control
-            .lock()
-            .ok()
-            .and_then(|control| control.clone())
-            .ok_or_else(|| ModuleError::failed("a vagolap nem erheto el (nincs Wayland-kapcsolat)"))?;
+        let control =
+            self.control.lock().ok().and_then(|control| control.clone()).ok_or_else(|| {
+                ModuleError::failed("a vagolap nem erheto el (nincs Wayland-kapcsolat)")
+            })?;
         control.send(Command::SetSelection { mimes, data: Arc::new(data) })
     }
 
@@ -127,7 +131,10 @@ impl Module for Clipboard {
                     true,
                     "A bejegyzes azonositoja.",
                 ),
-                MethodDescription::new("clear", "Az elozmeny torlese; a rogzitett elemek maradnak."),
+                MethodDescription::new(
+                    "clear",
+                    "Az elozmeny torlese; a rogzitett elemek maradnak.",
+                ),
                 MethodDescription::new("pin", "Bejegyzes rogzitese: nem esik ki az elozmenybol.")
                     .param("id", "number", true, "A bejegyzes azonositoja."),
                 MethodDescription::new("unpin", "A rogzites feloldasa.").param(
@@ -170,7 +177,9 @@ impl Module for Clipboard {
                 }
                 WatchEvent::Cleared => {
                     // A legutobbi bejegyzest kinaljuk fel tovabb.
-                    let newest = self.with_store(|store| store.entries().first().map(|entry| entry.id)).await?;
+                    let newest = self
+                        .with_store(|store| store.entries().first().map(|entry| entry.id))
+                        .await?;
                     if let Some(id) = newest
                         && let Err(err) = self.copy(id).await
                     {
@@ -217,7 +226,9 @@ impl Module for Clipboard {
                     Err(PinError::NotFound) => {
                         return Err(ModuleError::not_found(format!("nincs {id}. bejegyzes")).into());
                     }
-                    Err(err @ PinError::Full) => return Err(ModuleError::failed(err.to_string()).into()),
+                    Err(err @ PinError::Full) => {
+                        return Err(ModuleError::failed(err.to_string()).into());
+                    }
                     Err(PinError::Io(err)) => return Err(err),
                 }
             }

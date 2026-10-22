@@ -73,7 +73,10 @@ trait Service {
     fn read_alias(&self, name: &str) -> zbus::Result<OwnedObjectPath>;
 }
 
-#[zbus::proxy(interface = "org.freedesktop.Secret.Collection", default_service = "org.freedesktop.secrets")]
+#[zbus::proxy(
+    interface = "org.freedesktop.Secret.Collection",
+    default_service = "org.freedesktop.secrets"
+)]
 trait Collection {
     fn create_item(
         &self,
@@ -86,17 +89,26 @@ trait Collection {
     fn locked(&self) -> zbus::Result<bool>;
 }
 
-#[zbus::proxy(interface = "org.freedesktop.Secret.Item", default_service = "org.freedesktop.secrets")]
+#[zbus::proxy(
+    interface = "org.freedesktop.Secret.Item",
+    default_service = "org.freedesktop.secrets"
+)]
 trait Item {
     fn delete(&self) -> zbus::Result<OwnedObjectPath>;
 }
 
-#[zbus::proxy(interface = "org.freedesktop.Secret.Session", default_service = "org.freedesktop.secrets")]
+#[zbus::proxy(
+    interface = "org.freedesktop.Secret.Session",
+    default_service = "org.freedesktop.secrets"
+)]
 trait Session {
     fn close(&self) -> zbus::Result<()>;
 }
 
-#[zbus::proxy(interface = "org.freedesktop.Secret.Prompt", default_service = "org.freedesktop.secrets")]
+#[zbus::proxy(
+    interface = "org.freedesktop.Secret.Prompt",
+    default_service = "org.freedesktop.secrets"
+)]
 trait Prompt {
     fn prompt(&self, window_id: &str) -> zbus::Result<()>;
 
@@ -120,18 +132,14 @@ pub async fn store(
     interactive: bool,
 ) -> Result<()> {
     let (connection, service) = service().await?;
-    let collection_path = service
-        .read_alias("default")
-        .await
-        .map_err(|_| SecretError::Unavailable)?;
+    let collection_path =
+        service.read_alias("default").await.map_err(|_| SecretError::Unavailable)?;
     if collection_path.as_str() == "/" {
         return Err(SecretError::Unavailable.into());
     }
 
-    let collection = CollectionProxy::builder(&connection)
-        .path(collection_path.clone())?
-        .build()
-        .await?;
+    let collection =
+        CollectionProxy::builder(&connection).path(collection_path.clone())?.build().await?;
     if collection.locked().await.unwrap_or(true) {
         unlock(&connection, &service, &[collection_path.as_ref()], interactive).await?;
     }
@@ -231,7 +239,11 @@ async fn unlock(
 
 /// Lefuttat egy kulcstar-kerest (pl. jelszoablak), ha a szolgaltatas kert
 /// ilyet. A "/" utvonal azt jelenti, hogy nincs szukseg kerdesre.
-async fn run_prompt(connection: &Connection, path: OwnedObjectPath, interactive: bool) -> Result<()> {
+async fn run_prompt(
+    connection: &Connection,
+    path: OwnedObjectPath,
+    interactive: bool,
+) -> Result<()> {
     if path.as_str() == "/" {
         return Ok(());
     }

@@ -33,6 +33,9 @@ Rectangle {
 
         anchors.centerIn: parent
         text: chip.label
+        // A felirat lehet ertesitesi muvelet szovege is: sosem ertelmezzuk
+        // markupkent.
+        textFormat: Text.PlainText
         color: chip.checked ? chip.accent : (pressable.containsMouse ? chip.foreground : chip.muted)
         font.pixelSize: 11
         font.weight: chip.checked ? Font.Medium : Font.Normal
