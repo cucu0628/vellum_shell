@@ -29,6 +29,7 @@ vellum_shell/
 │   │   │   ├── protocol.rs           # Newline-delimited JSON protokoll
 │   │   │   └── server.rs             # Unix socket szerver
 │   │   ├── modules/
+│   │   │   ├── brightness.rs         # Háttérvilágítás: sysfs értesítés, logind SetBrightness
 │   │   │   ├── calendar.rs           # Google Naptár: OAuth (loopback + PKCE) és események
 │   │   │   ├── clipboard/
 │   │   │   │   ├── mod.rs            # Vágólap-előzmény modul (mindig fut)
@@ -40,6 +41,7 @@ vellum_shell/
 │   │   │   ├── network.rs            # Aktív kapcsolat, LAN cím, VPN jelenlét
 │   │   │   ├── privacy.rs            # Kamerát használó folyamatok
 │   │   │   ├── removable.rs          # Cserélhető adathordozók udisks2-n
+│   │   │   ├── session.rs            # Zárolás alvás előtt (logind delay inhibitor)
 │   │   │   ├── sysstats.rs           # CPU, RAM és lemez
 │   │   │   ├── theme.rs              # A paletta mint topic, a témaváltás mint parancs
 │   │   │   ├── vpn.rs                # ProtonVPN állapot és vezérlés
@@ -66,9 +68,12 @@ vellum_shell/
 │   │   ├── edid.rs                   # Monitor-azonosítás EDID-ből
 │   │   ├── greeter.rs                # A greeter állapotmappája és a layout.conf
 │   │   ├── lib.rs                    # Könyvtár gyökér a teszteknek és a binárisnak
+│   │   ├── login.rs                  # Közös logind proxyk és a grafikus munkamenet
 │   │   ├── main.rs                   # CLI és daemon belépési pont
 │   │   ├── module.rs                 # A `Module` trait és a modul-önleírás
-│   │   └── nm.rs                     # NetworkManager D-Bus proxyk
+│   │   ├── nm.rs                     # NetworkManager D-Bus proxyk
+│   │   ├── proc.rs                   # Külső parancsok időkorláttal, folyamatcsoportként
+│   │   └── secret.rs                 # Secret Service kulcstár (a naptár tokenje)
 │   ├── templates/                    # Téma-sablonok ({{KULCS}} helyőrzőkkel)
 │   │   ├── btop.theme.tmpl
 │   │   ├── dynamic-theme.conf.tmpl
@@ -79,16 +84,20 @@ vellum_shell/
 │   │   ├── qt6ct-colors.conf.tmpl
 │   │   ├── zen-content-theme.css.tmpl
 │   │   └── zen-theme.css.tmpl
-│   ├── tests/                        # Golden baseline és a rögzítő script
-│   │   ├── golden/
-│   │   ├── capture-golden.sh
-│   │   └── golden.rs                 # Golden teszt a bash baseline ellen
+│   ├── tests/
+│   │   ├── golden/                   # A régi bash generátorok rögzített kimenete
+│   │   ├── capture-golden.sh         # Történeti: a törölt bash generátorokra épül
+│   │   ├── golden.rs                 # Golden teszt a bash baseline ellen
+│   │   ├── greeter_background.rs     # A greeter háttérkép-másolata
+│   │   ├── ipc_contract.rs           # A `vellum describe` szerződés pillanatképe
+│   │   └── theme_transaction.rs      # Témaváltás: minden kimenet vagy egyik sem
 │   ├── build.rs                      # Git revízió beégetése a binárisba
 │   ├── Cargo.lock
 │   ├── Cargo.toml
 │   └── rustfmt.toml                  # A fa stílusához rögzített formázás
 ├── core/                             # UI-független shell szolgáltatások
 │   ├── AudioSummaryController.qml    # Panel hangerőállapot
+│   ├── BrightnessController.qml      # Beépített kijelző fényereje a `brightness` topicból
 │   ├── BarLayoutController.qml       # Topbar modulzónák és perzisztens sorrend
 │   ├── Backend.qml
 │   ├── BatteryStatusController.qml   # Opcionális rendszerakku állapot
@@ -186,6 +195,7 @@ vellum_shell/
 │   │   ├── PlayerBand.qml              # Borítós lejátszósáv, csendben vékony sorrá húzódik
 │   │   ├── SystemStatsCard.qml
 │   │   ├── SystemStatsController.qml
+│   │   ├── WeatherDetail.qml           # Kinagyított időjárás: mostani mérések és öt napos előrejelzés
 │   │   └── WeatherSummaryCard.qml
 │   ├── notifications/
 │   │   ├── NotificationCenter.qml
@@ -205,7 +215,6 @@ vellum_shell/
 │   ├── screenshot/
 │   │   └── ScreenshotController.qml  # Képernyőkép-módok indítása
 │   ├── settings/
-│   │   ├── ActionButton.qml          # Beállítások gomb
 │   │   ├── AutostartController.qml   # XDG autostart és systemd user service állapot
 │   │   ├── AutostartPage.qml         # Autostart és szolgáltatáskezelő
 │   │   ├── BarLayoutLane.qml         # Drag-and-drop célzóna
@@ -259,6 +268,7 @@ vellum_shell/
 │   ├── pkg-remove
 │   ├── screenshot-capture
 │   ├── settings-autostart
+│   ├── shell-run                     # Felügyelt Quickshell: összeomlás után újraindítja
 │   ├── shell-start
 │   ├── theme-current
 │   ├── theme-refresh
@@ -428,11 +438,11 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
   `/var/lib/vellum-greeter/` mappába írja, mert a `/home`-ot a greeter nem éri el.
 - Rust backend: protokoll, hub, lazy topicok és a `core/Backend.qml` kliens
   automatikus újracsatlakozással.
-- Téma-motor: paletta, színmatek és a nyolc generátor egy helyen, natív Material
+- Téma-motor: paletta, színmatek és a tíz generátor egy helyen, natív Material
   You-val (a `matugen` függőség megszűnt; a `jq`-t a screenshot- és lockscreen
   segédscriptek továbbra is használják). A kimenetet golden teszt védi.
 - Állapot modulok: `network`, `vpn`, `removable`, `privacy`, `sysstats`, `weather`,
-  `calendar`.
+  `calendar`, `session`, `brightness`.
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
 - Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, oldalsávos

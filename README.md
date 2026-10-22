@@ -29,6 +29,8 @@ terminal helpers.
   kitty window instead of being started without a TTY.
 - Clipboard history with text and image previews, activation, and deletion.
 - Notification server with toasts, history, actions, unread state, and DND.
+  History and DND survive a shell restart (kept in `$XDG_RUNTIME_DIR`, so
+  they are gone after logging out); restored entries have no actions.
 - Notification center grouping per application, with collapsible groups,
   per-group unread counts, and per-group clearing.
 - Media dashboard: an album-art player above a compact calendar, weather, and system statistics row.
@@ -105,7 +107,7 @@ introduced in Hyprland 0.55 (`hl.config(...)`, `hl.bind(...)`, and `hl.dsp.*`).
 Clone the repository to the path expected by the shell:
 
 ```bash
-git clone https://git.asked.hu/asked/qs.git \
+git clone https://github.com/cucu0628/vellum_shell.git \
   "$HOME/.config/quickshell/vellum_shell"
 ```
 
@@ -149,7 +151,11 @@ cp your-wallpaper.png "$HOME/Pictures/wallpapers/"
 ```
 
 The setup installs `~/.config/hypr/autostart.lua`. It starts the shell
-immediately in a running Hyprland session and automatically on later sessions.
+immediately in a running Hyprland session and automatically on later sessions. It
+also starts `nm-applet`: the shell's network panel joins Wi-Fi networks itself,
+but NetworkManager still needs a secret agent to ask for passwords it starts on
+its own (enterprise Wi-Fi, VPN, a changed key), so its tray icon appears next
+to the bar's own network indicator.
 
 Restart an already running instance with:
 
@@ -214,7 +220,8 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `style` | `theme`, `wallpaper`, `close` |
 | `power` | `toggle`, `open`, `close` (alias of `settings`) |
 | `notifications` | `toggle`, `dnd`, `close`, `clear`, `grouping`, `expand`, `collapse` |
-| `audio` | `toggle`, `open`, `close` |
+| `audio` | `toggle`, `open`, `close`, `volumeUp`, `volumeDown` (5% steps), `mute`, `micMute` |
+| `brightness` | `up`, `down` (5% steps on the built-in display; no-op without a backlight) |
 | `media` | `toggle`, `open`, `close`, `calendar`, `weather` (open with that card expanded), `playPause`, `next`, `previous`; `overview` and `player` are kept as aliases of `open` |
 | `network` | `toggle`, `open`, `close` |
 | `bluetooth` | `toggle`, `open`, `close` |
@@ -239,6 +246,14 @@ hl.bind("SUPER + V", hl.dsp.exec_cmd(shell .. " clipboard toggle"))
 hl.bind("SUPER + N", hl.dsp.exec_cmd(shell .. " notifications toggle"))
 hl.bind("SUPER + P", hl.dsp.exec_cmd(shell .. " settings toggle"))
 ```
+
+The same file binds `SUPER + SHIFT + L` to the lock screen, `PRINT` and
+`SHIFT + PRINT` to screenshots, and the media, volume and brightness keys. The
+volume keys call `wpctl` directly (capped at 100%) and the brightness keys call
+`vellum call brightness step`, so both keep working while the shell restarts;
+the shell shows the OSD from the change itself. The play, pause, next and
+previous keys go to the shell's active player, so `playerctl` is not needed.
+All of them work on the lock screen.
 
 ### Lock screen
 
@@ -267,6 +282,26 @@ installs `/etc/pam.d/vellum-shell`; no external lock-screen package is used.
 When that file is missing (for example after a manual install without `sudo`),
 the lock screen falls back to the system `login` service instead of refusing
 every password, so a locked session can always be unlocked.
+
+The screen also locks before the machine sleeps when something else suspends
+it: closing the lid, `systemctl suspend`, or an idle daemon. While the shell
+runs, the backend holds a logind delay inhibitor, locks on `PrepareForSleep`,
+and lets the suspend continue once the compositor has confirmed the lock
+surface, or after 4.5 seconds if the shell does not answer. Without the
+daemon, only `lock suspend` locks first.
+
+`loginctl lock-session` locks the Vellum lock screen too, so an idle daemon
+such as hypridle can use `lock_cmd = loginctl lock-session`. The shell reports
+its state to logind (`LockedHint`). Without an idle daemon, Settings → System →
+**Lock after inactivity** locks the screen after 1–30 minutes without input
+(off by default); fullscreen video and other idle inhibitors keep it awake.
+
+If the shell crashes while the screen is locked, `scripts/shell-run` (which
+`shell-start` and `theme-refresh` use) restarts it, and the new instance locks
+again straight away. `vellum_tuning.lua` sets Hyprland's
+`misc.allow_session_lock_restore` so that the restarted shell can take the lock
+back instead of leaving the session stuck on Hyprland's fallback screen. The
+supervisor gives up after five crashes within a minute.
 
 ### Login screen (greetd)
 
@@ -362,6 +397,7 @@ any other way restores the palette you started with.
 | `current-wallpaper` | Absolute path to the active wallpaper |
 | `current-weather-location` | Location passed to Open-Meteo geocoding |
 | `lockscreen-monitor` | Preferred monitor for password input |
+| `lock-idle-minutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
 
 Clipboard history lives outside the repository, in
 `$XDG_STATE_HOME/vellum-shell/clipboard/` (`~/.local/state/...` by default):
@@ -440,8 +476,8 @@ MUTED="#727169"
 ```
 
 Included palettes are Catppuccin Mocha, Dynamic Matugen, Gruvbox Material,
-Japanese Ink, Kanagawa Wave, Rose Pine, Sakura Blossom, Tokyo Night, and
-Varnished Horizon.
+Japanese Ink, Kanagawa Wave, Monochrome, Rose Pine, Sakura Blossom, Tokyo Night,
+and Varnished Horizon.
 
 Dynamic mode derives a Material You palette from the wallpaper inside the
 backend, so no external tool is involved. A wallpaper with no usable hue keeps a
@@ -512,7 +548,7 @@ vellum_shell/
 ├── backend/               Rust backend: theme engine and state daemon
 │   ├── src/modules/       One file per capability (theme, network, vpn, ...)
 │   ├── templates/         Theme output templates, editable without rebuilding
-│   └── tests/             Golden comparison against the previous bash output
+│   └── tests/             Golden output, IPC contract, and theme transaction tests
 ├── nvim/                  LazyVim specs: generated colorscheme and the key hints
 ├── systemd/               User service that starts the backend at login
 ├── scripts/               Interactive helpers and installers
@@ -537,7 +573,10 @@ per-tick `Process` calls. It listens on `$XDG_RUNTIME_DIR/vellum-shell.sock` and
 speaks newline-delimited JSON.
 
 The shell keeps working when the daemon is down: `core/Backend.qml` falls back to
-built-in defaults and reconnects with backoff, so nothing blocks or crashes.
+built-in defaults and reconnects with backoff, so nothing blocks or crashes. The
+palette is read from `current-theme` and the matching `theme.conf` until the
+daemon answers, so the shell still starts in your theme. A call that the daemon
+accepts but never answers fails with a `timeout` error after 60 seconds.
 
 ```bash
 scripts/backend-install        # build, install, and enable the user service
@@ -564,6 +603,8 @@ the daemon keeps that module running from start-up.
 | `vpn` | NetworkManager D-Bus, `protonvpn` for details | `protonvpn status` on every tick |
 | `removable` | udisks2 D-Bus | `lsblk --json` every 2.5 s, `udisksctl` |
 | `privacy` | `/proc` scan for `/dev/video*` handles | resident `camera-usage` bash loop |
+| `session` | logind `PrepareForSleep` with a delay inhibitor, the session `Lock` signal, and `LockedHint` | — |
+| `brightness` | `/sys/class/backlight` change notifications; set through logind `SetBrightness` | `brightnessctl` |
 | `sysstats` | `/proc`, `statvfs` | `df -P /` |
 | `weather` | Open-Meteo | three `curl` calls per panel open |
 | `calendar` | Google Calendar API, OAuth sign-in through the browser | — |
@@ -631,8 +672,16 @@ shellcheck setup.sh install.sh scripts/*
 python3 -B -m unittest discover -s tests -p 'test_*.py'
 node tests/notifications.js
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-  /usr/lib/qt6/bin/qmltestrunner -input tests/qml
+  /usr/lib/qt6/bin/qmltestrunner -import tests/qml/stubs -input tests/qml
 ```
+
+On Fedora the Qt tools live in `/usr/lib64/qt6/bin/` (or on `PATH` as
+`qmllint-qt6` and `qmltestrunner-qt6`); `scripts/check` finds either layout.
+`scripts/check rust`, `scripts/check qml`, and `scripts/check shell` run a
+single group, which is how CI calls it, with `VELLUM_CHECK_STRICT=1` so a
+missing tool fails the job instead of being skipped. Quickshell's own QML
+modules are compiled into the `quickshell` binary, so `tests/qml/stubs` stands
+in for the few types the tested components use.
 
 The security regressions use isolated Unix sockets, mocked monitor metadata,
 and offscreen Qt components. They do not register a notification server, run
