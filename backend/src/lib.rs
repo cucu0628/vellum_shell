@@ -8,6 +8,7 @@ pub mod dbus;
 pub mod edid;
 pub mod greeter;
 pub mod ipc;
+pub mod login;
 pub mod module;
 pub mod modules;
 pub mod nm;

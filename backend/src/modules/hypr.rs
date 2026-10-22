@@ -88,6 +88,18 @@ const POPUP_LAYER_RULE: &str = r#"hl.layer_rule({
 })
 "#;
 
+/// Ha a zarolast tarto shell osszeomlik, a Hyprland alapbol nem enged uj
+/// lock-klienst, es a munkamenet csak TTY-rol mentheto. Ezzel az ujrainditott
+/// shell (`scripts/shell-run`) visszaveheti a zarolast. A felhasznalo sajat
+/// `misc` opcioi ez utan jonnek, igy felulirhatjak.
+const SESSION_LOCK_RESTORE: &str = r#"
+hl.config({
+    misc = {
+        allow_session_lock_restore = true,
+    },
+})
+"#;
+
 /// Egy monitor perzisztalt beallitasa. Minden mezo opcionalis: amit a
 /// felhasznalo nem allitott, azt nem irjuk ki, hogy a Hyprland alapertelmezese
 /// (`preferred` / `auto`) ervenyben maradhasson.
@@ -485,6 +497,9 @@ fn prepare() -> Result<Value> {
     if available && let Err(err) = hyprctl(&["eval", POPUP_LAYER_RULE]) {
         tracing::warn!(%err, "a popup layer-szabaly nem allithato be");
     }
+    if available && let Err(err) = hyprctl(&["eval", SESSION_LOCK_RESTORE]) {
+        tracing::warn!(%err, "a session lock visszavetele nem engedelyezheto");
+    }
     Ok(json!({ "available": available }))
 }
 
@@ -601,8 +616,7 @@ pub fn sync_greeter_layout() {
         return;
     }
 
-    let options =
-        read_option_values(&["input:kb_layout", "input:kb_variant", "input:kb_options"]);
+    let options = read_option_values(&["input:kb_layout", "input:kb_variant", "input:kb_options"]);
     let text = |key: &str| {
         options
             .get(key)
@@ -1104,6 +1118,7 @@ fn render_tuning_lua(options: &BTreeMap<String, Value>) -> String {
     out.push('\n');
     out.push_str(SETTINGS_WINDOW_RULE);
     out.push_str(POPUP_LAYER_RULE);
+    out.push_str(SESSION_LOCK_RESTORE);
     out.push_str(&render_options_lua(options));
     out
 }
@@ -1259,6 +1274,7 @@ mod tests {
         assert!(tuning.starts_with(HEADER));
         assert!(tuning.contains("name = \"vellum-settings\""));
         assert!(tuning.contains("float = true"));
+        assert!(tuning.contains("allow_session_lock_restore = true"));
     }
 
     #[test]
@@ -1273,7 +1289,7 @@ mod tests {
         assert_eq!(
             rendered,
             format!(
-                "{HEADER}\n{SETTINGS_WINDOW_RULE}{POPUP_LAYER_RULE}\nhl.config({{\n    \
+                "{HEADER}\n{SETTINGS_WINDOW_RULE}{POPUP_LAYER_RULE}{SESSION_LOCK_RESTORE}\nhl.config({{\n    \
                  decoration = {{\n        rounding = 6,\n        blur = {{\n            \
                  enabled = true,\n        }},\n    }},\n    \
                  general = {{\n        gaps_in = 8,\n    }},\n    \

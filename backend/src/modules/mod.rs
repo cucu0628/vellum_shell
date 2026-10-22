@@ -13,6 +13,7 @@ pub mod hypr;
 pub mod network;
 pub mod privacy;
 pub mod removable;
+pub mod session;
 pub mod sysstats;
 pub mod theme;
 pub mod vpn;
@@ -30,6 +31,7 @@ pub fn registry() -> Vec<Arc<dyn Module>> {
         Arc::new(hypr::Hypr::new()),
         Arc::new(removable::Removable::new()),
         Arc::new(privacy::Privacy::new()),
+        Arc::new(session::Session::new()),
         Arc::new(sysstats::SysStats::new()),
         Arc::new(vpn::Vpn::new()),
         Arc::new(weather::Weather::new()),

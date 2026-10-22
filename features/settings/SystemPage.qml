@@ -88,6 +88,41 @@ Flickable {
 
         }
 
+        SharedUi.SettingRow {
+            theme: page.theme
+            label: "Lock after inactivity"
+            description: "Locks the screen when the session has been idle this long. Fullscreen video keeps it awake."
+
+            SharedUi.SettingSelect {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                theme: page.theme
+                model: [{
+                    "label": "Never",
+                    "value": "0"
+                }, {
+                    "label": "1 minute",
+                    "value": "1"
+                }, {
+                    "label": "5 minutes",
+                    "value": "5"
+                }, {
+                    "label": "10 minutes",
+                    "value": "10"
+                }, {
+                    "label": "15 minutes",
+                    "value": "15"
+                }, {
+                    "label": "30 minutes",
+                    "value": "30"
+                }]
+                value: page.systemController.lockIdleMinutes
+                onActivated: (value) => page.systemController.setLockIdleMinutes(value)
+            }
+
+        }
+
         SettingsSection {
             width: parent.width
             theme: page.theme

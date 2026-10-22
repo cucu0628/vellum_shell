@@ -29,8 +29,35 @@ if ! systemctl --user restart vellum-shelld.service; then
   echo "vellum: a backend nem indult el, a shell degradaltan indul" >&2
 fi
 
-# Wait for Hyprland to finish configuring outputs before creating surfaces.
-sleep 2
+# Megvarjuk, amig a Hyprland beallitja a kimeneteket, mielott feluleteket
+# hozunk letre: legyen legalabb egy monitor, es az elrendezes 300 ms-ig ne
+# valtozzon. Legfeljebb 5 masodpercig varunk; hyprctl vagy jq nelkul marad a
+# korabbi fix varakozas.
+wait_for_outputs() {
+  if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    sleep 2
+    return
+  fi
 
-export MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000'
-exec quickshell -p "$shell_dir/"
+  local previous="" current stable=0
+  for _ in $(seq 1 50); do
+    current=$(hyprctl monitors -j 2>/dev/null \
+      | jq -c '[.[] | [.name, .width, .height, .x, .y, .scale, .transform]]' 2>/dev/null || true)
+    if [[ -n $current && $current != "[]" && $current == "$previous" ]]; then
+      stable=$((stable + 1))
+      if ((stable >= 3)); then
+        return
+      fi
+    else
+      stable=0
+    fi
+    previous=$current
+    sleep 0.1
+  done
+}
+
+wait_for_outputs
+
+# Felugyelve fut: egy osszeomlas (kulonosen zarolt kepernyonel) utan a
+# shell-run ujrainditja.
+exec "$shell_dir/scripts/shell-run"

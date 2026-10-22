@@ -44,6 +44,7 @@ const CONTRACT: &[(&str, &[&str])] = &[
     ("network", &["connect(ssid)", "disconnect(device)", "scan()", "setWifiEnabled(enabled)"]),
     ("privacy", &[]),
     ("removable", &["mount(path)", "powerOff(path)", "unmount(path)"]),
+    ("session", &["setLocked(locked)", "sleepReady()"]),
     ("sysstats", &[]),
     (
         "theme",
