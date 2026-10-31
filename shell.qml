@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 import "app" as App
@@ -86,6 +85,7 @@ ShellRoot {
     Core.ThemeStore {
         id: theme
         backend: shellRoot.shellBackend
+        shellDir: shellRoot.shellDir
     }
     readonly property var shellTheme: theme
 
@@ -106,6 +106,19 @@ ShellRoot {
 
     Core.WorkspaceController {
         id: workspaceController
+    }
+
+    // A Settings > Default apps-ban valasztott terminal; a launcher ezzel nyitja
+    // a terminalt es a Terminal=true alkalmazasokat.
+    Core.TerminalController {
+        id: terminalController
+        configHome: paths.configHome
+    }
+
+    Core.BrightnessController {
+        id: brightnessController
+        backend: shellRoot.shellBackend
+        onPercentChanged: shellRoot.showBrightnessOsd()
     }
 
     Core.AudioSummaryController {
@@ -144,6 +157,15 @@ ShellRoot {
 
     Core.MprisController {
         id: mprisController
+        shellDir: shellRoot.shellDir
+    }
+
+    // Mindig fut (masodpercenkent egy /proc-olvasas a backendben), hogy a
+    // dashboard CPU-grafikonja megnyitaskor mar teljes legyen.
+    MediaFeature.SystemStatsController {
+        id: systemStats
+        backend: shellRoot.shellBackend
+        active: true
     }
 
     Core.CavaController {
@@ -159,9 +181,72 @@ ShellRoot {
     onAudioVolumePercentChanged: showVolumeOsd()
     onAudioMutedChanged: showVolumeOsd()
 
+    // Az elso ertek (inditas, daemon-ujracsatlakozas) nem allitas: csak a
+    // mar ismert ertekhez kepesti valtozasra mutatjuk.
+    property int lastBrightness: -1
+
+    function showBrightnessOsd() {
+        var percent = brightnessController.percent
+        var previous = lastBrightness
+        lastBrightness = percent
+        if (!audioOsdReady || percent < 0 || previous < 0 || percent === previous) return
+        volumeOsd.showBrightness(percent, focusedScreen())
+    }
+
     function showVolumeOsd() {
         if (!audioOsdReady) return
-        volumeOsd.showVolume(audioVolumePercent, audioMuted, focusedScreen())
+        volumeOsd.showVolume(audioVolumePercent, audioMuted, focusedScreen(), audioSummaryController.deviceName)
+    }
+
+    // A zene sajat (MPRIS) hangereje kulon OSD-valtozatot kap, barhonnan
+    // allitjak (lejatszo, dashboard, Ctrl + hangerogomb). A billentyus lepes
+    // azonnal, a kert ertekkel jelez; a kivulrol jovo valtozast a jelentett
+    // ertekbol vesszuk. Lejatszovaltas utan egy masodpercig csak megjegyezzuk
+    // az erteket: ekkor toltodnek be a lejatszo tulajdonsagai, az nem allitas.
+    property real lastPlayerVolume: -1
+
+    onActivePlayerChanged: {
+        lastPlayerVolume = activePlayer && activePlayer.volumeSupported ? activePlayer.volume : -1
+        playerVolumeSettleTimer.restart()
+    }
+
+    Timer {
+        id: playerVolumeSettleTimer
+        interval: 1000
+    }
+
+    Connections {
+        target: mprisController
+
+        function onVolumeStepped(player, volume) {
+            shellRoot.lastPlayerVolume = volume
+            shellRoot.showPlayerVolumeOsd(player, volume)
+        }
+    }
+
+    Connections {
+        target: shellRoot.activePlayer
+
+        function onVolumeChanged() {
+            shellRoot.playerVolumeChanged()
+        }
+    }
+
+    function playerVolumeChanged() {
+        var player = activePlayer
+        if (!player || !player.volumeSupported) return
+        var volume = player.volume
+        // Nehany lejatszo valtozatlan hangerot is jelent; a sajat lepesunk
+        // visszaigazolasa is ide fut be.
+        if (lastPlayerVolume >= 0 && Math.abs(volume - lastPlayerVolume) < 0.005) return
+        lastPlayerVolume = volume
+        if (playerVolumeSettleTimer.running) return
+        showPlayerVolumeOsd(player, volume)
+    }
+
+    function showPlayerVolumeOsd(player, volume) {
+        if (!audioOsdReady) return
+        volumeOsd.showPlayerVolume(Math.round(Math.max(0, Math.min(1, volume)) * 100), player, focusedScreen())
     }
 
     Timer {
@@ -176,13 +261,10 @@ ShellRoot {
         onTriggered: shellRoot.showVolumeOsd()
     }
 
-    Process {
-        id: processLauncher
-    }
-
+    // Levalasztva indul: egy kozos Process-szel a gyors masodik kattintas
+    // elveszett volna, mert a futo peldanyt nem lehet ujrainditani.
     function launchBarCommand(command) {
-        processLauncher.command = command
-        processLauncher.running = true
+        Quickshell.execDetached(command)
     }
 
     function focusedScreen() {
@@ -218,8 +300,10 @@ ShellRoot {
             sourceComponent: Component {
                 SettingsFeature.SettingsWindow {
                     backend: shellRoot.shellBackend
+                    mpris: mprisController
                     barLayout: shellRoot.barLayoutState
                     theme: shellRoot.shellTheme
+                    terminal: terminalController
                     shellDir: shellRoot.shellDir
                     visible: settingsApp.opened
                     onClosed: settingsApp.opened = false
@@ -237,15 +321,18 @@ ShellRoot {
         popupComponent: Component {
             LauncherFeature.LauncherPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: appLauncher.screen
                 homeDir: shellRoot.homeDir
                 shellDir: shellRoot.shellDir
+                terminal: terminalController
             }
         }
     }
 
     ClipboardFeature.ClipboardController {
         id: clipboardStore
+        backend: shellRoot.shellBackend
     }
 
     App.LazyPopup {
@@ -253,6 +340,7 @@ ShellRoot {
         popupComponent: Component {
             ClipboardFeature.ClipboardPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 clipboardController: clipboardStore
                 screen: clipboardHistory.screen
             }
@@ -266,8 +354,10 @@ ShellRoot {
                 backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 wallpaperController: wallpaperStore
+                barHeight: shellRoot.barHeight
                 mode: themeSwitcher.mode
                 screen: themeSwitcher.screen
+                onModeRequested: (nextMode) => themeSwitcher.mode = nextMode
             }
         }
     }
@@ -277,6 +367,7 @@ ShellRoot {
         popupComponent: Component {
             AudioFeature.AudioPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: audioPopup.screen
             }
         }
@@ -288,6 +379,7 @@ ShellRoot {
         popupComponent: Component {
             ConnectivityFeature.ConnectivityPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 backend: shellRoot.shellBackend
                 statusController: networkStatusController
                 vpnCli: vpnController
@@ -303,6 +395,7 @@ ShellRoot {
         popupComponent: Component {
             PrivacyFeature.PrivacyPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 statusController: privacyController
                 screen: privacyPopup.screen
             }
@@ -314,6 +407,7 @@ ShellRoot {
         popupComponent: Component {
             BluetoothFeature.BluetoothPopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 statusController: bluetoothStatusController
                 screen: bluetoothPopup.screen
                 shellDir: shellRoot.shellDir
@@ -326,6 +420,7 @@ ShellRoot {
         popupComponent: Component {
             RemovableFeature.RemovableDevicePopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 deviceController: removableDeviceController
                 screen: removablePopup.screen
             }
@@ -343,6 +438,7 @@ ShellRoot {
         popupComponent: Component {
             AiFeature.AiUsagePopup {
                 theme: shellRoot.shellTheme
+                barHeight: shellRoot.barHeight
                 screen: aiPopup.screen
                 shellDir: shellRoot.shellDir
             }
@@ -362,6 +458,7 @@ ShellRoot {
     NotificationFeature.NotificationsHost {
         id: notifications
         theme: theme
+        barHeight: shellRoot.barHeight
     }
 
     OsdFeature.VolumeOsd {
@@ -399,6 +496,10 @@ ShellRoot {
         lockProvider: lockRoot
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
         screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
+        activePlayer: shellRoot.activePlayer
+        mediaController: mprisController
+        audioController: audioSummaryController
+        brightnessController: brightnessController
     }
 
     // AGRESSZÍV MONITOR SZŰRÉS (Csak egyedi nevű monitorok)
@@ -430,7 +531,7 @@ ShellRoot {
             occupiedWorkspaceIds: shellRoot.occupiedWorkspaceIds
             layoutController: shellRoot.barLayoutState
             activePlayer: shellRoot.activePlayer
-            hasMediaSource: Mpris.players.values.length > 0
+            hasMediaSource: mprisController.players.length > 0
             cavaValues: cavaController.values
             settingsOpen: settingsApp.opened
             centerPopupOpen: mediaPopup.opened && mediaPopup.screen === targetScreen
@@ -478,22 +579,28 @@ ShellRoot {
 
     App.LazyPopup {
         id: mediaPopup
-        property int currentTab: 0
-        property string selectedPlayerDbusName: ""
+        // A valasztott lejatszo a kozos MprisControllerben el: a sav jelzoje is
+        // ugyanazt mutatja, es a popup lebontasa utan is megmarad.
+        property alias selectedPlayerDbusName: mprisController.pinnedDbusName
+        // Az IPC kerhet kinagyitott kartyat ("calendar" / "weather"); csak az
+        // adott megnyitasra szol, zaraskor torlodik.
+        property string initialCard: ""
+        onOpenedChanged: if (!opened) initialCard = ""
         popupComponent: Component {
             MediaFeature.MediaPopup {
+                stats: systemStats
+                players: mprisController.players
+                initialCard: mediaPopup.initialCard
                 backend: shellRoot.shellBackend
                 theme: shellRoot.shellTheme
                 screen: mediaPopup.screen
-                currentTab: mediaPopup.currentTab
                 selectedPlayerDbusName: mediaPopup.selectedPlayerDbusName
                 barHeight: shellRoot.barHeight
                 activePlayer: shellRoot.activePlayer
-                cavaValues: cavaController.values
+                cavaValues: cavaController.spectrum
                 calendarNow: shellRoot.calendarNow
                 monthNames: shellRoot.monthNames
                 dayNames: shellRoot.dayNames
-                onCurrentTabChanged: mediaPopup.currentTab = currentTab
                 onSelectedPlayerDbusNameChanged: mediaPopup.selectedPlayerDbusName = selectedPlayerDbusName
             }
         }

@@ -52,6 +52,12 @@ case ${1:-list} in
         [ -n "$requested" ] || exit 2
         has_monitor "$requested" || exit 2
         printf '%s\n' "$requested" > "$config"
+        # A greeter ugyanazon a kijelzon kerje a jelszot. A fajlt a
+        # greeter-install hozza letre es chownolja; nelkule nincs greeter.
+        greeter_screen=/var/lib/vellum-greeter/input-screen
+        if [ -w "$greeter_screen" ]; then
+            printf '%s\n' "$requested" > "$greeter_screen"
+        fi
         ;;
     *)
         exit 2

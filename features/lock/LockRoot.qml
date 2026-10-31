@@ -108,6 +108,28 @@ ShellRoot {
         introTimer.restart()
     }
 
+    // Zarolas kivulrol jovo okbol (alvas, lock-session, tetlenseg). A sima
+    // `lock()` a feloldasi animacio alatt nem csinal semmit; itt viszont a
+    // feloldast meg kell szakitani, kulonben a gep zaratlanul aludna el, vagy
+    // a kert zarolas elveszne.
+    function lockNow() {
+        if (closing && sessionActive) {
+            // A zar meg all, csak a feloldasi animacio fut: visszaforditjuk.
+            thawTimer.stop()
+            unlockAnimationTimer.stop()
+            closing = false
+            thawing = false
+            authentication.reset()
+            return
+        }
+        if (closing) {
+            // A zar mar elengedve, csak a kilepo utem van hatra: ujrakezdjuk.
+            unlockExitTimer.stop()
+            closing = false
+        }
+        lock()
+    }
+
     function suspend() {
         if (closing || suspendPending || suspendProcess.running) return
         if (!sessionActive) lock()
@@ -121,8 +143,93 @@ ShellRoot {
         suspendProcess.running = true
     }
 
+    // Alvas elotti zarolas. Ha nem mi altatunk (fedel, `systemctl suspend`,
+    // idle-demon), a backend `session` topicja szol, mikozben egy logind
+    // inhibitorral visszatartja az alvast. Zarolunk, es amint a compositor
+    // visszaigazolta a feluletet, a `sleepReady` elengedi.
+    property bool sleepLockPending: false
+    readonly property bool systemSleeping: backend && backend.topics.session
+        ? backend.topics.session.sleeping === true
+        : false
+
+    onSystemSleepingChanged: {
+        if (!systemSleeping) {
+            sleepLockPending = false
+            return
+        }
+        lockNow()
+        sleepLockPending = true
+        releaseSleepWhenSecure()
+    }
+
+    // `loginctl lock-session` (es az erre epulo idle-demonok, pl. hypridle).
+    // A backend szamlalja a kereseket; a novekedesre zarolunk. Az elso ertek
+    // (es egy daemon-ujrainditas utani) csak alapvonal.
+    readonly property int sessionLockRequests: backend && backend.topics.session
+        ? (backend.topics.session.lockRequests || 0)
+        : -1
+    property int seenLockRequests: -1
+
+    onSessionLockRequestsChanged: {
+        if (sessionLockRequests >= 0 && seenLockRequests >= 0 && sessionLockRequests > seenLockRequests)
+            lockNow()
+        seenLockRequests = sessionLockRequests
+    }
+
+    // Tetlenseg utani zarolas. Az ido percben a `lock-idle-minutes` fajlban (a
+    // Settings System oldala irja); 0 vagy hianyzo fajl = kikapcsolva. Az idle
+    // inhibitorokat (pl. teljes kepernyos video) tiszteletben tartjuk.
+    property int idleLockMinutes: 0
+
+    property FileView idleSetting: FileView {
+        path: settingsController.shellDir + "/lock-idle-minutes"
+        watchChanges: true
+        printErrors: false
+        onLoaded: root.idleLockMinutes = Math.max(0, parseInt(root.idleSetting.text().trim(), 10) || 0)
+        onFileChanged: root.idleSetting.reload()
+        onLoadFailed: root.idleLockMinutes = 0
+    }
+
+    IdleMonitor {
+        enabled: root.idleLockMinutes > 0 && !root.sessionActive
+        timeout: root.idleLockMinutes * 60
+        respectInhibitors: true
+        onIsIdleChanged: if (isIdle) root.lockNow()
+    }
+
+    function releaseSleepWhenSecure() {
+        if (!sleepLockPending || !sessionLock.secure) return
+        sleepLockPending = false
+        if (backend) backend.call("session", "sleepReady", {})
+    }
+
+    // Ha a shell zarolt allapotban hal el, a felugyelo (`scripts/shell-run`)
+    // ujrainditja, es ez a jelolo mondja meg az uj peldanynak, hogy azonnal
+    // zaroljon. A jelolo a Hyprland-peldany azonositojat tartalmazza: ha maga a
+    // compositor halt el, es a felhasznalo ujra bejelentkezett, a regi jelolo
+    // nem zarolja le az uj munkamenetet.
+    readonly property string lockMarkerPath: Quickshell.env("XDG_RUNTIME_DIR")
+        ? Quickshell.env("XDG_RUNTIME_DIR") + "/vellum-shell-locked"
+        : ""
+    readonly property string lockMarkerValue: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") || "locked"
+
+    property FileView lockMarker: FileView {
+        path: root.lockMarkerPath
+        printErrors: false
+        onLoaded: if (root.lockMarker.text().trim() === root.lockMarkerValue) root.lock()
+    }
+
+    onSessionActiveChanged: {
+        if (lockMarkerPath !== "") lockMarker.setText(sessionActive ? lockMarkerValue : "")
+        // A logind `LockedHint`; egy regebbi daemon hibajat szandekosan elnyeljuk.
+        if (backend) backend.call("session", "setLocked", { "locked": sessionActive }, function() {})
+    }
+
     Component.onCompleted: {
         if (lockOnStartup) lock()
+        // Az onallo LockShell.qml mar zarolva indul; az alvasi jelzes csak a
+        // beagyazott, tartosan futo lockot erdekli.
+        if (backend) backend.subscribe("session")
     }
 
     Loader {
@@ -179,15 +286,15 @@ ShellRoot {
         }
     }
 
-    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = panel,
-    // 4 = beviteli mezo es allapotsor.
+    // Lepcsozetes megjelenes: 1 = a hatter fagy be, 2 = ora, 3 = felhasznalo
+    // es beviteli mezo.
     Timer {
         id: revealTimer
         interval: 110
         repeat: true
         onTriggered: {
             root.revealStep += 1
-            if (root.revealStep >= 4) revealTimer.stop()
+            if (root.revealStep >= 3) revealTimer.stop()
         }
     }
 
@@ -226,6 +333,7 @@ ShellRoot {
 
         onSecureChanged: {
             if (secure) root.suspendWhenSecure()
+            if (secure) root.releaseSleepWhenSecure()
             if (root.closing && !secure) unlockExitTimer.restart()
         }
 
@@ -247,7 +355,7 @@ ShellRoot {
                 anchors.fill: parent
                 active: lockSurface.isInputScreen
 
-                sourceComponent: LockUi.LockCard {
+                sourceComponent: LockUi.InputLockView {
                     lockRoot: root
                     screenName: lockSurface.surfaceName
                 }

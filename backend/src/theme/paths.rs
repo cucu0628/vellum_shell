@@ -48,6 +48,14 @@ pub fn config_dir() -> PathBuf {
     }
 }
 
+/// XDG allapotmappa (pl. a vagolap-elozmeny helye).
+pub fn state_dir() -> PathBuf {
+    match std::env::var_os("XDG_STATE_HOME") {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir),
+        _ => home().join(".local/state"),
+    }
+}
+
 /// XDG adatmappa. A Neovim `site` konyvtara ide esik.
 pub fn data_dir() -> PathBuf {
     match std::env::var_os("XDG_DATA_HOME") {

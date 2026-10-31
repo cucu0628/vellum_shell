@@ -25,18 +25,28 @@ terminal helpers.
   appearance, screenshot) and emoji at once, and evaluates anything that looks
   like a maths expression.
 - Launcher project mode (`>`) for directories under `~/Projects`.
-- Terminal desktop entries (`Terminal=true`, such as Neovim or btop) open in a
-  kitty window instead of being started without a TTY.
+- Terminal desktop entries (`Terminal=true`, such as Neovim or btop) open in the
+  default terminal instead of being started without a TTY. Settings > Default
+  apps picks it from the installed `TerminalEmulator` entries and stores it as
+  the first line of `~/.config/xdg-terminals.list` (the xdg-terminal-exec list);
+  without one, Kitty is used. GLib launches (`xdg-open`, file managers) only read
+  that list through `xdg-terminal-exec`; without it they fall back to their own
+  order, which skips Kitty and picks e.g. Konsole. The floating helpers (btop, installers, About)
+  stay on Kitty.
 - Clipboard history with text and image previews, activation, and deletion.
 - Notification server with toasts, history, actions, unread state, and DND.
+  History and DND survive a shell restart (kept in `$XDG_RUNTIME_DIR`, so
+  they are gone after logging out); restored entries have no actions.
 - Notification center grouping per application, with collapsible groups,
   per-group unread counts, and per-group clearing.
-- Media dashboard with playback, weather, calendar, and system statistics.
+- Media dashboard: an album-art player above a compact calendar, weather, and system statistics row.
+- Google Calendar events in the calendar card and its expanded view, after a
+  one-click sign-in on the Settings Calendar page (read-only access).
 - PipeWire audio mixer, NetworkManager controls, volume OSD, and Polkit agent.
 - Removable-device popup with mount, unmount, open, and safe power-off actions.
-- Full-screen Appearance Studio for matching shell themes and wallpapers,
-  including optional wallpaper-derived palettes. The whole screen is the preview:
-  selections apply live while you browse, and are written out once you settle.
+- Full-screen wallpaper and theme pickers in a skewed carousel, including an
+  optional wallpaper-derived palette. Themes preview live on the running shell
+  and are written out once you settle.
 - Screenshot modes for smart selection, windows, workspaces, and regions.
 - Multi-monitor Wayland lock screen with PAM authentication.
 - Settings application in a real resizable window, with Hyprland display
@@ -75,7 +85,6 @@ require the corresponding command:
 
 | Feature | Commands |
 | --- | --- |
-| Clipboard | `cliphist`, `wl-paste`, `wl-copy` |
 | Launcher calculator | `qalc` |
 | Media position control | `gdbus` |
 | Audio control panel | `pavucontrol` |
@@ -83,12 +92,13 @@ require the corresponding command:
 | Battery status | UPower daemon (optional) |
 | AI usage panel | `codex` and/or `claude` CLI with an active subscription login |
 | Weather | Internet access to Open-Meteo (the backend does the request) |
-| Screenshot capture | `grim`, `slurp`, `wayfreeze`, `magick`, `hyprctl`, `jq` |
-| Screenshot extras | `satty`, `wl-copy`, `notify-send`, `xdg-user-dir` |
+| Google Calendar | A browser for sign-in and a one-time Desktop OAuth client from Google Cloud Console |
+| Screenshot capture | `grim`, `slurp`, `magick`, `hyprctl`, `jq`; the selection freezes the screen with `wayfreeze` or, failing that, `hyprpicker`, and still works without either |
+| Screenshot extras | `snip` (optional editor), `wl-copy`, `notify-send`, `xdg-user-dir` |
 | Interactive utility scripts | `fzf`, Kitty |
 | Package management | `pacman` plus `paru`/`yay` on Arch; `dnf` plus its COPR plugin on Fedora |
 | Power profiles | `powerprofilesctl` or a compatible PPD D-Bus service |
-| Settings default applications | `xdg-mime` from `xdg-utils` |
+| Settings default applications | `xdg-mime` from `xdg-utils`; `xdg-terminal-exec` so GLib apps (`xdg-open`, file managers) honour the default terminal |
 | Settings user services | A reachable systemd user manager |
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
 | Removable devices | `util-linux`, `udisks2`, `xdg-utils` |
@@ -103,7 +113,7 @@ introduced in Hyprland 0.55 (`hl.config(...)`, `hl.bind(...)`, and `hl.dsp.*`).
 Clone the repository to the path expected by the shell:
 
 ```bash
-git clone https://git.asked.hu/asked/qs.git \
+git clone https://github.com/cucu0628/vellum_shell.git \
   "$HOME/.config/quickshell/vellum_shell"
 ```
 
@@ -130,10 +140,10 @@ also reports what it will *not* do: if you already have your own
 versions are skipped, so the shell would come up without its key bindings. The
 notice is repeated at the end of the run.
 
-To install and activate the bundled SDDM theme as well:
+To install the Vellum login screen and make greetd the display manager as well:
 
 ```bash
-./setup.sh --with-sddm
+./setup.sh --with-greeter
 ```
 
 Use `./setup.sh --with-zen` to modify an existing Zen Browser profile and add
@@ -147,7 +157,11 @@ cp your-wallpaper.png "$HOME/Pictures/wallpapers/"
 ```
 
 The setup installs `~/.config/hypr/autostart.lua`. It starts the shell
-immediately in a running Hyprland session and automatically on later sessions.
+immediately in a running Hyprland session and automatically on later sessions. It
+also starts `nm-applet`: the shell's network panel joins Wi-Fi networks itself,
+but NetworkManager still needs a secret agent to ask for passwords it starts on
+its own (enterprise Wi-Fi, VPN, a changed key), so its tray icon appears next
+to the bar's own network indicator.
 
 Restart an already running instance with:
 
@@ -183,7 +197,7 @@ wallpapers, and your screenshots.
 ```bash
 scripts/uninstall --dry-run     # show what would be removed
 scripts/uninstall               # remove it
-scripts/uninstall --with-sddm --purge-state
+scripts/uninstall --with-greeter --purge-state
 ```
 
 Config files you had modified yourself (your own `bindings.lua`, a `colors.lua`
@@ -212,8 +226,9 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `style` | `theme`, `wallpaper`, `close` |
 | `power` | `toggle`, `open`, `close` (alias of `settings`) |
 | `notifications` | `toggle`, `dnd`, `close`, `clear`, `grouping`, `expand`, `collapse` |
-| `audio` | `toggle`, `open`, `close` |
-| `media` | `toggle`, `open`, `overview`, `player`, `weather`, `close` |
+| `audio` | `toggle`, `open`, `close`, `volumeUp`, `volumeDown` (5% steps), `mute`, `micMute` |
+| `brightness` | `up`, `down` (5% steps on the built-in display; no-op without a backlight) |
+| `media` | `toggle`, `open`, `close`, `calendar`, `weather` (open with that card expanded), `playPause`, `next`, `previous`, `volumeUp`, `volumeDown` (the active player's own volume); `overview` and `player` are kept as aliases of `open` |
 | `network` | `toggle`, `open`, `close` |
 | `bluetooth` | `toggle`, `open`, `close` |
 | `vpn` | `toggle`, `open`, `close`, `connect`, `disconnect`, `app` |
@@ -238,6 +253,15 @@ hl.bind("SUPER + N", hl.dsp.exec_cmd(shell .. " notifications toggle"))
 hl.bind("SUPER + P", hl.dsp.exec_cmd(shell .. " settings toggle"))
 ```
 
+The same file binds `SUPER + SHIFT + L` to the lock screen, `PRINT` and
+`SHIFT + PRINT` to screenshots, and the media, volume and brightness keys. The
+volume keys call `wpctl` directly (capped at 100%) and the brightness keys call
+`vellum call brightness step`, so both keep working while the shell restarts;
+the shell shows the OSD from the change itself. The play, pause, next and
+previous keys go to the shell's active player, so `playerctl` is not needed;
+`CTRL` with the volume keys steps that player's own volume. All of them work on
+the lock screen.
+
 ### Lock screen
 
 The lock screen is hosted by the main shell and activated over IPC:
@@ -249,9 +273,10 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call lock lock
 It creates a secure `WlSessionLock` surface on every monitor. Locking blurs the
 current desktop wallpaper behind a themed scrim instead of cutting to black, so
 the transition stays continuous in both directions; without a wallpaper the
-shell palette and the ensō watermark stand in. One monitor shows the clock and
-the password card, the others use an ambient view that echoes the typed
-characters. Select the input monitor on the Settings app's System page, or
+shell palette and the logo watermark stand in. Every monitor sets a large serif
+clock in the lower-left corner over a palette-tinted gradient; the input monitor
+adds the user name and password field beneath it, the others echo the typed
+characters and name the input monitor. Select the input monitor on the Settings app's System page, or
 directly:
 
 ```bash
@@ -261,87 +286,115 @@ directly:
 
 Authentication uses the dedicated PAM service named `vellum-shell`. The setup
 installs `/etc/pam.d/vellum-shell`; no external lock-screen package is used.
+When that file is missing (for example after a manual install without `sudo`),
+the lock screen falls back to the system `login` service instead of refusing
+every password, so a locked session can always be unlocked.
 
-### Login screen (SDDM)
+The screen also locks before the machine sleeps when something else suspends
+it: closing the lid, `systemctl suspend`, or an idle daemon. While the shell
+runs, the backend holds a logind delay inhibitor, locks on `PrepareForSleep`,
+and lets the suspend continue once the compositor has confirmed the lock
+surface, or after 4.5 seconds if the shell does not answer. Without the
+daemon, only `lock suspend` locks first.
 
-`sddm/vellum-ink/` is an SDDM greeter theme in the same visual language as the
-lock screen and on the same palette, with its own copies of the components under
-`sddm/vellum-ink/Ink*.qml`. It adds the greeter-only controls: user picker,
-session picker, keyboard layout, and the power actions.
+`loginctl lock-session` locks the Vellum lock screen too, so an idle daemon
+such as hypridle can use `lock_cmd = loginctl lock-session`. The shell reports
+its state to logind (`LockedHint`). Without an idle daemon, Settings → System →
+**Lock after inactivity** locks the screen after 1–30 minutes without input
+(off by default); fullscreen video and other idle inhibitors keep it awake.
 
-The greeter cannot read the wallpaper from `$HOME` (that directory is normally
-`0700` and the greeter runs as `sddm`), so the theme engine writes a downscaled
-copy next to the theme as `background.jpg` and points `theme.conf` at it. The
-install chowns that file to you, the same way it does with `theme.conf`, so
-later theme changes refresh the greeter background without root. Re-run the
-install once after updating the theme so the file exists:
+If the shell crashes while the screen is locked, `scripts/shell-run` (which
+`shell-start` and `theme-refresh` use) restarts it, and the new instance locks
+again straight away. `vellum_tuning.lua` sets Hyprland's
+`misc.allow_session_lock_restore` so that the restarted shell can take the lock
+back instead of leaving the session stuck on Hyprland's fallback screen. The
+supervisor gives up after five crashes within a minute.
+
+### Login screen (greetd)
+
+The login screen is the lock screen's own QML running as a greetd greeter:
+`GreeterShell.qml` → `features/lock/GreeterRoot.qml`. It reuses the lock
+background, clock, password field and ambient view, and adds the greeter-only
+controls: user picker, session picker (Wayland sessions from
+`/usr/share/wayland-sessions`), keyboard layout, and sleep / restart / shut down.
+No X server is started; there is no SDDM involved.
+
+greetd runs a minimal Hyprland as the greeter user with
+`greeter/hyprland.lua`, which starts Quickshell and exits the compositor when
+the greeter quits (greetd only starts the session after the greeter is gone).
+Because it is the same compositor as your desktop, connector names match and
+the greeter gets the real multi-monitor layout:
+
+- every output gets a layer-shell surface; the password field is on the
+  `lockscreen-monitor` output and the others show the ambient view, which
+  mirrors the typed characters;
+- only the input output takes the keyboard, so typing always lands there;
+- monitor modes, positions, scale, rotation and the keyboard layout are copied
+  from your live session.
 
 ```bash
-~/.config/quickshell/vellum_shell/scripts/sddm-install --preview            # test run, no root
-sudo ~/.config/quickshell/vellum_shell/scripts/sddm-install --default --layout
+~/.config/quickshell/vellum_shell/scripts/greeter-install --preview   # in your session, no root; Esc quits
+~/.config/quickshell/vellum_shell/scripts/greeter-install --enable    # install and make greetd the display manager
 ```
 
-The backend's `sddm` theme generator regenerates `theme.conf` from the active
-shell palette on every theme switch, so the greeter follows the selected theme
-automatically. It writes both the repository copy and the installed one at
-`/usr/share/sddm/themes/vellum-ink/theme.conf`, which `sddm-install` chowns to the
-installing user for exactly that purpose. Everything else in the installed
-theme stays root-owned; re-run `sudo sddm-install` after changing the QML.
+Run it as your user; it asks for `sudo` itself. It copies the QML to
+`/usr/share/vellum-greeter/` (plus the Symbols Nerd Font, because the greeter
+user cannot read `~/.local/share/fonts`), creates `/var/lib/vellum-greeter/`
+(state) and `/var/cache/vellum-greeter/` (the greeter's own cache and the
+remembered user/session), and with `--enable` writes `/etc/greetd/config.toml`
+(the previous file is kept as `config.toml.before-vellum-*`), disables other
+display managers and enables `greetd.service`. The switch takes effect at the
+next boot or logout. Re-run it after changing the greeter QML.
 
-SDDM must be the active display manager. Arch installs that use
-`plasma-login-manager` (`plasmalogin.service`) cannot use SDDM themes at all:
+The greeter cannot read `$HOME`, so everything it needs lives in
+`/var/lib/vellum-greeter/`. The directory is root-owned and its files are
+chowned to you, so the backend refreshes them without root:
 
-```bash
-sudo systemctl disable plasmalogin.service
-sudo systemctl enable sddm.service
-```
+| File | Written by |
+| --- | --- |
+| `theme.json`, `background.jpg` | the `greeter` theme generator, on every theme or wallpaper change |
+| `layout.conf` | the `hypr` module, at daemon start and after every confirmed display change |
+| `input-screen` | `scripts/lockscreen-monitor set` |
 
-### Greeter monitors
+`layout.conf` is data, not Lua: the root-owned `greeter/hyprland.lua` parses it
+line by line and drops anything that does not match the expected pattern, so a
+user-writable file cannot run code in the greeter. Outputs that are unplugged
+when the layout is captured keep their previous line.
 
-The greeter opens one window per output and the theme decides which one gets
-the login card; the rest show the ambient view. The choice comes from
-`inputScreen` in `theme.conf`, which the generator fills in from
-`lockscreen-monitor`, so the greeter and the lock screen use the same monitor.
-An empty or unplugged name falls back to the primary screen, so exactly one
-window always shows the card.
-
-Do not rely on SDDM's own primary-screen notion for this: under the Wayland
-greeter it follows the compositor's output order. Keyboard focus does follow
-it, though, and that is not something the theme can move, so the ambient view
-also accepts typing and Enter — the password can be entered from either
-monitor.
-
-For X11 greeters only (`DisplayServer=x11`), SDDM starts its own X server that
-knows nothing about the compositor's layout, so outputs can land in the wrong
-order or position. `scripts/sddm-layout` reads the live Hyprland layout and
-writes an `Xsetup` that replays it through `xrandr`; `sddm-install --layout`
-installs it as `/etc/sddm/Xsetup` behind a `[X11] DisplayCommand` drop-in.
-Arch's `zz-wayland.conf` default (`DisplayServer=wayland`) makes this a no-op.
-
-After updating the layout generator, regenerate `Xsetup` as your desktop user
-with `scripts/sddm-layout`, then reinstall it with `sudo scripts/sddm-install
---layout`. Updating the checkout does not replace `/etc/sddm/Xsetup`. The
-generator quotes monitor metadata as data before writing shell commands.
+PAM uses greetd's own `/etc/pam.d/greetd`. Signing in, the power actions and
+the multi-monitor layout need a real greetd boot to test; the preview never
+authenticates or powers anything off.
 
 ## Appearance
 
-The Appearance Studio reads wallpapers from `$HOME/Pictures/wallpapers` and
-themes from `themes/`. It is a dock at the bottom of the screen and nothing
-else — there is no mock interface, because your own desktop is the preview.
-Selecting recolours the running shell and swaps the real wallpaper in place, so
-the actual bar, the dock itself, and the wallpaper all show the candidate theme.
+The Appearance Studio is a full-screen overlay below the bar with two separate
+pickers that share one skewed carousel: **Wallpaper** reads images from
+`$HOME/Pictures/wallpapers`, **Theme** reads palettes from `themes/`. Each
+commits on its own — picking a wallpaper does not touch the theme, and picking
+a theme does not touch the wallpaper. The one exception is the dynamic theme:
+while it is active, a new wallpaper also re-derives the palette.
 
-Double-clicking the desktop wallpaper opens it, on the monitor you clicked.
+`style wallpaper` and `style theme` open the matching picker, and
+double-clicking the desktop wallpaper opens the wallpaper picker on the monitor
+you clicked. `Tab` switches between the two.
 
-`←`/`→` move through wallpapers, `↑`/`↓` through palettes, `D` jumps to the
-wallpaper-derived palette, `Space` collapses the dock to a thin edge, and the
-wheel steps through wallpapers.
+`←`/`→` (or `H`/`L`, or the wheel) move through the carousel and wrap at the
+ends, `Home`/`End` jump to the first and last card, and `Ctrl+F` or `/` filters
+wallpapers by name. Clicking a side card centres it; clicking the centred card
+or pressing `Enter` applies it. `Esc` or a click on empty space closes.
 
-Browsing touches nothing on disk: the shell recolours in process and the
-wallpaper swap is a texture change. `Enter` closes the dock and applies the
-theme everywhere — the state files plus every external application palette
-(GTK, kitty, btop, Neovim, icons, Zen, SDDM). `Esc` closes and restores what you
-started with.
+Each theme card is a small desktop drawn in that theme: a bar, a terminal
+whose sample code uses the theme's terminal colours, a type specimen with an
+accent button and switch, and the surface colours as paint bands. The centred
+card types its code in, and the dynamic theme's desktop is your current
+wallpaper. Behind the carousel, the focused theme's accent glows.
+
+Browsing wallpapers changes nothing. Browsing themes only recolours the running
+shell in process, so the bar above the overlay shows the candidate palette.
+`Enter` writes the choice out: a wallpaper goes to the state file and the login
+screen copy, a theme to the state files plus every external application palette
+(GTK, kitty, btop, Neovim, icons, Zen, login screen). Closing the theme picker
+any other way restores the palette you started with.
 
 ### State files
 
@@ -351,6 +404,14 @@ started with.
 | `current-wallpaper` | Absolute path to the active wallpaper |
 | `current-weather-location` | Location passed to Open-Meteo geocoding |
 | `lockscreen-monitor` | Preferred monitor for password input |
+| `lock-idle-minutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
+
+Clipboard history lives outside the repository, in
+`$XDG_STATE_HOME/vellum-shell/clipboard/` (`~/.local/state/...` by default):
+`index.json` describes the entries, `blobs/` holds the copied content and
+`thumbs/` the image previews. It keeps the latest 100 entries plus up to 25
+pinned ones, skips anything over 5 MB, and never stores content that a password
+manager marks as secret (`x-kde-passwordManagerHint`).
 
 Weather configuration uses the following precedence:
 
@@ -359,6 +420,54 @@ Weather configuration uses the following precedence:
 3. `Budapest`
 
 Set `WEATHER_COORDS=latitude,longitude` to bypass location geocoding.
+
+### Google Calendar
+
+Settings → Calendar connects a Google account. **Sign in with Google** opens the
+browser; after you approve read-only access, the events show up as dots in the
+calendar card, and the expanded calendar lists the selected day's events.
+Clicking an event opens it in Google Calendar. The Calendar page also chooses
+which of your calendars are shown.
+
+Google requires every desktop application to have its own OAuth client, so the
+first sign-in needs a one-time setup in
+[Google Cloud Console](https://console.cloud.google.com/auth/clients):
+
+1. Create a project and enable the **Google Calendar API**.
+2. In **Google Auth Platform**, fill in *Branding*, then publish the app under
+   *Audience* (**In production**). In *Testing* status Google expires the
+   sign-in after seven days. An unverified personal app shows a warning on the
+   consent screen; continue through *Advanced*.
+3. Under *Clients*, create a **Desktop app** client and paste its ID and
+   secret on the Settings Calendar page.
+
+The daemon signs in with the loopback-redirect and PKCE flow and requests only
+`calendar.readonly`. The refresh token is kept in the system keyring through
+the Secret Service API (GNOME Keyring or KWallet), which stores it encrypted.
+Signing in fails with a clear message when no keyring is running. The plain
+files hold nothing that grants access. They are created with `0600`
+permissions:
+
+| File | Contents |
+| --- | --- |
+| `$XDG_CONFIG_HOME/vellum-shell/google-oauth.json` | The OAuth client ID and secret, which identify the app but do not grant access to the account |
+| `$XDG_STATE_HOME/vellum-shell/calendar/google.json` | The account email and which calendars are shown |
+
+A token stored in that file by an earlier version moves to the keyring the
+first time it is used. Access tokens and events are kept only in memory.
+Events are synced every ten minutes while the panel or the settings page is
+open, and they cover two months back and a year ahead. **Sign out** revokes
+the token at Google and removes it from the keyring.
+
+A background sync never opens a password dialog. When the keyring is locked,
+the Calendar page shows **Unlock**, which asks for the keyring password once.
+To avoid this after every login, give the keyring the same password as your
+login. `pam_gnome_keyring` then unlocks it when you sign in.
+
+The client can also come from `VELLUM_GOOGLE_CLIENT_ID` and
+`VELLUM_GOOGLE_CLIENT_SECRET`, either in the daemon's environment or at build
+time, which bakes it into the binary. The downloaded `client_secret_*.json`
+file is accepted as `google-oauth.json` too.
 
 ### Themes
 
@@ -374,7 +483,8 @@ MUTED="#727169"
 ```
 
 Included palettes are Catppuccin Mocha, Dynamic Matugen, Gruvbox Material,
-Japanese Ink, Kanagawa Wave, Rose Pine, Sakura Blossom, and Tokyo Night.
+Japanese Ink, Kanagawa Wave, Monochrome, Rose Pine, Sakura Blossom, Tokyo Night,
+and Varnished Horizon.
 
 Dynamic mode derives a Material You palette from the wallpaper inside the
 backend, so no external tool is involved. A wallpaper with no usable hue keeps a
@@ -437,6 +547,7 @@ Add the relevant include or import to each application's configuration.
 vellum_shell/
 ├── shell.qml              Main shell entry point and composition
 ├── LockShell.qml          Standalone lock-screen compatibility entry point
+├── GreeterShell.qml       greetd login screen entry point (installed as shell.qml)
 ├── app/                   Popup lifecycle, coordination, and public IPC
 ├── core/                  Platform and shared state controllers
 ├── features/              Self-contained shell features and surfaces
@@ -444,11 +555,11 @@ vellum_shell/
 ├── backend/               Rust backend: theme engine and state daemon
 │   ├── src/modules/       One file per capability (theme, network, vpn, ...)
 │   ├── templates/         Theme output templates, editable without rebuilding
-│   └── tests/             Golden comparison against the previous bash output
+│   └── tests/             Golden output, IPC contract, and theme transaction tests
 ├── nvim/                  LazyVim specs: generated colorscheme and the key hints
 ├── systemd/               User service that starts the backend at login
 ├── scripts/               Interactive helpers and installers
-├── sddm/                  SDDM greeter theme matching the lock screen
+├── greeter/               Hyprland config for the greetd login screen
 ├── themes/                Declarative color palettes
 └── assets/                Static visual assets
 ```
@@ -469,7 +580,10 @@ per-tick `Process` calls. It listens on `$XDG_RUNTIME_DIR/vellum-shell.sock` and
 speaks newline-delimited JSON.
 
 The shell keeps working when the daemon is down: `core/Backend.qml` falls back to
-built-in defaults and reconnects with backoff, so nothing blocks or crashes.
+built-in defaults and reconnects with backoff, so nothing blocks or crashes. The
+palette is read from `current-theme` and the matching `theme.conf` until the
+daemon answers, so the shell still starts in your theme. A call that the daemon
+accepts but never answers fails with a `timeout` error after 60 seconds.
 
 ```bash
 scripts/backend-install        # build, install, and enable the user service
@@ -477,23 +591,30 @@ vellum ping                    # which binary and git revision is running
 vellum describe                # every topic and method the daemon offers
 vellum theme apply rose-pine   # works with or without the daemon running
 vellum watch network vpn       # live state on stdout
+vellum call clipboard copy '{"id":12}'   # put a history entry back on the clipboard
 ```
 
 `describe` is the contract: clients discover what exists instead of hardcoding
 it, which is what the Settings app is built on.
 
 Topics are lazy. A module's loop only runs while something is subscribed, so an
-idle daemon costs no CPU and about 7 MB of memory.
+idle daemon costs no CPU and about 7 MB of memory. The one exception is
+`clipboard`: history has to be recorded even while the shell is not looking, so
+the daemon keeps that module running from start-up.
 
 | Topic | Source | Replaces |
 | --- | --- | --- |
 | `theme` | `themes/*/theme.conf`, native Material You | 9 chained bash scripts, `matugen`, `jq` |
+| `clipboard` | Wayland `wlr-data-control`, history in `$XDG_STATE_HOME/vellum-shell/clipboard` | `cliphist`, two `wl-paste --watch` loops, ImageMagick thumbnails |
 | `network` | NetworkManager D-Bus for live state; bounded `nmcli` calls for Wi-Fi actions | QML-side `nmcli` and `ip -4 -j` polling |
 | `vpn` | NetworkManager D-Bus, `protonvpn` for details | `protonvpn status` on every tick |
 | `removable` | udisks2 D-Bus | `lsblk --json` every 2.5 s, `udisksctl` |
 | `privacy` | `/proc` scan for `/dev/video*` handles | resident `camera-usage` bash loop |
+| `session` | logind `PrepareForSleep` with a delay inhibitor, the session `Lock` signal, and `LockedHint` | — |
+| `brightness` | `/sys/class/backlight` change notifications; set through logind `SetBrightness` | `brightnessctl` |
 | `sysstats` | `/proc`, `statvfs` | `df -P /` |
 | `weather` | Open-Meteo | three `curl` calls per panel open |
+| `calendar` | Google Calendar API, OAuth sign-in through the browser | — |
 | `hypr` | `hyprctl`, `/sys/class/drm` EDID | hand-edited Hyprland config files |
 
 ### Hyprland settings
@@ -553,13 +674,21 @@ The same gates run in CI (`.github/workflows/checks.yml`). To run a single piece
 cargo fmt --manifest-path backend/Cargo.toml --check
 cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
-qmllint shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
 shellcheck setup.sh install.sh scripts/*
 python3 -B -m unittest discover -s tests -p 'test_*.py'
 node tests/notifications.js
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-  /usr/lib/qt6/bin/qmltestrunner -input tests/qml
+  /usr/lib/qt6/bin/qmltestrunner -import tests/qml/stubs -input tests/qml
 ```
+
+On Fedora the Qt tools live in `/usr/lib64/qt6/bin/` (or on `PATH` as
+`qmllint-qt6` and `qmltestrunner-qt6`); `scripts/check` finds either layout.
+`scripts/check rust`, `scripts/check qml`, and `scripts/check shell` run a
+single group, which is how CI calls it, with `VELLUM_CHECK_STRICT=1` so a
+missing tool fails the job instead of being skipped. Quickshell's own QML
+modules are compiled into the `quickshell` binary, so `tests/qml/stubs` stands
+in for the few types the tested components use.
 
 The security regressions use isolated Unix sockets, mocked monitor metadata,
 and offscreen Qt components. They do not register a notification server, run

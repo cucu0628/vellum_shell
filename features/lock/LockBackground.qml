@@ -19,6 +19,7 @@ Item {
     // addigra mar pontosan az asztali hatterkep legyen.
     readonly property int settleDuration: lockRoot.closing ? 340 : 560
     readonly property real ensoSize: Math.min(width, height) * 0.56
+    readonly property color paperColor: lockRoot.background
 
     readonly property string wallpaperSource: {
         var path = backgroundView.lockRoot.wallpaper
@@ -63,7 +64,10 @@ Item {
         visible: backgroundView.hasWallpaper
         autoPaddingEnabled: false
         blurEnabled: true
-        blurMax: 48
+        // 32 px: eleg ahhoz, hogy a kep csak hangulat legyen, de a formak
+        // megmaradnak. Nagyobb sugarnal a MultiEffect egyre kisebb szintekbol
+        // dolgozik, es azok racsa negyzetekkent latszik.
+        blurMax: 32
         // Zaraskor 0-rol indul, tehat az elso kocka meg pontosan az asztal.
         blur: backgroundView.frosted ? 1 : 0
         brightness: backgroundView.frosted ? -0.1 : 0
@@ -112,17 +116,39 @@ Item {
             }
         }
 
+        // A nezetek a bal also sarokba szedik az orat es a mezot: a bal oldalt
+        // egy temaszinu atmenet teszi olvashatova, a kep jobb fele szabad marad.
         Rectangle {
             anchors.fill: parent
 
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.22) }
-                GradientStop { position: 0.36; color: "transparent" }
-                GradientStop { position: 0.64; color: "transparent" }
-                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.22) }
+                GradientStop { position: 0.0; color: Qt.rgba(backgroundView.paperColor.r, backgroundView.paperColor.g, backgroundView.paperColor.b, 0.72) }
+                GradientStop { position: 0.55; color: Qt.rgba(backgroundView.paperColor.r, backgroundView.paperColor.g, backgroundView.paperColor.b, 0.12) }
+                GradientStop { position: 1.0; color: "transparent" }
             }
         }
+    }
+
+    // Szemcse. A homalyos, majdnem egyszinu feluleten a 8 bites szinek
+    // lepcsoi a MultiEffect belso racsat kovetik, es negyzetes konturkent
+    // latszanak. Egy szemmel alig eszreveheto zaj (par szintnyi, pixelenkent
+    // veletlen) feltori ezeket a konturokat -- ugyanaz a dithering, amit a
+    // videok is hasznalnak a savosodas ellen. A homallyal egyutt enged fel.
+    // Ha a kep hianyzik, egyszeruen nincs szemcse.
+    Image {
+        id: grain
+
+        anchors.fill: parent
+        // 128 px-es, elore generalt zaj (fekete/feher, 0-3-as alfa: 1-2 szint).
+        source: Qt.resolvedUrl("grain.png")
+        fillMode: Image.Tile
+        smooth: false
+        cache: true
+        visible: backgroundView.hasWallpaper
+        opacity: backgroundView.frosted ? 1 : 0
+
+        Behavior on opacity { NumberAnimation { duration: backgroundView.settleDuration; easing.type: Easing.InOutQuad } }
     }
 
     // Hibas jelszo: egyetlen halvany villanas az egesz lapon, minden monitoron.

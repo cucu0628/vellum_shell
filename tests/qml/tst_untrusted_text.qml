@@ -39,8 +39,8 @@ TestCase {
                 time: "12:00", actions: [{text: markup}]}
         })
         verify(row !== null)
-        verify(checkText(row, markup) >= 2)
-        verify(checkText(row, markup.toUpperCase()) >= 1)
+        // Alkalmazasnev, cim, szoveg es a muveletgomb felirata.
+        verify(checkText(row, markup) >= 4)
     }
 
     function test_clipboard_text_is_literal() {

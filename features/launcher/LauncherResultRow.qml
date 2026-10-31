@@ -1,5 +1,7 @@
 import QtQuick
 
+// Egy launcher-talalat: ikon, cim es alcim, jobb oldalt a tipus. A kijelolt
+// sor halvany alapot kap; akcentes csak a jobb oldali "Open ↵" jelzes.
 Rectangle {
     id: resultRow
 
@@ -33,39 +35,26 @@ Rectangle {
     signal hoverRequested(int index)
     signal activationRequested(int index)
 
-    height: 46
-    radius: 0
+    height: 44
+    radius: 8
     color: resultMouse.containsMouse || selected ? selectionColor : "transparent"
-    border.color: "transparent"
-    border.width: 0
-    scale: 1
 
-    Rectangle {
-        width: 2
-        height: parent.height
-        anchors.left: parent.left
-        color: resultRow.accentColor
-        opacity: resultRow.selected ? 1 : 0
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 120
-                easing.type: Easing.OutCubic
-            }
-
+    Behavior on color {
+        ColorAnimation {
+            duration: 110
         }
 
     }
 
     Row {
         anchors.fill: parent
-        anchors.leftMargin: 12
+        anchors.leftMargin: 8
         anchors.rightMargin: 12
         spacing: 12
 
         Item {
-            width: 30
-            height: 30
+            width: 28
+            height: 28
             anchors.verticalCenter: parent.verticalCenter
 
             Image {
@@ -75,7 +64,7 @@ Rectangle {
                 source: resultRow.isApp ? resultRow.appIconSource : ""
                 asynchronous: true
                 mipmap: true
-                sourceSize: Qt.size(28, 28)
+                sourceSize: Qt.size(56, 56)
                 fillMode: Image.PreserveAspectFit
                 visible: source !== "" && status === Image.Ready
             }
@@ -84,8 +73,8 @@ Rectangle {
                 anchors.centerIn: parent
                 text: resultRow.glyph
                 font.family: resultRow.isEmoji ? "sans-serif" : "Symbols Nerd Font Mono"
-                font.pixelSize: resultRow.isEmoji ? 20 : 17
-                color: resultRow.selected ? resultRow.accentColor : resultRow.foregroundColor
+                font.pixelSize: resultRow.isEmoji ? 19 : 16
+                color: resultRow.selected ? resultRow.foregroundColor : resultRow.mutedColor
                 visible: !resultRow.isApp
             }
 
@@ -93,50 +82,70 @@ Rectangle {
                 anchors.centerIn: parent
                 text: resultRow.appFallbackIcon
                 font.family: "sans-serif"
-                font.pixelSize: 16
-                font.bold: true
-                color: resultRow.selected ? resultRow.accentColor : resultRow.foregroundColor
+                font.pixelSize: 15
+                font.weight: Font.DemiBold
+                color: resultRow.selected ? resultRow.foregroundColor : resultRow.mutedColor
                 visible: resultRow.isApp && (appIcon.source === "" || appIcon.status !== Image.Ready)
             }
 
         }
 
         Column {
-            width: parent.width - 140
-            spacing: 2
+            width: parent.width - x - trailing.width - parent.spacing
+            spacing: 1
             anchors.verticalCenter: parent.verticalCenter
 
             Text {
                 text: resultRow.title
-                font.pixelSize: 14
-                font.weight: Font.DemiBold
-                color: resultRow.selected ? resultRow.accentColor : resultRow.foregroundColor
+                textFormat: Text.PlainText
+                font.pixelSize: 13
+                font.weight: Font.Medium
+                color: resultRow.foregroundColor
                 elide: Text.ElideRight
+                maximumLineCount: 1
                 width: parent.width
             }
 
             Text {
+                visible: text !== ""
                 text: resultRow.subtitle
-                font.pixelSize: 11
+                textFormat: Text.PlainText
+                font.pixelSize: 10
                 color: resultRow.mutedColor
-                opacity: resultRow.selected ? 0.9 : 1
                 elide: Text.ElideRight
+                maximumLineCount: 1
                 width: parent.width
             }
 
         }
 
-        Text {
-            width: 86
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            text: resultRow.pendingConfirm ? "AGAIN  ↵" : (resultRow.selected ? "OPEN  ↵" : resultRow.kindLabel)
-            color: resultRow.selected || resultRow.pendingConfirm ? resultRow.accentColor : resultRow.mutedColor
-            font.bold: resultRow.pendingConfirm
-            font.family: "monospace"
-            font.pixelSize: 8
-            font.letterSpacing: resultRow.selected ? 0 : 1.2
-            opacity: resultRow.selected || resultRow.pendingConfirm ? 1 : 0.65
+        Item {
+            id: trailing
+
+            width: 64
+            height: parent.height
+
+            Text {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !resultRow.selected && !resultRow.pendingConfirm
+                text: resultRow.kindLabel
+                color: resultRow.mutedColor
+                opacity: 0.7
+                font.pixelSize: 9
+                font.letterSpacing: 1
+            }
+
+            Text {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                visible: resultRow.selected || resultRow.pendingConfirm
+                text: resultRow.pendingConfirm ? qsTr("Again ↵") : qsTr("Open ↵")
+                color: resultRow.accentColor
+                font.pixelSize: 11
+                font.weight: resultRow.pendingConfirm ? Font.DemiBold : Font.Normal
+            }
+
         }
 
     }
@@ -153,13 +162,6 @@ Rectangle {
 
         }
         onClicked: resultRow.activationRequested(resultRow.resultIndex)
-    }
-
-    Behavior on color {
-        ColorAnimation {
-            duration: 110
-        }
-
     }
 
 }

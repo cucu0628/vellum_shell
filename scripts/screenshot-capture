@@ -2,15 +2,27 @@
 
 set -u
 
-# A Fedora telepito a disztribucioban nem csomagolt wayfreeze/satty binarisokat
-# ide teszi. A grafikus munkamenet PATH-ja nem minden bejelentkezesnel tartalmazza.
+# A Fedora telepito a disztribucioban nem csomagolt wayfreeze binarist ide teszi,
+# es a Snip kepszerkeszto is itt van. A grafikus munkamenet PATH-ja nem minden
+# bejelentkezesnel tartalmazza.
+#
+# A kijeloles alatti kepfagyasztas nem kotelezo: wayfreeze, ha van; kulonben
+# hyprpicker (a Hyprland sajat eszkoze, a hyprshot is igy fagyaszt); ha egyik
+# sincs, fagyasztas nelkul megy. A kepet mindharom esetben a kijeloles ELOTT
+# vesszuk, es abbol vagjuk ki a kijelolt reszt, igy az eredmeny ugyanaz.
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 
 mode=${1:-smart}
 
+# A slurp, ha a bemenete nem terminal, elore megadott teglalapokat var onnan, es
+# addig meg sem jelenik. A shell Processe nyitott, de soha le nem zart csovet ad
+# bemenetnek, igy a kijeloles orokre beragadt (es vele minden tovabbi Print).
+# A smart mod a sajat ablakdobozait kulon csovon adja at, arra ez nem hat.
+exec </dev/null
+
 missing=""
-for command in grim slurp wayfreeze magick hyprctl jq; do
+for command in grim slurp magick hyprctl jq; do
     if ! command -v "$command" >/dev/null 2>&1; then
         missing="$missing $command"
     fi
@@ -49,22 +61,33 @@ prepare_frozen_snapshot() {
     canvas_x=$(printf '%s' "$monitors" | jq '[.[].x] | min')
     canvas_y=$(printf '%s' "$monitors" | jq '[.[].y] | min')
 
-    freeze_ready=$(mktemp)
-    rm -f "$freeze_ready"
-    wayfreeze --hide-cursor --after-freeze-cmd "touch '$freeze_ready'" --after-freeze-timeout 0 &
-    freeze_pid=$!
+    if command -v wayfreeze >/dev/null 2>&1; then
+        freeze_ready=$(mktemp)
+        rm -f "$freeze_ready"
+        wayfreeze --hide-cursor --after-freeze-cmd "touch '$freeze_ready'" --after-freeze-timeout 0 &
+        freeze_pid=$!
 
-    attempts=0
-    while [ ! -e "$freeze_ready" ]; do
-        if ! kill -0 "$freeze_pid" 2>/dev/null || [ "$attempts" -ge 200 ]; then
-            notify-send -u critical "Screenshot failed" "The screen freezer did not become ready."
-            exit 1
+        attempts=0
+        while [ ! -e "$freeze_ready" ]; do
+            if ! kill -0 "$freeze_pid" 2>/dev/null || [ "$attempts" -ge 200 ]; then
+                notify-send -u critical "Screenshot failed" "The screen freezer did not become ready."
+                exit 1
+            fi
+            attempts=$((attempts + 1))
+            sleep 0.01
+        done
+        rm -f "$freeze_ready"
+        freeze_ready=""
+    elif command -v hyprpicker >/dev/null 2>&1; then
+        # -r: minden kijelzo fagyjon; -z/-d: se nagyito, se szinelonezet.
+        # Nincs "kesz" jelzese, ezert rovid varakozas, amig az elso kepkocka kint van.
+        hyprpicker -r -z -d -q >/dev/null 2>&1 &
+        freeze_pid=$!
+        sleep 0.2
+        if ! kill -0 "$freeze_pid" 2>/dev/null; then
+            freeze_pid=""
         fi
-        attempts=$((attempts + 1))
-        sleep 0.01
-    done
-    rm -f "$freeze_ready"
-    freeze_ready=""
+    fi
 
     snapshot=$(mktemp --suffix=.ppm)
     if ! grim -s 1 -t ppm "$snapshot"; then
@@ -81,13 +104,36 @@ stop_freeze() {
     fi
 }
 
+# A kijeloles hatterben fut, es `wait`-tel varunk ra: az elotérben futo parancs
+# alatt a shell nem kezelne a leallitasi jelet (a trap csak utana futna le),
+# a `wait` viszont megszakithato. Az eredmeny a `geometry` valtozoba kerul.
+selection_file=""
+select_area() {
+    selection_file=$(mktemp)
+    if [ -n "$1" ]; then
+        printf '%s' "$1" | slurp -o -d -F monospace -b "${background}c4" -c "${accent}ff" -s "${accent}2e" -B "${accent}0a" -w 3 > "$selection_file" &
+    else
+        slurp -d -F monospace -b "${background}c4" -c "${accent}ff" -s "${accent}2e" -w 3 > "$selection_file" &
+    fi
+    wait $!
+    status=$?
+    geometry=$(cat "$selection_file")
+    rm -f "$selection_file"
+    selection_file=""
+    return $status
+}
+
 cleanup() {
+    [ -n "$selection_file" ] && rm -f "$selection_file"
     stop_freeze
     [ -n "$freeze_ready" ] && rm -f "$freeze_ready"
     [ -n "$snapshot" ] && rm -f "$snapshot"
 }
 
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+# Ha a shell egy uj Print miatt leallit egy fuggo kijelolest, a gyerekek (slurp,
+# fagyaszto) se maradjanak a kepernyon.
+trap 'pkill -P $$ 2>/dev/null; exit 130' HUP INT TERM
 
 if command -v xdg-user-dir >/dev/null 2>&1; then
     pictures_dir=$(xdg-user-dir PICTURES 2>/dev/null || true)
@@ -111,7 +157,7 @@ case "$mode" in
                 | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1]) \(.title | gsub("[\\r\\n]"; " "))"
             ')
         prepare_frozen_snapshot
-        geometry=$(printf '%s' "$window_boxes" | slurp -o -d -F monospace -b "${background}c4" -c "${accent}ff" -s "${accent}2e" -B "${accent}0a" -w 3) || exit 0
+        select_area "$window_boxes" || exit 0
         ;;
     window)
         geometry=$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
@@ -121,7 +167,7 @@ case "$mode" in
         ;;
     region)
         prepare_frozen_snapshot
-        geometry=$(slurp -d -F monospace -b "${background}c4" -c "${accent}ff" -s "${accent}2e" -w 3) || exit 0
+        select_area "" || exit 0
         ;;
     *)
         notify-send -u critical "Screenshot failed" "Unknown capture mode: $mode"
@@ -165,8 +211,8 @@ if command -v wl-copy >/dev/null 2>&1; then
 fi
 
 (
-    action=$(notify-send -a "Vellum Shell" -i "$output" -A "default=Edit with Satty" "Screenshot captured" "Saved to $output and copied to the clipboard." || true)
-    if [ "$action" = "default" ] && command -v satty >/dev/null 2>&1; then
-        satty --filename "$output" --output-filename "$output" >/dev/null 2>&1 &
+    action=$(notify-send -a "Vellum Shell" -i "$output" -A "default=Edit with Snip" "Screenshot captured" "Saved to $output and copied to the clipboard." || true)
+    if [ "$action" = "default" ] && command -v snip >/dev/null 2>&1; then
+        snip "$output" >/dev/null 2>&1 &
     fi
 ) >/dev/null 2>&1 &

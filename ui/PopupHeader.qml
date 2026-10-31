@@ -10,34 +10,25 @@ Item {
     default property alias trailing: trailingSlot.data
 
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
-    readonly property string accent: theme ? theme.accent : "#b7372f"
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
 
-    implicitHeight: 52
+    // Alcim nelkul alacsonyabb, hogy ne maradjon ures sav a tartalom felett.
+    implicitHeight: subtitle !== "" ? 44 : 34
     height: implicitHeight
 
-    ShellLogo {
-        id: mark
-        anchors.left: parent.left
-        anchors.top: parent.top
-        size: 34
-        color: header.accent
-    }
-
     Column {
-        anchors.left: mark.right
-        anchors.leftMargin: 12
+        anchors.left: parent.left
         anchors.right: trailingSlot.left
         anchors.rightMargin: header.trailingWidth > 0 ? 12 : 0
         anchors.top: parent.top
-        spacing: 1
+        spacing: 2
 
         Text {
             width: parent.width
             text: header.title
             color: header.foreground
             font.family: "serif"
-            font.pixelSize: 19
+            font.pixelSize: 18
             font.weight: Font.Medium
             elide: Text.ElideRight
         }
@@ -58,14 +49,5 @@ Item {
         anchors.top: parent.top
         width: header.trailingWidth
         height: 34
-    }
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 1
-        color: header.muted
-        opacity: 0.2
     }
 }

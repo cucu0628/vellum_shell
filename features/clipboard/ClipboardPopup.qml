@@ -10,6 +10,7 @@ PanelWindow {
     required property var clipboardController
     property var theme: null
     property bool opened: false
+    property int barHeight: 26
     property string query: ""
     property int selectedIndex: 0
     property bool suppressHoverSelection: false
@@ -84,16 +85,21 @@ PanelWindow {
         } else if (event.key === Qt.Key_Delete) {
             deleteSelected();
             event.accepted = true;
+        } else if (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier)) {
+            if (selectedItem)
+                clipboardController.togglePin(selectedItem);
+
+            event.accepted = true;
         }
     }
 
     onOpenedChanged: {
+        // Alaphelyzet nyitaskor, nem zaraskor: a felcsuszo lapon meg a zaras
+        // elotti lista marad.
         if (opened) {
             resetClipboard();
             refreshClipboard();
             focusTimer.start();
-        } else {
-            resetClipboard();
         }
     }
     onQueryChanged: {
@@ -105,7 +111,7 @@ PanelWindow {
         selectedIndex = Math.max(0, Math.min(selectedIndex, Math.max(visibleItems.length - 1, 0)));
         clampResultsScroll();
     }
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.clipboard"
@@ -135,26 +141,26 @@ PanelWindow {
     Item {
         id: content
 
-        anchors.centerIn: parent
+        // Kozepen, a sav aljahoz tapadva: a kereso is a savbol nyilik le.
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: clipboardWindow.barHeight
         enabled: opened
-        width: Math.min(760, clipboardWindow.width - 32)
-        height: Math.min(520, clipboardWindow.height - 40)
-        opacity: opened ? 1 : 0
-        scale: opened ? 1 : 0.985
-        transform: Translate {
-            y: clipboardWindow.opened ? 0 : 18
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: clipboardWindow.opened ? 240 : 120
-                    easing.type: clipboardWindow.opened ? Easing.OutQuart : Easing.InQuad
-                }
-            }
-        }
+        width: Math.min(720, clipboardWindow.width - 32)
+        // A lap a tartalomhoz igazodik: 16 felso margo + 40 keresosor +
+        // 12 terkoz + 1 vonal + 12 terkoz + lista + 12 also margo = 93 + lista.
+        // Talalatokkal a labsor (12 terkoz + 16) is megjelenik. Egy sor 48 px,
+        // koztuk 2; uresen a lista helyen egy 44 px-es uzenet all.
+        height: Math.min(520, clipboardWindow.height - clipboardWindow.barHeight - 12,
+            visibleItems.length > 0 ? 93 + 28 + visibleItems.length * 50 - 2 : 93 + 44)
+        Behavior on height { NumberAnimation { duration: 220; easing.type: Easing.OutQuint } }
+        clip: true
 
         SharedUi.PopupFrame {
+            id: sheet
+
             anchors.fill: parent
             theme: clipboardWindow.theme
+            shown: clipboardWindow.opened
 
             MouseArea {
                 anchors.fill: parent
@@ -165,64 +171,49 @@ PanelWindow {
 
             Column {
                 anchors.fill: parent
-                anchors.leftMargin: 24
-                anchors.rightMargin: 24
-                anchors.topMargin: 20
-                anchors.bottomMargin: 16
-                spacing: 10
+                anchors.leftMargin: 20
+                anchors.rightMargin: 20
+                anchors.topMargin: 16
+                anchors.bottomMargin: 12
+                spacing: 12
 
-                SharedUi.PopupHeader {
-                    width: parent.width
-                    theme: clipboardWindow.theme
-                    title: "Clipboard"
-                    subtitle: visibleItems.length + (visibleItems.length === 1 ? " history item" : " history items")
-
-                }
-
-                SharedUi.SearchField {
-                    id: searchInput
-
-                    width: parent.width
-                    height: 52
-                    foreground: clipboardWindow.panelFg
-                    accent: clipboardWindow.panelAccent
-                    muted: clipboardWindow.mutedFg
-                    surface: clipboardWindow.inkBg
-                    opened: clipboardWindow.opened
-                    placeholder: "Search clipboard..."
-                    inputLeftMargin: 44
-                    inputVerticalPadding: 12
-                    onTextEdited: (text) => {
-                        return clipboardWindow.query = text;
-                    }
-                    onKeyPressed: (event) => {
-                        return clipboardWindow.handleKey(event);
-                    }
-                }
-
+                // Kereso es a torles egy sorban; a darabszam a labsorba kerult.
                 Item {
                     width: parent.width
-                    height: 18
+                    height: 40
 
-                    Text {
+                    SharedUi.SearchField {
+                        id: searchInput
+
                         anchors.left: parent.left
-                        height: parent.height
-                        text: "HISTORY  ·  " + visibleItems.length
-                        color: panelAccent
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 8
-                        font.bold: true
-                        font.letterSpacing: 1.8
+                        anchors.right: clearChip.left
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        foreground: clipboardWindow.panelFg
+                        accent: clipboardWindow.panelAccent
+                        muted: clipboardWindow.mutedFg
+                        surface: clipboardWindow.inkBg
+                        opened: clipboardWindow.opened
+                        placeholder: "Search clipboard..."
+                        onTextEdited: (text) => {
+                            return clipboardWindow.query = text;
+                        }
+                        onKeyPressed: (event) => {
+                            return clipboardWindow.handleKey(event);
+                        }
                     }
 
-                    Text {
+                    // Az elozmeny torlese; a rogzitett elemek maradnak.
+                    SharedUi.HeaderChip {
+                        id: clearChip
+
                         anchors.right: parent.right
-                        height: parent.height
-                        text: "↑↓  SELECT     ENTER  PASTE     DEL  REMOVE"
-                        color: mutedFg
-                        verticalAlignment: Text.AlignVCenter
-                        font.family: "monospace"
-                        font.pixelSize: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        enabled: clipboardController.entries.length > clipboardController.pinnedCount
+                        theme: clipboardWindow.theme
+                        label: "Clear"
+                        accessibleName: qsTr("Clear clipboard history, keep pinned items")
+                        onClicked: clipboardController.clear()
                     }
                 }
 
@@ -230,109 +221,113 @@ PanelWindow {
                     width: parent.width
                     height: 1
                     color: mutedFg
-                    opacity: 0.2
+                    opacity: 0.14
                 }
 
+                // A lista kitolti, ami a fejresz es a labsor kozott marad.
                 Item {
                     width: parent.width
-                    height: parent.height - 163
+                    height: Math.max(0, parent.height - y - (footer.visible ? footer.height + parent.spacing : 0))
 
-                    Item {
-                        id: listPane
+                    Text {
+                        visible: visibleItems.length === 0
+                        anchors.centerIn: parent
+                        text: !clipboardController.available && clipboardController.entries.length === 0
+                            ? "The clipboard service is not running"
+                            : (query === "" ? "Copy something and it will show up here" : "No clipboard matches")
+                        color: mutedFg
+                        font.pixelSize: 11
+                    }
 
-                        width: parent.width
-                        height: parent.height
+                    ListView {
+                        id: resultsList
 
-                        Text {
-                            visible: visibleItems.length === 0
-                            anchors.centerIn: parent
-                            text: query === "" ? "Clipboard history is empty" : "No clipboard matches"
-                            color: mutedFg
-                            font.pixelSize: 11
-                        }
+                        anchors.fill: parent
+                        model: clipboardWindow.visible ? visibleItems : []
+                        spacing: 2
+                        reuseItems: true
+                        cacheBuffer: 96
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        visible: visibleItems.length > 0
+                        interactive: contentHeight > height
 
-                        ListView {
-                            id: resultsList
-
-                            anchors.fill: parent
-                            model: clipboardWindow.opened ? visibleItems : []
-                            spacing: 4
-                            reuseItems: true
-                            cacheBuffer: 96
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
-                            visible: visibleItems.length > 0
-                            interactive: contentHeight > height
-
-                            delegate: ClipboardUi.ClipboardResultRow {
-                                width: resultsList.width
-                                entry: modelData
-                                controller: clipboardController
-                                resultIndex: index
-                                selected: index === selectedIndex
-                                panelBg: clipboardWindow.panelBg
-                                panelFg: clipboardWindow.panelFg
-                                panelAccent: clipboardWindow.panelAccent
-                                mutedFg: clipboardWindow.mutedFg
-                                inkBg: clipboardWindow.inkBg
-                                onHovered: (rowIndex) => {
-                                    if (!suppressHoverSelection)
-                                        selectedIndex = rowIndex;
-
-                                }
-                                onActivated: (rowIndex) => {
-                                    suppressHoverSelection = false;
+                        delegate: ClipboardUi.ClipboardResultRow {
+                            width: resultsList.width - (resultsList.interactive ? 8 : 0)
+                            entry: modelData
+                            controller: clipboardController
+                            resultIndex: index
+                            selected: index === selectedIndex
+                            panelBg: clipboardWindow.panelBg
+                            panelFg: clipboardWindow.panelFg
+                            panelAccent: clipboardWindow.panelAccent
+                            mutedFg: clipboardWindow.mutedFg
+                            inkBg: clipboardWindow.inkBg
+                            onHovered: (rowIndex) => {
+                                if (!suppressHoverSelection)
                                     selectedIndex = rowIndex;
-                                    activateSelected();
-                                }
+
                             }
-
-                        }
-
-                        Rectangle {
-                            anchors.top: parent.top
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            width: 2
-                            color: mutedFg
-                            opacity: resultsList.interactive ? 0.16 : 0
-                        }
-
-                        Rectangle {
-                            anchors.right: parent.right
-                            width: 2
-                            height: resultsList.contentHeight > 0
-                                ? Math.max(24, parent.height * resultsList.visibleArea.heightRatio)
-                                : 0
-                            y: resultsList.visibleArea.yPosition * parent.height
-                            color: panelAccent
-                            opacity: resultsList.interactive ? 0.9 : 0
-
-                            Behavior on y {
-                                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                            onActivated: (rowIndex) => {
+                                suppressHoverSelection = false;
+                                selectedIndex = rowIndex;
+                                activateSelected();
                             }
                         }
 
                     }
 
+                    // Csak a csuszka latszik, savja nincs.
+                    Rectangle {
+                        anchors.right: parent.right
+                        width: 2
+                        radius: 1
+                        height: resultsList.contentHeight > 0
+                            ? Math.max(24, parent.height * resultsList.visibleArea.heightRatio)
+                            : 0
+                        y: resultsList.visibleArea.yPosition * parent.height
+                        color: mutedFg
+                        opacity: resultsList.visible && resultsList.interactive ? 0.5 : 0
+
+                        Behavior on y {
+                            NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                        }
+                    }
+
                 }
 
-            }
+                // Uresen elmarad: az uzenet mar mindent elmond.
+                Item {
+                    id: footer
 
-        }
+                    visible: visibleItems.length > 0
+                    width: parent.width
+                    height: 16
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: clipboardWindow.opened ? 160 : 110
-                easing.type: clipboardWindow.opened ? Easing.OutQuart : Easing.InQuad
-            }
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: {
+                            var total = clipboardController.entries.length
+                            var text = total + (total === 1 ? " item" : " items")
+                            var pinned = clipboardController.pinnedCount
+                            return pinned > 0 ? text + "  ·  " + pinned + " pinned" : text
+                        }
+                        color: mutedFg
+                        font.pixelSize: 10
+                    }
 
-        }
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "↵ paste   ctrl+p pin   del remove   esc close"
+                        color: mutedFg
+                        font.family: "monospace"
+                        font.pixelSize: 9
+                    }
 
-        Behavior on scale {
-            NumberAnimation {
-                duration: clipboardWindow.opened ? 260 : 130
-                easing.type: clipboardWindow.opened ? Easing.OutQuart : Easing.InQuad
+                }
+
             }
 
         }

@@ -22,8 +22,8 @@ Item {
         if (toggle.enabled) toggle.toggled(!toggle.checked)
     }
 
-    implicitWidth: 46
-    implicitHeight: 24
+    implicitWidth: 40
+    implicitHeight: 28
 
     activeFocusOnTab: enabled
     Keys.onSpacePressed: (event) => { toggle.activate(); event.accepted = true }
@@ -38,21 +38,26 @@ Item {
     Accessible.onToggleAction: toggle.activate()
     Accessible.onPressAction: toggle.activate()
 
+    // Ugyanaz a kerek, keret nelkuli forma, mint a lenyilo panelek csempei:
+    // kikapcsolva halvany feher alap, bekapcsolva telt akcentes sin.
     Rectangle {
         id: track
 
+        readonly property color accentColor: toggle.accent
+
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        width: 46
-        height: 24
-        radius: 0
-        color: toggle.checked ? toggle.accent : toggle.surface
-        border.color: toggle.checked ? toggle.accent : toggle.muted
-        border.width: 1
+        width: 40
+        height: 22
+        radius: height / 2
+        color: toggle.checked
+            ? track.accentColor
+            : Qt.rgba(1, 1, 1, toggleMouse.containsMouse ? 0.14 : 0.09)
 
         Behavior on color {
             ColorAnimation {
-                duration: 130
+                duration: 140
+                easing.type: Easing.OutCubic
             }
 
         }
@@ -60,15 +65,27 @@ Item {
         Rectangle {
             width: 16
             height: 16
-            radius: 0
+            radius: 8
             color: toggle.checked ? toggle.surface : toggle.muted
             anchors.verticalCenter: parent.verticalCenter
-            x: toggle.checked ? parent.width - width - 4 : 4
+            x: toggle.checked ? parent.width - width - 3 : 3
+            // Nyomasra a gomb kicsit megnyulik, mint egy fizikai kapcsolo.
+            scale: toggleMouse.pressed ? 0.88 : 1
 
             Behavior on x {
-                NumberAnimation {
-                    duration: 130
-                    easing.type: Easing.OutCubic
+                SpringAnimation {
+                    spring: 7
+                    damping: 0.6
+                    epsilon: 0.05
+                }
+
+            }
+
+            Behavior on scale {
+                SpringAnimation {
+                    spring: 9
+                    damping: 0.55
+                    epsilon: 0.0005
                 }
 
             }
@@ -78,12 +95,17 @@ Item {
         FocusRing {
             theme: toggle.theme
             active: toggle.activeFocus
+            cornerRadius: track.radius
         }
 
     }
 
     MouseArea {
+        id: toggleMouse
+
         anchors.fill: track
+        anchors.margins: -4
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: toggle.activate()
     }

@@ -40,11 +40,10 @@ Item {
             id: header
 
             width: parent.width
-            height: group.grouped ? 24 : 0
+            height: group.grouped ? 28 : 0
             visible: group.grouped
-            color: headerMouse.containsMouse ? group.inkBg : "transparent"
-            border.color: group.groupData && group.groupData.critical ? group.panelAccent : "transparent"
-            border.width: 1
+            radius: 6
+            color: headerMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
 
             MouseArea {
                 id: headerMouse
@@ -60,10 +59,10 @@ Item {
                 id: chevron
 
                 anchors.left: parent.left
-                anchors.leftMargin: 4
+                anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
                 text: group.expanded ? "󰅀" : "󰅂"
-                color: group.panelAccent
+                color: group.mutedFg
                 font.family: "Symbols Nerd Font Mono"
                 font.pixelSize: 12
             }
@@ -75,11 +74,10 @@ Item {
                 anchors.right: groupUnread.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: (group.groupData ? group.groupData.appName.toUpperCase() : "") + "  ×" + group.entries.length
-                color: group.panelAccent
-                font.pixelSize: 8
-                font.bold: true
-                font.letterSpacing: 2
+                text: (group.groupData ? group.groupData.appName : "") + "  ·  " + group.entries.length
+                color: group.panelFg
+                font.pixelSize: 11
+                font.weight: Font.Medium
                 elide: Text.ElideRight
             }
 
@@ -90,11 +88,9 @@ Item {
                 anchors.right: groupClear.left
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                text: group.groupData && group.groupData.unread > 0 ? group.groupData.unread + " NEW" : group.groupData ? group.groupData.time : ""
-                color: group.groupData && group.groupData.unread > 0 ? group.panelFg : group.mutedFg
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.bold: true
+                text: group.groupData && group.groupData.unread > 0 ? group.groupData.unread + " new" : group.groupData ? group.groupData.time : ""
+                color: group.groupData && group.groupData.unread > 0 ? group.panelAccent : group.mutedFg
+                font.pixelSize: 10
             }
 
             Text {
@@ -102,19 +98,17 @@ Item {
                 id: groupClear
 
                 anchors.right: parent.right
-                anchors.rightMargin: 6
+                anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
-                text: "CLEAR"
-                color: groupClearMouse.containsMouse ? group.panelAccent : group.mutedFg
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.bold: true
+                text: qsTr("Clear")
+                color: groupClearMouse.containsMouse ? group.panelFg : group.mutedFg
+                font.pixelSize: 10
 
                 MouseArea {
                     id: groupClearMouse
 
                     anchors.fill: parent
-                    anchors.margins: -4
+                    anchors.margins: -8
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: mouse => {
@@ -147,38 +141,17 @@ Item {
 
         Item {
             width: parent.width
-            height: group.hiddenCount > 0 ? 16 : 0
+            height: group.hiddenCount > 0 ? 24 : 0
             visible: group.hiddenCount > 0
 
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                width: parent.width - 16
-                height: 1
-                color: group.mutedFg
-                opacity: 0.3
-            }
-
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 4
-                width: parent.width - 34
-                height: 1
-                color: group.mutedFg
-                opacity: 0.16
-            }
-
             Text {
-                textFormat: Text.PlainText
                 anchors.left: parent.left
-                anchors.leftMargin: 11
-                anchors.bottom: parent.bottom
-                text: "+" + group.hiddenCount + " MORE"
-                color: stackMouse.containsMouse ? group.panelAccent : group.mutedFg
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.bold: true
+                anchors.leftMargin: 58
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Show %1 more").arg(group.hiddenCount)
+                textFormat: Text.PlainText
+                color: stackMouse.containsMouse ? group.panelFg : group.mutedFg
+                font.pixelSize: 10
             }
 
             MouseArea {

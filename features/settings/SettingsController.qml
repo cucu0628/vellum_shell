@@ -1,10 +1,10 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import Quickshell.Io
+import Quickshell
 
-// A settings app allapota es minden backend-hivasa. Az `AppearanceController`
-// mintajat koveti: a nezet vekony, a logika itt van.
+// A settings app allapota es minden backend-hivasa. Az appearance feature
+// picker-controllereinek mintajat koveti: a nezet vekony, a logika itt van.
 //
 // A Hyprland ertekek harom helyrol jonnek ossze:
 //   * `hypr/read`   -- az elo ertekek, ezt mutatjak a vezerlok;
@@ -305,17 +305,11 @@ Item {
         })
     }
 
-    // A settings app tobb oldala kulso parancsot indit (TUI telepitok,
-    // nm-connection-editor). Egy kozos Process eleg: ezek mind rovid, egyszerre
-    // egy fut, es a kimenetuk a sajat ablakukban jelenik meg.
+    // A settings app tobb oldala kulso parancsot indit (nm-connection-editor,
+    // fajlkezelo). Mind levalasztva fut: egy kozos Process `running = false`
+    // allitasa a meg nyitott elozo ablakot is leloette volna.
     function run(command) {
-        runProcess.running = false;
-        runProcess.command = ["sh", "-c", command];
-        runProcess.running = true;
-    }
-
-    Process {
-        id: runProcess
+        Quickshell.execDetached(["sh", "-c", command]);
     }
 
 }

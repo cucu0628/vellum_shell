@@ -21,7 +21,7 @@ Item {
 
         Text {
             text: "󰕓"
-            color: mouse.containsMouse || root.popupOpen || root.mountedCount > 0
+            color: root.popupOpen || root.mountedCount > 0
                 ? root.theme.accent : root.theme.foreground
             font.family: "Symbols Nerd Font Mono"
             font.pixelSize: 15
@@ -38,14 +38,11 @@ Item {
         }
     }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: mouse.containsMouse || root.popupOpen ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120 } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: mouse.containsMouse
+        active: root.popupOpen
+        z: -1
     }
 
     SharedUi.Pressable {

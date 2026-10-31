@@ -108,6 +108,10 @@ impl Hub {
         self.events.subscribe()
     }
 
+    pub fn is_always_on(&self, topic: &str) -> bool {
+        self.modules.get(topic).is_some_and(|module| module.always_on())
+    }
+
     pub fn has_topic(&self, topic: &str) -> bool {
         self.modules.contains_key(topic)
     }

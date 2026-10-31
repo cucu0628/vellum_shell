@@ -1,34 +1,102 @@
 import QtQuick
-import Quickshell
-import Quickshell.Io
 
+// A vagolap-elozmeny a Rust backend `clipboard` topicjabol.
+//
+// Korabban ez a fajl cliphistet es ket `wl-paste --watch` folyamatot inditott,
+// a kep-elonezeteket pedig ImageMagickkel allitotta elo. Most a backend maga
+// figyeli a vagolapot (wlr-data-control), tarolja az elozmenyt es kesziti az
+// elonezetet; itt csak megjelenitesre alakitjuk a bejegyzeseket.
+//
+// A kifele mutatott API (entries, filterEntries, activate, remove, ...)
+// valtozatlan, a panel ezekre epul. Uj: togglePin es clear.
 Item {
     id: controller
 
-    property var entries: []
-    property bool refreshPending: false
-    property var decodedPreviews: ({})
-    property var decodeQueue: []
+    required property var backend
 
-    readonly property string stateDir: Quickshell.env("HOME") + "/.local/state/quickshell/vellum-shell"
-    readonly property string imageDir: stateDir + "/cliphist-images"
-    readonly property string thumbnailDir: stateDir + "/cliphist-thumbnails"
+    readonly property var topic: backend && backend.topics.clipboard ? backend.topics.clipboard : ({})
+    // A backend nem fut, vagy nincs Wayland-kapcsolata.
+    readonly property bool available: topic.available === true
+    readonly property int maxPinned: topic.maxPinned || 25
+    // Rogzitettek elol, azon belul a backend sorrendje (legujabb elol).
+    readonly property var entries: {
+        var source = topic.entries || []
+        var pinned = []
+        var rest = []
+        for (var i = 0; i < source.length; i++) {
+            var item = toEntry(source[i])
+            if (item.pinned) pinned.push(item)
+            else rest.push(item)
+        }
+        return pinned.concat(rest)
+    }
+    readonly property int pinnedCount: {
+        var count = 0
+        for (var i = 0; i < entries.length; i++) if (entries[i].pinned) count++
+        return count
+    }
+    // A relativ idok frissitesehez; percenkent lep.
+    property var now: new Date()
 
     width: 0
     height: 0
     visible: false
 
-    Component.onCompleted: refreshClipboard()
+    // Mindig feliratkozunk: a lista igy a panel megnyitasakor mar kesz.
+    Component.onCompleted: if (backend) backend.subscribe("clipboard")
+    Component.onDestruction: if (backend) backend.unsubscribe("clipboard")
 
-    function refreshClipboard() {
-        if (fetcher.running) {
-            refreshPending = true
-            return
-        }
-
-        fetcher.command = ["sh", "-c", "mkdir -p " + shellQuote(imageDir) + "; cliphist list 2>/dev/null | head -n 100"]
-        fetcher.running = true
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: controller.now = new Date()
     }
+
+    function toEntry(raw) {
+        var isImage = raw.kind === "image"
+        var meta = isImage
+            ? (raw.width > 0 ? raw.width + " × " + raw.height : "Image")
+            : (raw.size >= 1024 ? formatSize(raw.size) : "")
+        return {
+            identifier: raw.id,
+            title: isImage ? "Image" : (raw.preview || ""),
+            text: isImage ? "" : (raw.preview || ""),
+            subtitle: isImage ? "Image" : "Text",
+            meta: meta,
+            time: raw.time || 0,
+            preview: raw.thumb ? "file://" + raw.thumb : "",
+            isImage: isImage,
+            pinned: raw.pinned === true
+        }
+    }
+
+    function formatSize(bytes) {
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB"
+        return Math.round(bytes / 1024) + " KB"
+    }
+
+    function relativeTime(seconds) {
+        if (!seconds) return ""
+        var diff = Math.max(0, Math.floor(now.getTime() / 1000) - seconds)
+        if (diff < 60) return qsTr("just now")
+        if (diff < 3600) return qsTr("%1 min ago").arg(Math.floor(diff / 60))
+        if (diff < 86400) return qsTr("%1 h ago").arg(Math.floor(diff / 3600))
+        return qsTr("%1 d ago").arg(Math.floor(diff / 86400))
+    }
+
+    // A sor masodik sora: tipus, meret, mikor.
+    function describe(item) {
+        if (!item) return ""
+        var parts = [item.isImage ? qsTr("Image") : qsTr("Text")]
+        if (item.meta !== "" && item.meta !== "Image") parts.push(item.meta)
+        var when = relativeTime(item.time)
+        if (when !== "") parts.push(when)
+        return parts.join("  ·  ")
+    }
+
+    // A backend tolja az allapotot; a regi API kedveert megmarad.
+    function refreshClipboard() {}
 
     function normalize(value) {
         return (value || "").toString().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
@@ -53,159 +121,34 @@ Item {
         return result
     }
 
-    function compactText(value) {
-        return (value || "").replace(/\s+/g, " ").trim()
-    }
-
-    function imageExtension(preview) {
-        var match = (preview || "").match(/^\[\[ binary data [^ ]+ [^ ]+ ([A-Za-z0-9]+)\b/)
-        if (!match) return ""
-
-        var extension = match[1].toLowerCase()
-        return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tiff"].indexOf(extension) >= 0 ? extension : "bin"
-    }
-
-    function parseOutput(output) {
-        var lines = (output || "").split("\n")
-        var parsed = []
-
-        for (var i = 0; i < lines.length; i++) {
-            var separator = lines[i].indexOf("\t")
-            if (separator < 1) continue
-
-            var identifier = lines[i].slice(0, separator)
-            var preview = lines[i].slice(separator + 1)
-            var extension = imageExtension(preview)
-            var isImage = extension !== ""
-
-            parsed.push({
-                identifier: identifier,
-                title: isImage ? "Image clipboard" : compactText(preview),
-                text: isImage ? "" : preview,
-                subtitle: isImage ? "Clipboard image" : "Clipboard history",
-                preview: isImage ? thumbnailDir + "/cliphist-" + identifier + ".png" : "",
-                original: isImage ? imageDir + "/cliphist-" + identifier + "." + extension : "",
-                isImage: isImage,
-                source: "cliphist"
-            })
-        }
-
-        entries = parsed
-        prunePreviewCache(parsed)
-    }
-
     function entryTypeLabel(item) {
-        if (!item) return "EMPTY"
-        if (item.isImage) return "IMAGE"
-        return (item.text || "").length >= 100 ? "LONG TEXT" : "TEXT"
+        if (!item) return ""
+        if (item.pinned) return qsTr("Pinned")
+        return item.isImage ? qsTr("Image") : qsTr("Text")
     }
 
     function previewSource(item) {
-        if (!item || !item.isImage) return ""
-        return decodedPreviews[item.identifier] || ""
+        return item && item.isImage ? item.preview : ""
     }
 
-    function ensurePreview(item) {
-        if (!item || !item.isImage || decodedPreviews[item.identifier]) return
-        if (previewDecoder.running && previewDecoder.identifier === item.identifier) return
-        for (var i = 0; i < decodeQueue.length; i++) {
-            if (decodeQueue[i].identifier === item.identifier) return
-        }
-        decodeQueue = decodeQueue.concat([item])
-        startNextDecode()
-    }
-
-    function startNextDecode() {
-        if (previewDecoder.running || decodeQueue.length === 0) return
-        var item = decodeQueue[0]
-        decodeQueue = decodeQueue.slice(1)
-        previewDecoder.identifier = item.identifier
-        previewDecoder.outputPath = item.preview
-        previewDecoder.command = ["sh", "-c", "mkdir -p " + shellQuote(imageDir) + " " + shellQuote(thumbnailDir) + "; original=" + shellQuote(item.original) + "; thumb=" + shellQuote(item.preview) + "; if [ ! -s \"$thumb\" ]; then raw=\"$original.tmp\"; out=\"$thumb.tmp.png\"; cliphist decode " + shellQuote(item.identifier) + " > \"$raw\" && magick \"$raw\" -auto-orient -thumbnail '136x112^' -gravity center -extent 136x112 -strip \"$out\" && mv \"$out\" \"$thumb\"; rm -f \"$raw\" \"$out\"; fi; [ -s \"$thumb\" ]"]
-        previewDecoder.running = true
-    }
-
-    function prunePreviewCache(currentEntries) {
-        var identifiers = " "
-        for (var i = 0; i < currentEntries.length; i++) identifiers += currentEntries[i].identifier + " "
-        cachePruner.command = ["sh", "-c", "keep=" + shellQuote(identifiers) + "; for dir in " + shellQuote(imageDir) + " " + shellQuote(thumbnailDir) + "; do [ -d \"$dir\" ] || continue; for path in \"$dir\"/cliphist-*; do [ -e \"$path\" ] || continue; name=${path##*/cliphist-}; id=${name%%.*}; case \"$keep\" in *\" $id \"*) ;; *) rm -f \"$path\" ;; esac; done; done"]
-        if (!cachePruner.running) cachePruner.running = true
-    }
+    // Az elonezetet a backend mar elkeszitette.
+    function ensurePreview(item) {}
 
     function activate(item) {
-        if (!item) return
-        activateProcess.command = ["sh", "-c", "cliphist decode " + shellQuote(item.identifier) + " | wl-copy"]
-        activateProcess.running = true
+        if (item && backend) backend.call("clipboard", "copy", { id: item.identifier }, null)
     }
 
     function remove(item) {
-        if (!item) return
-
-        deleteProcess.command = ["sh", "-c", "printf '%s\\n' " + shellQuote(item.identifier) + " | cliphist delete; rm -f " + shellQuote(imageDir + "/cliphist-" + item.identifier) + ".* " + shellQuote(thumbnailDir + "/cliphist-" + item.identifier) + ".*"]
-        deleteProcess.running = true
-
-        var nextEntries = []
-        for (var i = 0; i < entries.length; i++) {
-            if (entries[i].identifier !== item.identifier) nextEntries.push(entries[i])
-        }
-        entries = nextEntries
+        if (item && backend) backend.call("clipboard", "delete", { id: item.identifier }, null)
     }
 
-    function shellQuote(value) {
-        return "'" + value.replace(/'/g, "'\\''") + "'"
+    function togglePin(item) {
+        if (!item || !backend) return
+        if (!item.pinned && pinnedCount >= maxPinned) return
+        backend.call("clipboard", item.pinned ? "unpin" : "pin", { id: item.identifier }, null)
     }
 
-    Timer {
-        id: watchRefreshTimer
-        interval: 120
-        onTriggered: controller.refreshClipboard()
+    function clear() {
+        if (backend) backend.call("clipboard", "clear", {}, null)
     }
-
-    Process {
-        id: fetcher
-        onExited: {
-            if (controller.refreshPending) {
-                controller.refreshPending = false
-                controller.refreshClipboard()
-            }
-        }
-        stdout: StdioCollector {
-            onStreamFinished: controller.parseOutput(this.text || "")
-        }
-    }
-
-    Process {
-        command: ["wl-paste", "--type", "text", "--watch", "sh", "-c", "cliphist store && printf 'changed\\n'"]
-        running: true
-        stdout: SplitParser {
-            onRead: watchRefreshTimer.restart()
-        }
-    }
-
-    Process {
-        command: ["wl-paste", "--type", "image", "--watch", "sh", "-c", "cliphist store && printf 'changed\\n'"]
-        running: true
-        stdout: SplitParser {
-            onRead: watchRefreshTimer.restart()
-        }
-    }
-
-    Process { id: activateProcess }
-    Process { id: deleteProcess }
-
-    Process {
-        id: previewDecoder
-        property string identifier: ""
-        property string outputPath: ""
-        onExited: exitCode => {
-            if (exitCode === 0) {
-                var next = Object.assign({}, controller.decodedPreviews)
-                next[identifier] = "file://" + outputPath
-                controller.decodedPreviews = next
-            }
-            controller.startNextDecode()
-        }
-    }
-
-    Process { id: cachePruner }
 }

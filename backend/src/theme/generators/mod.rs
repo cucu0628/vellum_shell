@@ -9,13 +9,13 @@
 
 pub mod btop;
 pub mod fastfetch;
+pub mod greeter;
 pub mod gtk;
 pub mod hyprland;
 pub mod icon;
 pub mod kitty;
 pub mod neovim;
 pub mod qt6ct;
-pub mod sddm;
 pub mod zen;
 
 use crate::theme::palette::Palette;
@@ -85,8 +85,8 @@ pub fn run_all(palette: &Palette, wallpaper: Option<&Path>, include_zen: bool) -
         run("btop", OPTIONAL, || btop::generate(palette)),
         run("neovim", OPTIONAL, || neovim::generate(palette)),
         run("fastfetch", OPTIONAL, || fastfetch::generate(palette)),
-        // Az SDDM temaja rendszerkonyvtarban ul: root nelkul varhatoan bukik.
-        run("sddm", OPTIONAL, || sddm::generate(palette, wallpaper)),
+        // A greeter allapota rendszerkonyvtarban ul: telepites nelkul nincs mit irni.
+        run("greeter", OPTIONAL, || greeter::generate(palette, wallpaper)),
     ];
 
     // A Zen profil patchelese a legtolakodobb muvelet, ezert kulon kapcsolhato.

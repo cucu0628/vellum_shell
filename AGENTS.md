@@ -12,7 +12,7 @@ core      -> Quickshell and core/Backend.qml
 ui        -> QtQuick only
 ```
 
-- `shell.qml` composes the shell; `LockShell.qml` is the compatibility lock entry point.
+- `shell.qml` composes the shell; `LockShell.qml` is the compatibility lock entry point; `GreeterShell.qml` is the greetd login screen (`features/lock/Greeter*.qml`, compositor config in `greeter/`).
 - `app/` owns popup coordination and public IPC.
 - `core/` contains shared platform controllers and the Rust-backend client.
 - `features/<name>/` owns one user-facing feature. Keep feature-specific UI and state here.
@@ -30,8 +30,8 @@ Read `README.md` for supported behavior and `layout.md` for the detailed archite
 - Treat the newline-delimited JSON IPC described by `vellum describe` as a compatibility contract. Update both producer and consumer when it changes.
 - Keep `ui/` free of feature imports. Shared state belongs in `core/`, not in visual components.
 - Follow the local style: four spaces in QML, `set -euo pipefail` in Bash, and `cargo fmt` output in Rust. `backend/rustfmt.toml` pins the two settings the tree was written against (`max_width = 100`, `use_small_heuristics = "Max"`), so the check runs on stable without a nightly toolchain. Existing comments are often Hungarian; match the surrounding file.
-- Do not hand-edit generated runtime files such as `current-theme`, `gtk-theme.css`, `kitty-theme.conf`, `zen-theme.css`, or `sddm/vellum-ink/theme.conf` unless the task is specifically about generated output. Edit the palette, template, or generator instead.
-- Do not run `setup.sh`, `install.sh`, `scripts/backend-install`, package helpers, power actions, or lock-screen actions as routine validation: they modify the live desktop or system.
+- Do not hand-edit generated runtime files such as `current-theme`, `gtk-theme.css`, `kitty-theme.conf`, or `zen-theme.css` unless the task is specifically about generated output. Edit the palette, template, or generator instead.
+- Do not run `setup.sh`, `install.sh`, `scripts/backend-install`, `scripts/greeter-install` (except `--preview`), package helpers, power actions, or lock-screen actions as routine validation: they modify the live desktop or system.
 
 ## UI style rules
 
@@ -46,7 +46,7 @@ Read `README.md` for supported behavior and `layout.md` for the detailed archite
 - Keep compact interactive targets at least 28 px high and settings rows or primary list rows at least 44 px high. Visual glyphs may be smaller, but their hit area must meet the target size.
 - When a visual pattern appears in two or more features, refine the reusable component in `ui/` instead of adding divergent feature-local styling. Keep `ui/` feature-independent.
 - Render user-provided, clipboard, and notification content as `Text.PlainText`. Choose wrapping or elision explicitly, and never reduce body text below the typography scale to make metadata fit.
-- For new UI and any visual cluster being modified, apply these rules to the whole cluster so adjacent labels do not retain conflicting sizes or tracking. Preserve deliberately atmospheric lock-screen and SDDM typography unless the task targets it.
+- For new UI and any visual cluster being modified, apply these rules to the whole cluster so adjacent labels do not retain conflicting sizes or tracking. Preserve deliberately atmospheric lock-screen and greeter typography unless the task targets it.
 
 ## Validation
 
@@ -66,7 +66,7 @@ cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
 
 # QML (from the repository root)
-qmllint shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
 
 # Bash, when ShellCheck is installed
 shellcheck setup.sh install.sh scripts/*

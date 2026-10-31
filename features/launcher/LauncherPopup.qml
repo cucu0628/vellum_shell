@@ -12,6 +12,7 @@ PanelWindow {
     required property string homeDir
     required property string shellDir
     property bool opened: false
+    property int barHeight: 26
     property string query: ""
     property int selectedIndex: 0
     property string calcResult: ""
@@ -19,9 +20,9 @@ PanelWindow {
     property var applications: []
     property var projects: []
     property var delayedActionCommand: []
-    // A Terminal=true bejegyzesek gazdaja. A shell tobbi resze is kittyt
-    // hasznal (scripts/floating-terminal, a launcher terminal muvelete).
-    property string terminalProgram: "kitty"
+    // A Terminal=true bejegyzesek gazdaja: a core TerminalController, vagyis a
+    // Settings > Default apps-ban valasztott terminal. Nelkule a kitty marad.
+    property var terminal: null
     // A visszafordithatatlan muveletek elso Enterre csak kijelolodnek; a
     // masodik inditja el oket. -1, ha nincs ilyen fuggoben.
     property int pendingConfirmIndex: -1
@@ -39,11 +40,11 @@ PanelWindow {
     // Prefix helyett alakfelismeres: ami matek kifejezesnek nez ki, az a qalc-hoz
     // megy. Igy a szamolas nem kulon mod, csak egy talalat a kozos listaban.
     readonly property string calcExpression: projectMode ? "" : mathExpression(query)
-    readonly property string modeTitle: projectMode ? "PROJECTS" : (hasQuery ? "SEARCH" : "APPLICATIONS")
+    readonly property string modeTitle: projectMode ? "Projects" : (hasQuery ? "Search" : "Applications")
     readonly property var searchResults: buildResults(query)
     readonly property var visibleItems: projectMode ? projectItems() : searchResults
     readonly property bool listVisible: hasQuery || visibleItems.length > 0
-    readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 50 - 4 : 46
+    readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 46 - 2 : 44
 
     function refreshApplications() {
         applications = DesktopEntries.applications.values.slice();
@@ -72,7 +73,7 @@ PanelWindow {
                 "path": path
             });
         }
-        result.sort((a, b) => a.name.localeCompare(b.name));
+        result.sort((a, b) => a.title.localeCompare(b.title));
         projects = result;
     }
 
@@ -391,13 +392,17 @@ PanelWindow {
             command.push(parsed[i]);
         }
         if (command.length > 0)
-            return [terminalProgram, "--"].concat(command);
+            return terminalCommand(command);
 
         var exec = (app.execString || "").replace(/%[fFuUdDnNickvm]/g, "").replace(/%%/g, "%").trim();
         if (exec === "")
             return [];
 
-        return [terminalProgram, "--", "sh", "-c", exec];
+        return terminalCommand(["sh", "-c", exec]);
+    }
+
+    function terminalCommand(command) {
+        return terminal ? terminal.argv(command) : ["kitty", "--"].concat(command);
     }
 
     // A muveleteket lecsatolva inditjuk, nem `Process`-kent: a Quickshell a
@@ -518,13 +523,14 @@ PanelWindow {
         }
     }
 
+    // Alaphelyzet nyitaskor, nem zaraskor: a felcsuszo lapon meg a zaras
+    // elotti talalatok maradnak, nem egy kiurult lista.
     onOpenedChanged: {
         if (opened) {
+            resetLauncher();
             refreshApplications();
             refreshProjects();
             focusTimer.start();
-        } else {
-            resetLauncher();
         }
     }
     Component.onCompleted: {
@@ -557,7 +563,7 @@ PanelWindow {
         selectedIndex = Math.max(0, Math.min(selectedIndex, Math.max(visibleItems.length - 1, 0)));
         clampResultsScroll();
     }
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.launcher"
@@ -634,6 +640,7 @@ PanelWindow {
         id: launcherActions
         homeDir: launcherWindow.homeDir
         shellDir: launcherWindow.shellDir
+        terminal: launcherWindow.terminal
     }
 
     LauncherUi.EmojiData {
@@ -657,49 +664,23 @@ PanelWindow {
     Item {
         id: content
 
-        anchors.centerIn: parent
+        // Kozepen, a sav aljahoz tapadva: a kereso is a savbol nyilik le.
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: launcherWindow.barHeight
         enabled: opened
-        width: Math.min(760, launcherWindow.width - 32)
-        height: listVisible ? Math.min(520, launcherWindow.height - 40, 238 + Math.max(46, resultsHeight)) : 182
-        opacity: opened ? 1 : 0
-        scale: opened ? 1 : 0.985
-        transform: Translate {
-            y: launcherWindow.opened ? 0 : 18
+        width: Math.min(720, launcherWindow.width - 32)
+        // Csak a keresosor: 16 felso margo + 40 sor + 12 also margo = 68.
+        // Listaval meg: 12 terkoz + 1 vonal + 12 terkoz a lista folott,
+        // alatta 12 terkoz + 16 labsor = 121 + lista.
+        height: listVisible ? Math.min(520, launcherWindow.height - launcherWindow.barHeight - 12, 121 + Math.max(44, resultsHeight)) : 68
+        clip: true
 
-            Behavior on y {
-                NumberAnimation {
-                    duration: launcherWindow.opened ? 240 : 120
-                    easing.type: launcherWindow.opened ? Easing.OutQuart : Easing.InQuad
-                }
-            }
-        }
+        SharedUi.PopupFrame {
+            id: sheet
 
-        Rectangle {
             anchors.fill: parent
-            color: panelBg
-            border.color: Qt.rgba(1, 1, 1, 0.12)
-            border.width: 1
-            radius: 0
-            clip: true
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 1
-                height: 2
-                color: panelAccent
-            }
-
-            SharedUi.ShellLogo {
-                anchors.right: parent.right
-                anchors.rightMargin: -34
-                anchors.top: parent.top
-                anchors.topMargin: -54
-                size: 190
-                color: panelFg
-                opacity: 0.025
-            }
+            theme: launcherWindow.theme
+            shown: launcherWindow.opened
 
             MouseArea {
                 anchors.fill: parent
@@ -710,122 +691,63 @@ PanelWindow {
 
             Column {
                 anchors.fill: parent
-                anchors.leftMargin: 24
-                anchors.rightMargin: 24
-                anchors.topMargin: 20
-                anchors.bottomMargin: 16
-                spacing: 10
+                anchors.leftMargin: 20
+                anchors.rightMargin: 20
+                anchors.topMargin: 16
+                anchors.bottomMargin: 12
+                spacing: 12
 
+                // Kereso es modvalaszto egy sorban: a ket mod ket csendes chip.
                 Item {
                     width: parent.width
-                    height: 44
+                    height: 40
 
-                    SharedUi.ShellLogo {
-                        id: launcherMark
+                    SharedUi.SearchField {
+                        id: searchField
 
                         anchors.left: parent.left
+                        anchors.right: modeSwitch.left
+                        anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
-                        size: 38
-                        color: panelAccent
+                        opened: launcherWindow.opened
+                        indicator: projectMode ? ">" : "⌕"
+                        placeholder: projectMode ? "Search projects in ~/Projects..." : "Search apps, actions and emoji..."
+                        surface: inkBg
+                        foreground: panelFg
+                        accent: panelAccent
+                        muted: mutedFg
+                        onTextEdited: (text) => {
+                            return query = text;
+                        }
+                        onKeyPressed: (event) => {
+                            return handleKey(event);
+                        }
                     }
 
-                    Column {
-                        anchors.left: launcherMark.right
-                        anchors.leftMargin: 14
+                    Row {
+                        id: modeSwitch
+
+                        anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 0
+                        spacing: 4
 
-                        Text {
-                            text: "Vellum"
-                            color: panelFg
-                            font.family: "serif"
-                            font.pixelSize: 22
-                            font.weight: Font.Medium
-                        }
+                        Repeater {
+                            model: [{
+                                "label": "Search",
+                                "prefix": ""
+                            }, {
+                                "label": "Projects",
+                                "prefix": ">"
+                            }]
 
-                        Text {
-                            text: "Apps, actions and emoji"
-                            color: mutedFg
-                            font.pixelSize: 10
-                        }
+                            SharedUi.HeaderChip {
+                                required property var modelData
 
-                    }
-
-                }
-
-                SharedUi.SearchField {
-                    id: searchField
-
-                    width: parent.width
-                    height: 52
-                    opened: launcherWindow.opened
-                    indicator: projectMode ? ">" : "⌕"
-                    placeholder: projectMode ? "Search projects in ~/Projects..." : "Search apps, actions and emoji..."
-                    inputLeftMargin: 44
-                    inputVerticalPadding: 12
-                    surface: inkBg
-                    foreground: panelFg
-                    accent: panelAccent
-                    muted: mutedFg
-                    onTextEdited: (text) => {
-                        return query = text;
-                    }
-                    onKeyPressed: (event) => {
-                        return handleKey(event);
-                    }
-                }
-
-                Grid {
-                    width: parent.width
-                    height: 28
-                    columns: 2
-                    columnSpacing: 6
-
-                    Repeater {
-                        model: [{
-                            "label": "SEARCH",
-                            "prefix": ""
-                        }, {
-                            "label": "PROJECTS",
-                            "prefix": ">"
-                        }]
-
-                        Rectangle {
-                            readonly property bool activeMode: modeActive(modelData.prefix)
-
-                            width: (parent.width - 6) / 2
-                            height: 27
-                            color: modeMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.bottom: parent.bottom
-                                height: activeMode ? 2 : 1
-                                color: activeMode ? panelAccent : mutedFg
-                                opacity: activeMode ? 1 : 0.22
-                            }
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 8
-
-                                Text {
-                                    text: modelData.label
-                                    color: activeMode ? panelAccent : mutedFg
-                                    font.pixelSize: 10
-                                    font.bold: activeMode
-                                    font.letterSpacing: 1.1
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: modeMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                theme: launcherWindow.theme
+                                label: modelData.label
+                                checkable: true
+                                checked: modeActive(modelData.prefix)
+                                accessibleName: qsTr("%1 mode").arg(modelData.label)
                                 onClicked: selectMode(modelData.prefix)
                             }
 
@@ -835,49 +757,26 @@ PanelWindow {
 
                 }
 
-                Item {
-                    visible: listVisible
-                    width: parent.width
-                    height: 18
-
-                    Text {
-                        anchors.left: parent.left
-                        text: modeTitle + "  ·  " + visibleItems.length + (visibleItems.length === 1 ? " RESULT" : " RESULTS")
-                        color: panelAccent
-                        font.pixelSize: 9
-                        font.letterSpacing: 1.2
-                        font.bold: true
-                    }
-
-                    Text {
-                        anchors.right: parent.right
-                        text: "↑↓  SELECT     ENTER  OPEN     ESC  CLOSE"
-                        color: mutedFg
-                        font.family: "monospace"
-                        font.pixelSize: 9
-                    }
-
-                }
-
                 Rectangle {
                     visible: listVisible
                     width: parent.width
                     height: 1
                     color: mutedFg
-                    opacity: 0.2
+                    opacity: 0.14
                 }
 
+                // A lista kitolti, ami a fejresz es a labsor kozott marad.
                 Item {
                     visible: listVisible
                     width: parent.width
-                    height: parent.height - 195
+                    height: Math.max(0, parent.height - y - footer.height - parent.spacing)
 
                     Text {
                         visible: visibleItems.length === 0
                         anchors.centerIn: parent
-                        text: projectMode ? "No projects found in ~/Projects" : "NO RESULTS"
+                        text: projectMode ? "No projects found in ~/Projects" : "No results"
                         color: mutedFg
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                     }
 
                     ListView {
@@ -888,55 +787,49 @@ PanelWindow {
                         boundsBehavior: Flickable.StopAtBounds
                         visible: visibleItems.length > 0
                         interactive: contentHeight > height
-                        model: launcherWindow.opened ? visibleItems : []
-                        spacing: 4
+                        model: launcherWindow.visible ? visibleItems : []
+                        spacing: 2
                         reuseItems: true
                         cacheBuffer: 92
 
                         delegate: LauncherUi.LauncherResultRow {
-                                    width: ListView.view.width
-                                    result: modelData
-                                    resultIndex: index
-                                    selected: index === selectedIndex
-                                    pendingConfirm: index === pendingConfirmIndex
-                                    hoverSelectionEnabled: !suppressHoverSelection
-                                    title: itemTitle(modelData)
-                                    subtitle: itemSubtitle(modelData)
-                                    glyph: itemIcon(modelData)
-                                    appIconSource: modelData.type === "app" ? iconResolver.resolve(modelData.app) : ""
-                                    appFallbackIcon: iconResolver.fallbackIcon(modelData.app)
-                                    foregroundColor: panelFg
-                                    accentColor: panelAccent
-                                    mutedColor: mutedFg
-                                    selectionColor: inkBg
-                                    onHoverRequested: (rowIndex) => {
-                                        selectedIndex = rowIndex;
-                                    }
-                                    onActivationRequested: (rowIndex) => {
-                                        suppressHoverSelection = false;
-                                        selectedIndex = rowIndex;
-                                        activateSelected();
-                                    }
+                            width: ListView.view.width - (resultsList.interactive ? 8 : 0)
+                            result: modelData
+                            resultIndex: index
+                            selected: index === selectedIndex
+                            pendingConfirm: index === pendingConfirmIndex
+                            hoverSelectionEnabled: !suppressHoverSelection
+                            title: itemTitle(modelData)
+                            subtitle: itemSubtitle(modelData)
+                            glyph: itemIcon(modelData)
+                            appIconSource: modelData.type === "app" ? iconResolver.resolve(modelData.app) : ""
+                            appFallbackIcon: iconResolver.fallbackIcon(modelData.app)
+                            foregroundColor: panelFg
+                            accentColor: panelAccent
+                            mutedColor: mutedFg
+                            selectionColor: inkBg
+                            onHoverRequested: (rowIndex) => {
+                                selectedIndex = rowIndex;
+                            }
+                            onActivationRequested: (rowIndex) => {
+                                suppressHoverSelection = false;
+                                selectedIndex = rowIndex;
+                                activateSelected();
+                            }
                         }
 
                     }
 
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 2
-                        color: mutedFg
-                        opacity: resultsList.visible && resultsList.interactive ? 0.18 : 0
-                    }
-
+                    // Csak a csuszka latszik, savja nincs: gorgetheto listanal
+                    // ennyi jelzes eleg.
                     Rectangle {
                         anchors.right: parent.right
                         width: 2
+                        radius: 1
                         height: resultsList.visible && resultsList.contentHeight > 0 ? Math.max(24, parent.height * resultsList.visibleArea.heightRatio) : 0
                         y: resultsList.visible ? resultsList.visibleArea.yPosition * parent.height : 0
-                        color: panelAccent
-                        opacity: resultsList.visible && resultsList.interactive ? 0.9 : 0
+                        color: mutedFg
+                        opacity: resultsList.visible && resultsList.interactive ? 0.5 : 0
 
                         Behavior on y {
                             NumberAnimation {
@@ -950,6 +843,32 @@ PanelWindow {
 
                 }
 
+                Item {
+                    id: footer
+
+                    visible: listVisible
+                    width: parent.width
+                    height: 16
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modeTitle + "  ·  " + visibleItems.length
+                        color: mutedFg
+                        font.pixelSize: 10
+                    }
+
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "↑↓ select   ↵ open   tab mode   esc close"
+                        color: mutedFg
+                        font.family: "monospace"
+                        font.pixelSize: 9
+                    }
+
+                }
+
             }
 
         }
@@ -958,22 +877,6 @@ PanelWindow {
             NumberAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: launcherWindow.opened ? 160 : 110
-                easing.type: launcherWindow.opened ? Easing.OutQuart : Easing.InQuad
-            }
-
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: launcherWindow.opened ? 260 : 130
-                easing.type: launcherWindow.opened ? Easing.OutQuart : Easing.InQuad
             }
 
         }

@@ -7,6 +7,7 @@ PanelWindow {
     id: notifyWindow
 
     property var theme: null
+    property int barHeight: 26
     property alias dnd: controller.dnd
     property alias currentNotification: controller.currentNotification
     property alias toastVisible: controller.toastVisible
@@ -40,12 +41,14 @@ PanelWindow {
         setMenuOpen(!(menuOpened && (!targetScreen || screen === targetScreen)), targetScreen)
     }
 
-    visible: menuExpanded || controller.toastVisible || toast.opacity > 0
-    implicitWidth: 360
-    implicitHeight: Math.max(132, toast.height)
+    visible: menuExpanded || controller.toastVisible || toast.reveal > 0
+    implicitWidth: toast.width
+    implicitHeight: toast.height
     color: "transparent"
     anchors { top: true; right: true; bottom: menuExpanded; left: menuExpanded }
-    margins { top: menuExpanded ? 0 : 34; right: menuExpanded ? 0 : 14 }
+    // A felugro ertesites a sav aljahoz es a kepernyo jobb szelehez tapad, es a
+    // sav mogul csuszik le -- az ablak teteje vagja le a sav feletti reszt.
+    margins { top: menuExpanded ? 0 : barHeight; right: 0 }
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.notifications"
     WlrLayershell.exclusiveZone: -1
@@ -59,7 +62,7 @@ PanelWindow {
     NotificationUi.NotificationToast {
         id: toast
         anchors.right: parent.right
-        y: 0
+        y: notifyWindow.menuExpanded ? notifyWindow.barHeight : 0
         theme: notifyWindow.theme
         notification: controller.currentNotification
         actions: controller.currentActions
@@ -77,6 +80,7 @@ PanelWindow {
         id: center
         anchors.fill: parent
         theme: notifyWindow.theme
+        barHeight: notifyWindow.barHeight
         opened: controller.menuOpened
         dnd: controller.dnd
         history: controller.history

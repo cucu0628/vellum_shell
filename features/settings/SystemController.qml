@@ -15,6 +15,8 @@ Item {
     property bool powerProfilesAvailable: false
     property var lockscreenMonitors: []
     property string lockscreenMonitor: ""
+    // Percben, szovegkent (a SettingSelect erteke); "0" = soha.
+    property string lockIdleMinutes: "0"
     property var diagnosticFacts: []
     property var backendModules: []
     property var failedServices: []
@@ -173,8 +175,27 @@ Item {
         write.running = true;
     }
 
+    function setLockIdleMinutes(value) {
+        lockIdleMinutes = value;
+        lockIdleFile.setText(value + "\n");
+    }
+
     Process {
         id: write
+    }
+
+    // A lock (features/lock/LockRoot.qml) ugyanezt a fajlt figyeli.
+    FileView {
+        id: lockIdleFile
+
+        path: controller.shellDir + "/lock-idle-minutes"
+        atomicWrites: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: controller.lockIdleMinutes = String(Math.max(0, parseInt(lockIdleFile.text().trim(), 10) || 0))
+        onFileChanged: lockIdleFile.reload()
+        onLoadFailed: controller.lockIdleMinutes = "0"
+        onSaveFailed: controller.diagnosticsMessage = "The lock timeout could not be saved."
     }
 
     FileView {

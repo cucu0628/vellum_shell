@@ -15,8 +15,11 @@ QtObject {
     // `--class`-bol veszi. Sajat osztaly kell, hogy a kozos floating-terminal
     // ablakaitol meg tudjuk kulonboztetni.
     readonly property string appId: "vellum.fastfetch"
+    // A fastfetch kimenete 23 sor; ennyi plusz a zaro sortores es egy sor
+    // tartalek kell, kulonben a terminal felfele gorget, es a logo elcsuszik a
+    // szovegtol.
     readonly property int windowWidth: 860
-    readonly property int windowHeight: 545
+    readonly property int windowHeight: 600
 
     property int pendingRefreshes: 0
 

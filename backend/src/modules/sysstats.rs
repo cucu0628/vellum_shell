@@ -42,7 +42,7 @@ impl Module for SysStats {
     fn describe(&self) -> ModuleDescription {
         ModuleDescription {
             topic: "sysstats",
-            summary: "CPU-, RAM- es lemezhasznalat.",
+            summary: "CPU-, RAM- es lemezhasznalat, uptime.",
             streams: true,
             methods: Vec::new(),
         }
@@ -50,34 +50,46 @@ impl Module for SysStats {
 
     async fn run(self: Arc<Self>, sink: StateSink) -> Result<()> {
         let mut cpu = CpuSampler::default();
-        let mut disk_usage = disk_usage_percent();
+        let mut disk = Disk::read();
         let mut disk_checked = Instant::now();
 
         // Az elso CPU-minta meg nem ad hasznalati szazalekot: kell hozza ket
         // pont. Ezert a CPU nullaval indul, de a RAM es a lemez mar most valos
         // -- igy a feliratkozonak nincs egy masodperces ures ablaka.
         cpu.sample();
-        sink.push(json!({
-            "cpuUsage": 0,
-            "ramUsage": ram_usage_percent(),
-            "diskUsage": disk_usage,
-        }));
+        sink.push(payload(0, &Memory::read(), &disk));
 
         loop {
             tokio::time::sleep(TICK).await;
 
             if disk_checked.elapsed() >= DISK_EVERY {
-                disk_usage = disk_usage_percent();
+                disk = Disk::read();
                 disk_checked = Instant::now();
             }
 
-            sink.push(json!({
-                "cpuUsage": cpu.sample().unwrap_or(0),
-                "ramUsage": ram_usage_percent(),
-                "diskUsage": disk_usage,
-            }));
+            sink.push(payload(cpu.sample().unwrap_or(0), &Memory::read(), &disk));
         }
     }
+}
+
+/// A topic egy allapota. A harom szazalek a regi szerzodes; a GiB-ertekek es
+/// az uptime kesobbi, visszafele kompatibilis bovites.
+fn payload(cpu_usage: u32, memory: &Memory, disk: &Disk) -> serde_json::Value {
+    json!({
+        "cpuUsage": cpu_usage,
+        "ramUsage": memory.percent(),
+        "diskUsage": disk.percent(),
+        "ramUsedGib": gib(memory.used_bytes()),
+        "ramTotalGib": gib(memory.total_bytes()),
+        "diskUsedGib": gib(disk.used_bytes()),
+        "diskTotalGib": gib(disk.usable_bytes()),
+        "uptimeSeconds": uptime_seconds(),
+    })
+}
+
+/// Egy tizedesre kerekitett GiB.
+fn gib(bytes: u64) -> f64 {
+    (bytes as f64 / 1024f64.powi(3) * 10.0).round() / 10.0
 }
 
 /// Ket egymast koveto `/proc/stat` minta kulonbsegebol szamol.
@@ -120,41 +132,95 @@ impl CpuSampler {
     }
 }
 
-fn ram_usage_percent() -> u32 {
-    let Ok(text) = std::fs::read_to_string("/proc/meminfo") else {
-        return 0;
-    };
+/// A `/proc/meminfo` ket sora, kibibyte-ban.
+#[derive(Default)]
+struct Memory {
+    total_kib: u64,
+    available_kib: u64,
+}
 
-    let value_of = |key: &str| -> Option<u64> {
-        text.lines().find(|line| line.starts_with(key))?.split_whitespace().nth(1)?.parse().ok()
-    };
+impl Memory {
+    fn read() -> Self {
+        let Ok(text) = std::fs::read_to_string("/proc/meminfo") else {
+            return Self::default();
+        };
 
-    match (value_of("MemTotal:"), value_of("MemAvailable:")) {
-        (Some(total), Some(available)) if total > 0 => {
-            ((total.saturating_sub(available)) * 100 / total).min(100) as u32
+        let value_of = |key: &str| -> Option<u64> {
+            text.lines().find(|line| line.starts_with(key))?.split_whitespace().nth(1)?.parse().ok()
+        };
+
+        match (value_of("MemTotal:"), value_of("MemAvailable:")) {
+            (Some(total_kib), Some(available_kib)) => Self { total_kib, available_kib },
+            _ => Self::default(),
         }
-        _ => 0,
+    }
+
+    fn used_kib(&self) -> u64 {
+        self.total_kib.saturating_sub(self.available_kib)
+    }
+
+    fn used_bytes(&self) -> u64 {
+        self.used_kib() * 1024
+    }
+
+    fn total_bytes(&self) -> u64 {
+        self.total_kib * 1024
+    }
+
+    fn percent(&self) -> u32 {
+        if self.total_kib == 0 {
+            return 0;
+        }
+        (self.used_kib() * 100 / self.total_kib).min(100) as u32
     }
 }
 
 /// A gyoker fajlrendszer telitettsege. A `df` helyett `statvfs`, ugyanazzal a
 /// szamitassal, amit a `df` hasznal (a rootnak fenntartott blokkok nelkul).
-fn disk_usage_percent() -> u32 {
-    let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
-    let path = c"/";
+#[derive(Default)]
+struct Disk {
+    used_blocks: u64,
+    usable_blocks: u64,
+    block_size: u64,
+}
 
-    // SAFETY: a `path` ervenyes, NUL-lal lezart C string, a `stat` pedig egy
-    // megfeleloen meretezett, irhato buffer.
-    if unsafe { libc::statvfs(path.as_ptr(), &mut stat) } != 0 {
-        return 0;
+impl Disk {
+    fn read() -> Self {
+        let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+        let path = c"/";
+
+        // SAFETY: a `path` ervenyes, NUL-lal lezart C string, a `stat` pedig egy
+        // megfeleloen meretezett, irhato buffer.
+        if unsafe { libc::statvfs(path.as_ptr(), &mut stat) } != 0 {
+            return Self::default();
+        }
+
+        let used_blocks = stat.f_blocks.saturating_sub(stat.f_bfree);
+        Self { used_blocks, usable_blocks: used_blocks + stat.f_bavail, block_size: stat.f_frsize }
     }
 
-    let total = stat.f_blocks.saturating_sub(stat.f_bfree);
-    let usable = total + stat.f_bavail;
-    if usable == 0 {
-        return 0;
+    fn used_bytes(&self) -> u64 {
+        self.used_blocks * self.block_size
     }
-    (total * 100).div_ceil(usable).min(100) as u32
+
+    fn usable_bytes(&self) -> u64 {
+        self.usable_blocks * self.block_size
+    }
+
+    fn percent(&self) -> u32 {
+        if self.usable_blocks == 0 {
+            return 0;
+        }
+        (self.used_blocks * 100).div_ceil(self.usable_blocks).min(100) as u32
+    }
+}
+
+/// A rendszer futasi ideje masodpercben, a `/proc/uptime` elso mezojebol.
+fn uptime_seconds() -> u64 {
+    std::fs::read_to_string("/proc/uptime")
+        .ok()
+        .and_then(|text| text.split_whitespace().next()?.parse::<f64>().ok())
+        .map_or(0, |seconds| seconds as u64)
 }
 
 #[cfg(test)]
@@ -163,14 +229,32 @@ mod tests {
 
     #[test]
     fn ram_usage_is_a_percentage() {
-        let usage = ram_usage_percent();
-        assert!(usage <= 100, "ertelmetlen RAM szazalek: {usage}");
+        let memory = Memory::read();
+        assert!(memory.percent() <= 100, "ertelmetlen RAM szazalek: {}", memory.percent());
+        assert!(memory.used_bytes() <= memory.total_bytes());
     }
 
     #[test]
     fn disk_usage_is_a_percentage() {
-        let usage = disk_usage_percent();
+        let disk = Disk::read();
+        let usage = disk.percent();
         assert!(usage > 0 && usage <= 100, "ertelmetlen lemez szazalek: {usage}");
+        assert!(disk.used_bytes() <= disk.usable_bytes());
+    }
+
+    #[test]
+    fn payload_keeps_the_original_fields() {
+        let value = payload(7, &Memory::read(), &Disk::read());
+        for key in ["cpuUsage", "ramUsage", "diskUsage", "ramTotalGib", "uptimeSeconds"] {
+            assert!(value.get(key).is_some(), "hianyzik: {key}");
+        }
+        assert_eq!(value["cpuUsage"], 7);
+    }
+
+    #[test]
+    fn gib_rounds_to_one_decimal() {
+        assert_eq!(gib(1024 * 1024 * 1024), 1.0);
+        assert_eq!(gib(1610612736), 1.5);
     }
 
     #[test]

@@ -22,7 +22,7 @@ Item {
 
     readonly property int iconWidth: 20
     readonly property int gap: 2
-    readonly property bool highlighted: mouse.containsMouse || root.popupOpen
+    readonly property bool highlighted: root.popupOpen
     readonly property int activeCount: (root.micActive ? 1 : 0) + (root.cameraActive ? 1 : 0)
 
     signal clicked()
@@ -40,14 +40,11 @@ Item {
     // Ugyanaz a szabaly, mint a bar tobbi elemenel: az akcentus-csik a
     // kijelolest jelenti, nem az allapotot. Allandoan bekapcsolva egy szines
     // blokk ult a sav aljan, ami semmi ujat nem mondott az ikonhoz kepest.
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: root.highlighted ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: mouse.containsMouse
+        active: root.popupOpen
+        z: -1
     }
 
     Row {

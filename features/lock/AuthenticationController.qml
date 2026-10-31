@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Pam
 
 QtObject {
@@ -10,6 +11,17 @@ QtObject {
     property bool unlockInProgress: false
     property bool failed: false
     property string statusText: "Enter password"
+    // A sajat PAM-konfigot (/etc/pam.d/vellum-shell) a setup.sh telepiti, sudo-val.
+    // Ha hianyzik, a Quickshell el sem inditja a PamContextet, es a zarolas
+    // feloldhatatlan lenne. Ilyenkor a rendszer `login` konfigjat hasznaljuk,
+    // ami minden disztribucion megvan (a DMS is igy csinalja).
+    property bool forceSystemLogin: false
+    readonly property string pamConfig: ownPamConfig.loaded && !forceSystemLogin ? "vellum-shell" : "login"
+
+    property FileView ownPamConfig: FileView {
+        path: "/etc/pam.d/vellum-shell"
+        printErrors: false
+    }
 
     signal succeeded()
 
@@ -27,7 +39,7 @@ QtObject {
         unlockInProgress = true
         failed = false
         statusText = "Checking..."
-        if (!pam.start()) {
+        if (!pam.start() && !retryWithSystemLogin()) {
             unlockInProgress = false
             submittedPassword = ""
             failed = true
@@ -35,8 +47,18 @@ QtObject {
         }
     }
 
+    // Ha a sajat konfig megvan, de megsem indul (serult, rossz include), egy
+    // masodik probalkozas a `login` konfiggal.
+    function retryWithSystemLogin() {
+        if (pamConfig === "login") return false
+        console.warn("Lock: a vellum-shell PAM-konfig nem indul, visszaesunk a login konfigra")
+        forceSystemLogin = true
+        return pam.start()
+    }
+
     property PamContext pam: PamContext {
-        config: "vellum-shell"
+        config: root.pamConfig
+        configDirectory: "/etc/pam.d"
         user: Quickshell.env("USER")
 
         onPamMessage: {

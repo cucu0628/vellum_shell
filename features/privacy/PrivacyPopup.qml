@@ -1,29 +1,39 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import "../../ui" as SharedUi
 
 // Names whoever is holding the microphone or the camera. It sits on the left
 // edge because the indicator that opens it lives next to the workspaces, and it
 // closes itself once the last capture ends, so it never outlives its own icon.
+//
+// Same anatomy as the other drop-down panels: one status card says what is
+// being captured, then a section per device lists the apps behind it. Only the
+// card carries the accent; the rows stay neutral, since every one of them is
+// "in use" and marking them all would say nothing.
 PanelWindow {
     id: privacyWindow
 
     property var theme: null
     property var statusController: null
     property bool opened: false
+    property int barHeight: 26
 
     readonly property var micUsers: statusController ? statusController.micUsers : []
     readonly property var cameraUsers: statusController ? statusController.cameraUsers : []
-    readonly property bool anyActive: micUsers.length > 0 || cameraUsers.length > 0
-    readonly property string panelBg: theme ? theme.background : "#15110f"
-    readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
-    readonly property string panelAccent: theme ? theme.accent : "#d7472f"
-    readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
-    readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
+    readonly property bool micActive: micUsers.length > 0
+    readonly property bool cameraActive: cameraUsers.length > 0
+    readonly property bool anyActive: micActive || cameraActive
+    readonly property var sections: {
+        var list = []
+        if (micActive) list.push({ "title": "MICROPHONE", "glyph": "󰍬", "users": micUsers })
+        if (cameraActive) list.push({ "title": "CAMERA", "glyph": "󰄀", "users": cameraUsers })
+        return list
+    }
 
     onAnyActiveChanged: if (!anyActive) opened = false
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.privacy"
@@ -39,187 +49,105 @@ PanelWindow {
 
     Item {
         id: content
-        anchors.left: parent.left
-        anchors.leftMargin: 10
-        enabled: privacyWindow.opened
-        y: 32
-        width: Math.min(340, parent.width - 20)
-        height: privacyWindow.opened ? Math.min(panel.implicitHeight + 32, parent.height - 46) : 0
-        clip: true
-        opacity: privacyWindow.opened ? 1 : 0
 
-        Rectangle {
+        anchors.left: parent.left
+        enabled: privacyWindow.opened
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: privacyWindow.barHeight
+        width: Math.min(360, parent.width - 20)
+        // Margok (32), fejlec (34), allapotkartya (72), ket koz (24) es a szakaszok.
+        height: Math.min(parent.height - privacyWindow.barHeight - 12, 162 + sectionColumn.implicitHeight)
+        clip: true
+
+        Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
+
+        SharedUi.PopupFrame {
+            id: sheet
+
+            leftEar: false
+            squareLeft: true
+            shown: privacyWindow.opened
             anchors.fill: parent
-            color: privacyWindow.panelBg
-            border.color: privacyWindow.panelAccent
-            border.width: 1
-            clip: true
+            theme: privacyWindow.theme
 
             MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
 
             Column {
-                id: panel
                 anchors.fill: parent
                 anchors.margins: 16
-                spacing: 10
+                spacing: 12
 
-                Row {
+                SharedUi.PopupHeader {
                     width: parent.width
-                    height: 36
-                    spacing: 10
-
-                    Rectangle {
-                        width: 36
-                        height: 36
-                        color: privacyWindow.panelAccent
-                        Text {
-                            anchors.centerIn: parent
-                            text: "󰈈"
-                            color: privacyWindow.panelBg
-                            font.family: "Symbols Nerd Font Mono"
-                            font.pixelSize: 20
-                            font.weight: Font.DemiBold
-                        }
-                    }
-
-                    Column {
-                        width: parent.width - 46
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-                        Text {
-                            width: parent.width
-                            text: "PRIVACY"
-                            color: privacyWindow.panelFg
-                            font.pixelSize: 12
-                            font.letterSpacing: 3
-                            font.bold: true
-                        }
-                        Text {
-                            width: parent.width
-                            text: "Live microphone and camera access"
-                            color: privacyWindow.mutedFg
-                            font.pixelSize: 9
-                            elide: Text.ElideRight
-                        }
-                    }
+                    theme: privacyWindow.theme
+                    title: "Privacy"
                 }
 
-                Repeater {
-                    model: [
-                        { "title": "MICROPHONE", "icon": "󰍬", "users": privacyWindow.micUsers },
-                        { "title": "CAMERA", "icon": "󰄀", "users": privacyWindow.cameraUsers }
-                    ]
+                SharedUi.StatusCard {
+                    width: parent.width
+                    theme: privacyWindow.theme
+                    active: privacyWindow.anyActive
+                    glyph: privacyWindow.cameraActive ? "󰄀" : "󰍬"
+                    title: privacyWindow.micActive && privacyWindow.cameraActive
+                        ? "Microphone and camera in use"
+                        : (privacyWindow.cameraActive ? "Camera in use"
+                            : (privacyWindow.micActive ? "Microphone in use" : "Nothing is capturing"))
+                    subtitle: privacyWindow.micActive && privacyWindow.cameraActive
+                        ? "Recording audio and video"
+                        : (privacyWindow.cameraActive ? "Microphone is idle"
+                            : (privacyWindow.micActive ? "Camera is idle" : ""))
+                }
 
-                    delegate: Rectangle {
-                        id: sectionCard
+                Flickable {
+                    width: parent.width
+                    height: parent.height - 130
+                    contentHeight: sectionColumn.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
 
-                        required property var modelData
-                        readonly property var users: modelData.users || []
+                    Column {
+                        id: sectionColumn
 
                         width: parent.width
-                        height: sectionColumn.implicitHeight + 24
-                        color: privacyWindow.inkBg
-                        border.color: Qt.rgba(1, 1, 1, 0.07)
+                        spacing: 8
 
-                        Rectangle {
-                            anchors.left: parent.left
-                            width: 3
-                            height: parent.height
-                            color: sectionCard.users.length > 0 ? privacyWindow.panelAccent : privacyWindow.mutedFg
-                        }
+                        Repeater {
+                            model: privacyWindow.sections
 
-                        Column {
-                            id: sectionColumn
-                            anchors.fill: parent
-                            anchors.leftMargin: 16
-                            anchors.rightMargin: 14
-                            anchors.topMargin: 12
-                            anchors.bottomMargin: 12
-                            spacing: 9
+                            delegate: Column {
+                                id: section
 
-                            Row {
-                                width: parent.width
-                                height: 18
-                                spacing: 8
+                                required property var modelData
 
-                                Text {
-                                    text: sectionCard.modelData.icon
-                                    color: sectionCard.users.length > 0 ? privacyWindow.panelAccent : privacyWindow.mutedFg
-                                    font.family: "Symbols Nerd Font Mono"
-                                    font.pixelSize: 15
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                                Text {
-                                    width: parent.width - 90
-                                    height: parent.height
-                                    text: sectionCard.modelData.title
-                                    color: privacyWindow.panelFg
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                    font.letterSpacing: 2
-                                }
-                                Text {
-                                    width: 58
-                                    height: parent.height
-                                    text: sectionCard.users.length > 0 ? "IN USE" : "IDLE"
-                                    color: sectionCard.users.length > 0 ? privacyWindow.panelAccent : privacyWindow.mutedFg
-                                    horizontalAlignment: Text.AlignRight
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.family: "monospace"
-                                    font.pixelSize: 9
-                                }
-                            }
+                                width: sectionColumn.width
+                                spacing: 4
 
-                            Rectangle {
-                                width: parent.width
-                                height: 1
-                                color: privacyWindow.panelAccent
-                                opacity: 0.18
-                            }
-
-                            Repeater {
-                                model: sectionCard.users
-
-                                delegate: Column {
-                                    required property var modelData
-
+                                SharedUi.SectionBar {
                                     width: parent.width
-                                    spacing: 2
+                                    theme: privacyWindow.theme
+                                    title: section.modelData.title
+                                    detail: String(section.modelData.users.length)
+                                }
 
-                                    Text {
-                                        width: parent.width
-                                        text: modelData.app
-                                        color: privacyWindow.panelFg
-                                        font.pixelSize: 11
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        width: parent.width
-                                        visible: (modelData.device || "") !== ""
-                                        text: modelData.device
-                                        color: privacyWindow.mutedFg
-                                        font.family: "monospace"
-                                        font.pixelSize: 8
-                                        elide: Text.ElideRight
+                                Repeater {
+                                    model: section.modelData.users
+
+                                    SharedUi.ListRow {
+                                        required property var modelData
+
+                                        width: section.width
+                                        theme: privacyWindow.theme
+                                        interactive: false
+                                        glyph: section.modelData.glyph
+                                        title: modelData.app
+                                        subtitle: modelData.device || ""
                                     }
                                 }
-                            }
-
-                            Text {
-                                width: parent.width
-                                visible: sectionCard.users.length === 0
-                                text: "Nothing is using it right now"
-                                color: privacyWindow.mutedFg
-                                font.pixelSize: 10
                             }
                         }
                     }
                 }
             }
         }
-
-        Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
     }
 }

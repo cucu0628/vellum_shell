@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
+import "../../ui" as SharedUi
 
 Item {
     id: root
@@ -23,6 +24,13 @@ Item {
         else if (!trayMouse.containsMouse) expanded = false
     }
     Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+
+    // A kinyilt talca egyetlen kozos hatteret kap, mint a sav tobbi eleme.
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: root.expanded
+        active: root.contextMenuOpen
+    }
 
     MouseArea {
         id: trayMouse
@@ -48,7 +56,7 @@ Item {
                 anchors.verticalCenterOffset: -1
                 width: 14
                 height: 14
-                property color iconColor: trayMouse.containsMouse && root.hasItems ? root.theme.accent : (root.hasItems ? root.theme.foreground : "#9f8f7c")
+                property color iconColor: root.contextMenuOpen ? root.theme.accent : (root.hasItems ? root.theme.foreground : "#9f8f7c")
                 onIconColorChanged: requestPaint()
                 onPaint: {
                     var ctx = getContext("2d")

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# A shell felugyelt futtatasa: osszeomlas utan ujrainditja.
+#
+# Leginkabb zarolt kepernyonel szamit. Ha a lock feluletet tarto Quickshell
+# elhal, a Hyprland a munkamenetet zarolva tartja, es csak egy uj lock-kliens
+# veheti vissza (`misc.allow_session_lock_restore`, a vellum_tuning.lua es a
+# `hypr.prepare` allitja be). Az ujrainditott shell a
+# $XDG_RUNTIME_DIR/vellum-shell-locked jelolobol tudja, hogy azonnal zarolnia
+# kell.
+#
+# Csak osszeomlast inditunk ujra. A szabalyos kilepes (0) es a kivulrol kert
+# leallitas (SIGINT, SIGKILL, SIGTERM -- pl. a theme-refresh `quickshell kill`-je)
+# nem az: ilyenkor a hivo maga dont az uj peldanyrol.
+set -euo pipefail
+
+shell_dir=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
+shell_path="$shell_dir/shell.qml"
+
+# Egy hibas QML-valtozas ne porgesse a gepet: ha `max_restarts` osszeomlas jon
+# `window` masodpercen belul, feladjuk.
+max_restarts=5
+window=60
+restarts=()
+
+export MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000'
+
+other_instance_running() {
+  local running
+  # Nem csovezzuk grep-be: `pipefail` alatt a korai grep-kilepes SIGPIPE-ja
+  # hamis eredmenyt adna.
+  running=$(quickshell list --all 2>/dev/null || true)
+  [[ $running == *"Config path: $shell_path"* ]]
+}
+
+while true; do
+  status=0
+  quickshell --path "$shell_path" || status=$?
+
+  case $status in
+    0 | 130 | 137 | 143) exit "$status" ;;
+  esac
+
+  # A Quickshell sajat crash-kezeloje is megprobal ujraindulni, es kozben egy
+  # theme-refresh is elindithatott egy uj peldanyt. Adunk nekik egy kis idot,
+  # es ha mar fut egy, nem duplazunk.
+  sleep 1
+  if other_instance_running; then
+    exit "$status"
+  fi
+
+  now=$(date +%s)
+  recent=()
+  for stamp in "${restarts[@]}"; do
+    if ((now - stamp < window)); then
+      recent+=("$stamp")
+    fi
+  done
+  restarts=("${recent[@]}" "$now")
+  if ((${#restarts[@]} > max_restarts)); then
+    printf 'vellum: a shell %s osszeomlas utan sem all helyre, feladom\n' "$max_restarts" >&2
+    exit "$status"
+  fi
+
+  printf 'vellum: a shell osszeomlott (kilepesi kod: %s), ujrainditas\n' "$status" >&2
+done

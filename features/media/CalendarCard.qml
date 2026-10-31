@@ -9,20 +9,26 @@ SharedUi.DashPanel {
     property var monthNames: []
     property var dayNames: []
     property bool dense: false
+    // "YYYY-M-D" -> esemenyek (core/CalendarController.eventsByDay). Ures, ha
+    // nincs naptar bekotve.
+    property var eventIndex: ({})
+    readonly property var markedDays: {
+        var marked = []
+        var year = now.getFullYear()
+        var month = now.getMonth()
+        var count = new Date(year, month + 1, 0).getDate()
+        for (var day = 1; day <= count; day++) {
+            if (eventIndex[year + "-" + (month + 1) + "-" + day]) marked.push(day)
+        }
+        return marked
+    }
     signal monthChangeRequested(int delta)
 
     readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
     readonly property color lineBg: Qt.rgba(1, 1, 1, 0.055)
 
-    function two(value) {
-        return value.toString().padStart(2, "0")
-    }
-
     title: "CALENDAR"
-    kanji: ""
-    trailing: card.today.getFullYear() + "." + two(card.today.getMonth() + 1) + "." + two(card.today.getDate())
     contentSpacing: 10
-    editorial: true
 
     Item {
         id: monthRow
@@ -30,22 +36,21 @@ SharedUi.DashPanel {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 26
+        height: 28
 
         Rectangle {
             id: prevButton
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            width: 26
-            height: 26
+            width: 28
+            height: 28
+            radius: 6
             color: prevMouse.containsMouse ? card.hoverBg : "transparent"
-            border.color: card.lineBg
-            border.width: 1
 
             Text {
                 anchors.centerIn: parent
                 text: "‹"
-                color: card.accent
+                color: prevMouse.containsMouse ? card.accent : card.muted
                 font.pixelSize: 18
             }
 
@@ -62,11 +67,10 @@ SharedUi.DashPanel {
             anchors.left: prevButton.right
             anchors.right: nextButton.left
             anchors.verticalCenter: parent.verticalCenter
-            text: (card.monthNames.length > 0 ? card.monthNames[card.now.getMonth()].toUpperCase() : "") + "  " + card.now.getFullYear()
+            text: (card.monthNames.length > 0 ? card.monthNames[card.now.getMonth()] : "") + " " + card.now.getFullYear()
             color: card.foreground
             font.pixelSize: 13
-            font.letterSpacing: 2
-            font.weight: Font.DemiBold
+            font.weight: Font.Medium
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
         }
@@ -75,16 +79,15 @@ SharedUi.DashPanel {
             id: nextButton
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: 26
-            height: 26
+            width: 28
+            height: 28
+            radius: 6
             color: nextMouse.containsMouse ? card.hoverBg : "transparent"
-            border.color: card.lineBg
-            border.width: 1
 
             Text {
                 anchors.centerIn: parent
                 text: "›"
-                color: card.accent
+                color: nextMouse.containsMouse ? card.accent : card.muted
                 font.pixelSize: 18
             }
 
@@ -104,6 +107,7 @@ SharedUi.DashPanel {
         anchors.top: monthRow.bottom
         anchors.topMargin: card.dense ? 10 : 14
         displayedDate: card.now
+        markedDays: card.markedDays
         dayNames: card.dayNames
         foreground: card.foreground
         muted: card.muted

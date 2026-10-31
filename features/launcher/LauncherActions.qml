@@ -15,6 +15,7 @@ import QtQuick
 QtObject {
     required property string homeDir
     required property string shellDir
+    property var terminal: null
     readonly property string shellPath: shellDir + "/shell.qml"
     readonly property string scriptsPath: shellDir + "/scripts"
 
@@ -36,7 +37,7 @@ QtObject {
         "name": "appearance",
         "terms": ["wallpaper", "background", "studio", "style"],
         "icon": "󰸌",
-        "subtitle": "Open Appearance Studio",
+        "subtitle": "Pick a wallpaper",
         "command": ipc("style", "wallpaper")
     }, {
         "name": "palette",
@@ -80,7 +81,7 @@ QtObject {
         "terms": ["term", "shell", "kitty"],
         "icon": "",
         "subtitle": "Open terminal",
-        "command": ["kitty"]
+        "command": terminal ? terminal.argv([]) : ["kitty"]
     }, {
         "name": "files",
         "terms": ["file", "folder", "nautilus", "home"],

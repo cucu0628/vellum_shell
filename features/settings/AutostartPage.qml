@@ -35,51 +35,38 @@ Item {
         return result;
     }
 
-    SettingsSection {
-        id: section
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        theme: page.theme
-        title: "Autostart / Services"
-        description: "Login applications and systemd user services"
-    }
-
+    // Az oldal cime a fejlecben all. Itt: nezetvalto es frissites, kereso, egy
+    // rovid osszesito sor, alatta a lista egy kerek kartyaban.
     Item {
         id: toolbar
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: section.bottom
-        height: 42
+        anchors.top: parent.top
+        height: 36
 
-        Row {
+        SegmentedTabs {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 8
-
-            SharedUi.ActionButton {
-                height: 28
-                theme: page.theme
-                label: "Login apps"
-                primary: page.mode === "autostart"
-                onClicked: page.mode = "autostart"
-            }
-
-            SharedUi.ActionButton {
-                height: 28
-                theme: page.theme
-                label: "User services"
-                primary: page.mode === "services"
-                onClicked: page.mode = "services"
+            theme: page.theme
+            model: [{
+                "label": "Login apps",
+                "value": "autostart"
+            }, {
+                "label": "User services",
+                "value": "services"
+            }]
+            value: page.mode
+            onActivated: (value) => {
+                page.mode = value;
+                searchField.text = "";
             }
         }
 
         SharedUi.ActionButton {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            height: 28
+            enabled: !page.loading
             theme: page.theme
             label: "Refresh"
             onClicked: page.controller.reload()
@@ -92,184 +79,195 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: toolbar.bottom
+        anchors.topMargin: 16
         height: 40
         opened: true
         indicator: "⌕"
-        placeholder: page.mode === "autostart" ? "Search login applications..." : "Search user services..."
+        placeholder: page.mode === "autostart" ? "Search login applications…" : "Search user services…"
         foreground: page.foreground
         accent: page.accent
         muted: page.muted
         surface: page.surface
         inputVerticalPadding: 10
         onTextEdited: (text) => page.query = text
+        onKeyPressed: (event) => {
+            if (event.key === Qt.Key_Escape && searchField.text !== "") {
+                searchField.text = "";
+                event.accepted = true;
+            }
+        }
     }
 
     Item {
         id: summary
 
         anchors.left: parent.left
+        anchors.leftMargin: 4
         anchors.right: parent.right
+        anchors.rightMargin: 16
         anchors.top: searchField.bottom
-        height: 34
+        height: 36
 
         Text {
             anchors.left: parent.left
+            anchors.right: columnHint.left
+            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            text: page.loading ? "Reading settings..." : (page.errorMessage !== "" ? page.errorMessage : page.filteredItems.length + " entries")
+            text: page.loading
+                ? "Reading settings…"
+                : (page.errorMessage !== ""
+                    ? page.errorMessage
+                    : (page.query.trim() === ""
+                        ? page.sourceItems.length + (page.mode === "autostart" ? " login applications" : " user services")
+                        : page.filteredItems.length + " of " + page.sourceItems.length))
+            textFormat: Text.PlainText
             color: page.errorMessage !== "" ? page.accent : page.muted
+            font.pixelSize: 11
+            elide: Text.ElideRight
+        }
+
+        // A kapcsolok oszlopanak jelentese, a kapcsolok folott.
+        Text {
+            id: columnHint
+
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Start at login"
+            color: page.muted
             font.pixelSize: 10
         }
     }
 
     Rectangle {
-        id: tableHeader
+        id: listCard
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: summary.bottom
-        height: 30
+        anchors.bottom: parent.bottom
+        radius: 12
         color: page.surface
 
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: 12
-            anchors.verticalCenter: parent.verticalCenter
-            text: page.mode === "autostart" ? "LOGIN APPLICATION" : "USER SERVICE"
-            color: page.accent
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 1.4
-        }
+        ListView {
+            id: entryList
 
-        Text {
-            anchors.right: parent.right
-            anchors.rightMargin: 12
-            anchors.verticalCenter: parent.verticalCenter
-            text: page.mode === "autostart" ? "START AT LOGIN" : "STATE / LOGIN"
-            color: page.accent
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 1.4
-        }
-    }
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.topMargin: 4
+            anchors.bottomMargin: 4
+            clip: true
+            model: page.filteredItems
+            boundsBehavior: Flickable.StopAtBounds
 
-    ListView {
-        id: entryList
+            delegate: Item {
+                id: entryRow
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: tableHeader.bottom
-        anchors.bottom: parent.bottom
-        clip: true
-        model: page.filteredItems
-        boundsBehavior: Flickable.StopAtBounds
+                required property var modelData
+                required property int index
 
-        delegate: Rectangle {
-            id: entryRow
-
-            required property var modelData
-            required property int index
-
-            width: ListView.view.width
-            height: 58
-            color: index % 2 === 0 ? "transparent" : Qt.rgba(1, 1, 1, 0.025)
-
-            Column {
-                anchors.left: parent.left
-                anchors.leftMargin: 12
-                anchors.right: controls.left
-                anchors.rightMargin: 18
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 3
-
-                Text {
-                    width: parent.width
-                    text: page.mode === "autostart" ? entryRow.modelData.name : entryRow.modelData.unit
-                    color: page.foreground
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    width: parent.width
-                    text: page.mode === "autostart"
-                        ? ((entryRow.modelData.command || "No command shown") + "  ·  " + entryRow.modelData.source)
-                        : ((entryRow.modelData.description || "User service") + "  ·  " + entryRow.modelData.unitState)
-                    color: page.muted
-                    font.family: "monospace"
-                    font.pixelSize: 9
-                    elide: Text.ElideRight
-                }
-            }
-
-            Row {
-                id: controls
-
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 10
+                width: ListView.view.width
+                height: 60
 
                 Rectangle {
-                    visible: page.mode === "services"
-                    width: 68
-                    height: 24
-                    color: "transparent"
-                    border.color: entryRow.modelData.active ? page.accent : page.muted
-                    border.width: 1
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 1
+                    visible: entryRow.index > 0
+                    color: page.muted
+                    opacity: 0.12
+                }
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: controls.left
+                    anchors.rightMargin: 24
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
 
                     Text {
-                        anchors.centerIn: parent
+                        width: parent.width
+                        text: page.mode === "autostart" ? entryRow.modelData.name : entryRow.modelData.unit
+                        textFormat: Text.PlainText
+                        color: page.foreground
+                        font.pixelSize: 13
+                        font.weight: Font.Medium
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: page.mode === "autostart"
+                            ? ((entryRow.modelData.command || "No command shown") + "  ·  " + entryRow.modelData.source)
+                            : ((entryRow.modelData.description || "User service") + "  ·  " + entryRow.modelData.unitState)
+                        textFormat: Text.PlainText
+                        color: page.muted
+                        font.family: page.mode === "autostart" ? "monospace" : "sans-serif"
+                        font.pixelSize: 10
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Row {
+                    id: controls
+
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 12
+
+                    StatusBadge {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: page.mode === "services"
+                        theme: page.theme
+                        active: entryRow.modelData.active === true
                         text: entryRow.modelData.active ? entryRow.modelData.substate : "stopped"
-                        color: entryRow.modelData.active ? page.accent : page.muted
-                        font.pixelSize: 9
+                    }
+
+                    SharedUi.ActionButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: page.mode === "services"
+                        enabled: page.controller.busyTarget === ""
+                        implicitWidth: 64
+                        theme: page.theme
+                        label: entryRow.modelData.active ? "Stop" : "Start"
+                        accessibleName: (entryRow.modelData.active ? "Stop " : "Start ") + entryRow.modelData.unit
+                        onClicked: page.controller.setServiceRunning(entryRow.modelData.unit, !entryRow.modelData.active)
+                    }
+
+                    SharedUi.SettingToggle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        enabled: page.controller.busyTarget === ""
+                            && (page.mode === "autostart" || entryRow.modelData.enableAllowed)
+                        opacity: enabled ? 1 : 0.45
+                        theme: page.theme
+                        checked: entryRow.modelData.enabled
+                        accessibleName: page.mode === "autostart"
+                            ? "Start " + entryRow.modelData.name + " at login"
+                            : "Enable " + entryRow.modelData.unit + " at login"
+                        onToggled: (value) => {
+                            if (page.mode === "autostart")
+                                page.controller.setAutostart(entryRow.modelData.id, value);
+                            else
+                                page.controller.setServiceEnabled(entryRow.modelData.unit, value);
+                        }
                     }
                 }
-
-                SharedUi.ActionButton {
-                    visible: page.mode === "services"
-                    enabled: page.controller.busyTarget === ""
-                    width: 66
-                    height: 26
-                    theme: page.theme
-                    label: entryRow.modelData.active ? "Stop" : "Start"
-                    onClicked: page.controller.setServiceRunning(entryRow.modelData.unit, !entryRow.modelData.active)
-                }
-
-                SharedUi.SettingToggle {
-                    enabled: page.controller.busyTarget === ""
-                        && (page.mode === "autostart" || entryRow.modelData.enableAllowed)
-                    theme: page.theme
-                    checked: entryRow.modelData.enabled
-                    accessibleName: page.mode === "autostart"
-                        ? "Start " + entryRow.modelData.name + " at login"
-                        : "Enable " + entryRow.modelData.unit + " at login"
-                    onToggled: (value) => {
-                        if (page.mode === "autostart")
-                            page.controller.setAutostart(entryRow.modelData.id, value);
-                        else
-                            page.controller.setServiceEnabled(entryRow.modelData.unit, value);
-                    }
-                }
-            }
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 1
-                color: page.muted
-                opacity: 0.1
             }
         }
-    }
 
-    Text {
-        anchors.centerIn: entryList
-        visible: !page.loading && page.filteredItems.length === 0
-        text: page.errorMessage !== "" ? page.errorMessage : "No matching entries."
-        color: page.muted
-        font.pixelSize: 11
+        Text {
+            anchors.centerIn: parent
+            width: parent.width - 48
+            visible: !page.loading && page.filteredItems.length === 0
+            text: page.errorMessage !== ""
+                ? page.errorMessage
+                : (page.query.trim() !== "" ? "No matching entries." : (page.mode === "autostart" ? "No login applications found." : "No user services found."))
+            textFormat: Text.PlainText
+            color: page.muted
+            font.pixelSize: 12
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+        }
     }
 }

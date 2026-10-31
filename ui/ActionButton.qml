@@ -4,12 +4,18 @@ import QtQuick
 // inditasa, visszaallitas, megerosites). A shell nem hasznal
 // QtQuick.Controls-t, ezert sajat -- de az akadalymentesitest es a
 // billentyuzetet ugyanugy tudnia kell, mint egy rendes gombnak.
+//
+// A lenyilo panelek HeaderChip-jevel egy csaladban: kerek, keret nelkuli. A
+// sima gomb halvany feher alapot kap, a `primary` akcentes arnyalatot es
+// akcentes feliratot -- telt akcentes gomb nincs. A `destructive` a tema
+// figyelmezteto szinet hasznalja (pl. visszaallitas).
 Rectangle {
     id: button
 
     property var theme: null
     property string label: ""
     property bool primary: false
+    property bool destructive: false
     // Amit a kepernyoolvaso mond. Alapertelmezesben maga a felirat.
     property string accessibleName: ""
     property string accessibleDescription: ""
@@ -17,7 +23,10 @@ Rectangle {
     readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
     readonly property string accent: theme ? theme.accent : "#b7372f"
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
-    readonly property string background: theme ? theme.background : "#11130f"
+    readonly property string warning: theme && theme.warning ? theme.warning : "#c9693f"
+    readonly property color toneColor: destructive ? warning : accent
+    readonly property bool toned: primary || destructive
+    readonly property bool hovered: buttonMouse.containsMouse
 
     signal clicked()
 
@@ -25,11 +34,15 @@ Rectangle {
         if (button.enabled) button.clicked()
     }
 
-    implicitWidth: Math.max(96, labelText.implicitWidth + 28)
-    implicitHeight: 30
-    color: button.primary ? button.accent : (buttonMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-    border.color: button.primary ? button.accent : button.muted
-    border.width: 1
+    implicitWidth: Math.max(80, labelText.implicitWidth + 28)
+    implicitHeight: 32
+    radius: 8
+    color: button.toned
+        ? Qt.rgba(button.toneColor.r, button.toneColor.g, button.toneColor.b, button.hovered ? 0.24 : 0.15)
+        : Qt.rgba(1, 1, 1, button.hovered ? 0.1 : 0.06)
+    opacity: button.enabled ? 1 : 0.45
+    // Nyomasra kicsit osszehuzodik, elengedve rugosan all vissza.
+    scale: buttonMouse.pressed ? 0.96 : 1
 
     activeFocusOnTab: enabled
     Keys.onSpacePressed: (event) => { button.activate(); event.accepted = true }
@@ -45,15 +58,19 @@ Rectangle {
         id: labelText
 
         anchors.centerIn: parent
+        width: Math.min(implicitWidth, button.width - 16)
         text: button.label
-        color: button.primary ? button.background : button.foreground
+        textFormat: Text.PlainText
+        color: button.toned ? button.toneColor : button.foreground
         font.pixelSize: 12
-        font.bold: button.primary
+        font.weight: button.toned ? Font.Medium : Font.Normal
+        elide: Text.ElideRight
     }
 
     FocusRing {
         theme: button.theme
         active: button.activeFocus
+        cornerRadius: button.radius
     }
 
     MouseArea {
@@ -67,7 +84,24 @@ Rectangle {
 
     Behavior on color {
         ColorAnimation {
-            duration: 110
+            duration: 120
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
+    Behavior on scale {
+        SpringAnimation {
+            spring: 9
+            damping: 0.55
+            epsilon: 0.0005
+        }
+
+    }
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 140
         }
 
     }

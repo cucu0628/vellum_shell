@@ -1,8 +1,10 @@
 import QtQuick
 
-// Egy beallitas sora: balra nev, jobbra a vezerlo. A rovid magyarazat
-// alapbol csak a kepernyoolvasonak marad meg; a fontos figyelmezteteseket a
-// hivo a `showDescription` kapcsoloval lathatova teheti.
+// Egy beallitas sora: balra nev es egy rovid magyarazat, jobbra a vezerlo. A
+// sor sajat hatteret nem rajzol: a beallitasoldalak egy kerek kartyaba
+// (SettingsSection) gyujtik a sorokat, ezek kozott csak egy hajszalvonal fut.
+// A magyarazat alapbol latszik; a hivo `showDescription: false`-szal csak a
+// kepernyoolvasonak hagyhatja meg.
 Rectangle {
     id: row
 
@@ -10,8 +12,11 @@ Rectangle {
     property var theme: null
     property string label: ""
     property string description: ""
-    property bool showDescription: false
+    property bool showDescription: true
     property int controlWidth: 260
+    // Tenyeket felsorolo, leiras nelkuli soroknal (diagnosztika) lehet kisebb,
+    // de 44 px ala nem megy.
+    property int minimumHeight: hasVisibleDescription ? 60 : 52
     readonly property bool hasVisibleDescription: showDescription && description !== ""
 
     // A sajat QML dropdown kilog a sorbol. Az egesz sort kell a testverei fole
@@ -46,26 +51,52 @@ Rectangle {
     onDescriptionChanged: publishAccessibleName()
     Component.onCompleted: publishAccessibleName()
 
+    // A ki/be kapcsolo sorban az egesz sor kattinthato, nem csak a kis sin.
+    readonly property var primaryControl: controlSlot.children.length > 0 ? controlSlot.children[0] : null
+    readonly property bool togglesOnClick: primaryControl !== null
+        && primaryControl.checked !== undefined
+        && typeof primaryControl.activate === "function"
+
     width: parent ? parent.width : 0
-    height: Math.max(row.hasVisibleDescription ? 58 : 50, textColumn.implicitHeight + 20)
+    height: Math.max(Math.max(44, row.minimumHeight), textColumn.implicitHeight + 24)
     z: controlRaised ? 1000 : 0
     color: "transparent"
     // Az `enabled` a QQuickItem-e: a gyerekekre magatol oroklodik, itt csak
     // lathatova tesszuk.
-    opacity: enabled ? 1 : 0.4
+    opacity: enabled ? 1 : 0.45
+
+    // Elvalaszto a kartyan beluli elozo sor felett. A kartya elso lathato
+    // eleme a Column tetejen all (y = 0), az nem kap vonalat.
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: 1
+        visible: row.y > 0
+        color: row.muted
+        opacity: 0.12
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        enabled: row.togglesOnClick
+        cursorShape: row.togglesOnClick ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: row.primaryControl.activate()
+    }
 
     Column {
         id: textColumn
 
         anchors.left: parent.left
         anchors.right: controlSlot.left
-        anchors.rightMargin: 20
+        anchors.rightMargin: 24
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 4
+        spacing: 2
 
         Text {
             width: parent.width
             text: row.label
+            textFormat: Text.PlainText
             color: row.foreground
             font.pixelSize: 13
             font.weight: Font.Medium
@@ -76,6 +107,7 @@ Rectangle {
             width: parent.width
             visible: row.hasVisibleDescription
             text: row.description
+            textFormat: Text.PlainText
             color: row.muted
             font.pixelSize: 11
             lineHeight: 1.15
@@ -91,15 +123,6 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: row.controlWidth
         height: parent.height
-    }
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 1
-        color: row.muted
-        opacity: 0.14
     }
 
 }

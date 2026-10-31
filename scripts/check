@@ -3,7 +3,11 @@
 #
 # Ugyanaz fut itt es a CI-ben, hogy a "nalam mukodik" ne lehessen kerdes. Ami
 # nincs telepitve, azt kihagyjuk es a vegen jelentjuk -- a shell fejlesztesehez
-# nem kell minden eszkoz meglennie.
+# nem kell minden eszkoz meglennie. A CI `VELLUM_CHECK_STRICT=1`-gyel fut: ott
+# egy kihagyott kapu is bukas, kulonben egy hianyzo csomag csendben zoldre
+# festene a jobot.
+#
+# Hasznalat: scripts/check [rust] [qml] [shell] -- argumentum nelkul mindet.
 #
 # Semmi olyat nem futtat, ami az elo asztalhoz nyul: se telepitot, se
 # temaalkalmazast, se energiakezelest.
@@ -14,6 +18,28 @@ cd "$repo"
 
 failed=()
 skipped=()
+
+groups=("$@")
+if ((${#groups[@]} == 0)); then
+  groups=(rust qml shell)
+fi
+for group in "${groups[@]}"; do
+  case $group in
+    rust | qml | shell) ;;
+    *)
+      printf 'ismeretlen csoport: %s (rust, qml vagy shell)\n' "$group" >&2
+      exit 2
+      ;;
+  esac
+done
+
+wants() {
+  local group
+  for group in "${groups[@]}"; do
+    [[ $group == "$1" ]] && return 0
+  done
+  return 1
+}
 
 step() {
   printf '\n\033[1m== %s\033[0m\n' "$1"
@@ -27,6 +53,16 @@ need() {
   return 1
 }
 
+# A cargo alparancsai (fmt, clippy) kulon komponensek: Fedoran kulon csomagok,
+# rustupnal kulon `component add`. Hianyukban kihagyas, nem bukas.
+need_cargo() {
+  if cargo "$1" --version >/dev/null 2>&1; then
+    return 0
+  fi
+  skipped+=("cargo $1 (nincs telepitve)")
+  return 1
+}
+
 run() {
   local name=$1
   shift
@@ -37,30 +73,60 @@ run() {
   return 0
 }
 
-if need python3 "Generator biztonsagi tesztek"; then
-  step "generator biztonsagi tesztek"
-  run "generator biztonsagi tesztek" python3 -B -m unittest discover -s tests -p 'test_*.py'
+# Qt6 eszkoz keresese. Archon /usr/lib/qt6/bin, Fedoran /usr/lib64/qt6/bin
+# alatt van, a PATH-on pedig `-qt6` utotaggal. A PATH-on levo csupasz nev a
+# Qt5-os valtozat is lehet, ezert ha az eszkoz tud verziot mondani, azt is
+# megnezzuk.
+qt6_tool() {
+  local name=$1 candidate
+  for candidate in "/usr/lib/qt6/bin/$name" "/usr/lib64/qt6/bin/$name" \
+    "$name-qt6" "${name}6" "$name"; do
+    command -v "$candidate" >/dev/null 2>&1 || continue
+    if [[ $name == qmllint ]] \
+      && ! "$candidate" --version 2>&1 | grep -Eq 'qmllint 6\.'; then
+      continue
+    fi
+    printf '%s\n' "$candidate"
+    return 0
+  done
+  return 1
+}
+
+if wants shell; then
+  if need python3 "Generator biztonsagi tesztek"; then
+    step "generator biztonsagi tesztek"
+    run "generator biztonsagi tesztek" python3 -B -m unittest discover -s tests -p 'test_*.py'
+  fi
+
+  if need node "Ertesitesi regresszios tesztek"; then
+    step "ertesitesi regresszios tesztek"
+    run "ertesitesi regresszios tesztek" node tests/notifications.js
+  fi
 fi
 
-if need node "Ertesitesi regresszios tesztek"; then
-  step "ertesitesi regresszios tesztek"
-  run "ertesitesi regresszios tesztek" node tests/notifications.js
+if wants qml; then
+  if qmltestrunner_bin=$(qt6_tool qmltestrunner); then
+    step "QML szoveg biztonsagi tesztek"
+    # A Quickshell QML moduljai a quickshell binarisba vannak forditva, a
+    # qmltestrunner nem tudja betolteni oket. A tests/qml/stubs a hasznalt
+    # tipusok viselkedeshu, Quickshell nelkuli masolata.
+    run "QML regresszios tesztek" env QT_QPA_PLATFORM=offscreen \
+      QT_QUICK_BACKEND=software "$qmltestrunner_bin" -import tests/qml/stubs -input tests/qml
+  else
+    skipped+=("QML szoveg biztonsagi tesztek (nincs Qt6 qmltestrunner)")
+  fi
 fi
 
-if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then
-  step "QML szoveg biztonsagi tesztek"
-  run "QML regresszios tesztek" env QT_QPA_PLATFORM=offscreen \
-    QT_QUICK_BACKEND=software /usr/lib/qt6/bin/qmltestrunner -input tests/qml
-else
-  skipped+=("QML szoveg biztonsagi tesztek (nincs Qt6 qmltestrunner)")
-fi
+if wants rust && need cargo "Rust ellenorzesek"; then
+  if need_cargo fmt; then
+    step "cargo fmt"
+    run "cargo fmt" cargo fmt --manifest-path backend/Cargo.toml --check
+  fi
 
-if need cargo "Rust ellenorzesek"; then
-  step "cargo fmt"
-  run "cargo fmt" cargo fmt --manifest-path backend/Cargo.toml --check
-
-  step "cargo clippy"
-  run "cargo clippy" cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+  if need_cargo clippy; then
+    step "cargo clippy"
+    run "cargo clippy" cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+  fi
 
   step "cargo test"
   run "cargo test" cargo test --manifest-path backend/Cargo.toml
@@ -70,50 +136,43 @@ fi
 # Archon a qt5-declarative is telepit egyet ugyanezen a neven. Az csak
 # szintaxist ellenoriz, ervenyes fajlokra pedig nem ir semmit -- ha az nyerne,
 # a kapu csendben, "0 figyelmeztetes, 0 hiba" mellett engedne at mindent.
-# Ezert a valasztott binaristol megkerdezzuk, hany eves.
-qmllint_bin=""
-for candidate in /usr/lib/qt6/bin/qmllint qmllint6 qmllint; do
-  command -v "$candidate" >/dev/null 2>&1 || continue
-  if "$candidate" --version 2>&1 | grep -Eq 'qmllint 6\.'; then
-    qmllint_bin=$candidate
-    break
-  fi
-done
+# Ezert a `qt6_tool` a valasztott binaristol megkerdezi, hany eves.
+if wants qml; then
+  if qmllint_bin=$(qt6_tool qmllint); then
+    step "qmllint"
+    # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
+    # figyelmeztetest (uncreatable-type, unqualified access). Csak a hibakon
+    # bukunk el; a figyelmeztetesek szamat kiirjuk, hogy a novekedes latszodjon.
+    qml_output=$("$qmllint_bin" shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml \
+      features/*/*.qml 2>&1 || true)
 
-if [[ -n $qmllint_bin ]]; then
-  step "qmllint"
-  # A qmllint nem ismeri a Quickshell tipusait, ezert a tiszta fan is ad
-  # figyelmeztetest (uncreatable-type, unqualified access). Csak a hibakon
-  # bukunk el; a figyelmeztetesek szamat kiirjuk, hogy a novekedes latszodjon.
-  qml_output=$("$qmllint_bin" shell.qml LockShell.qml app/*.qml core/*.qml ui/*.qml \
-    features/*/*.qml 2>&1 || true)
-
-  if grep -q '^Error:' <<<"$qml_output"; then
-    grep '^Error:' <<<"$qml_output"
-    failed+=("qmllint")
+    if grep -q '^Error:' <<<"$qml_output"; then
+      grep '^Error:' <<<"$qml_output"
+      failed+=("qmllint")
+    fi
+    warning_count=$(grep -c '^Warning:' <<<"$qml_output" || true)
+    error_count=$(grep -c '^Error:' <<<"$qml_output" || true)
+    warning_budget=1093
+    known_warning_codes='unqualified|uncreatable-type|missing-property|signal-handler-parameters|unresolved-type'
+    unknown_warnings=$(grep '^Warning:' <<<"$qml_output" \
+      | grep -Ev "\\[($known_warning_codes)\\]$" || true)
+    if [[ -n $unknown_warnings ]]; then
+      printf '%s\n' "$unknown_warnings"
+      failed+=("qmllint uj figyelmeztetestipus")
+    fi
+    if ((warning_count > warning_budget)); then
+      printf 'a qmllint figyelmezteteseinek szama nott: %s > %s\n' \
+        "$warning_count" "$warning_budget"
+      failed+=("qmllint figyelmezteteskeret")
+    fi
+    printf 'figyelmeztetes: %s/%s, hiba: %s\n' \
+      "$warning_count" "$warning_budget" "$error_count"
+  else
+    skipped+=("qmllint (nincs Qt6 qmllint)")
   fi
-  warning_count=$(grep -c '^Warning:' <<<"$qml_output" || true)
-  error_count=$(grep -c '^Error:' <<<"$qml_output" || true)
-  warning_budget=1093
-  known_warning_codes='unqualified|uncreatable-type|missing-property|signal-handler-parameters|unresolved-type'
-  unknown_warnings=$(grep '^Warning:' <<<"$qml_output" \
-    | grep -Ev "\\[($known_warning_codes)\\]$" || true)
-  if [[ -n $unknown_warnings ]]; then
-    printf '%s\n' "$unknown_warnings"
-    failed+=("qmllint uj figyelmeztetestipus")
-  fi
-  if ((warning_count > warning_budget)); then
-    printf 'a qmllint figyelmezteteseinek szama nott: %s > %s\n' \
-      "$warning_count" "$warning_budget"
-    failed+=("qmllint figyelmezteteskeret")
-  fi
-  printf 'figyelmeztetes: %s/%s, hiba: %s\n' \
-    "$warning_count" "$warning_budget" "$error_count"
-else
-  skipped+=("qmllint (nincs telepitve)")
 fi
 
-if need shellcheck "ShellCheck"; then
+if wants shell && need shellcheck "ShellCheck"; then
   step "shellcheck"
   scripts=()
   for script in scripts/*; do
@@ -128,6 +187,10 @@ printf '\n'
 for note in "${skipped[@]}"; do
   printf '\033[33mkihagyva:\033[0m %s\n' "$note"
 done
+
+if [[ ${VELLUM_CHECK_STRICT:-} == 1 ]] && ((${#skipped[@]} > 0)); then
+  failed+=("kihagyott kapu szigoru modban")
+fi
 
 if ((${#failed[@]} > 0)); then
   printf '\033[31mmegbukott:\033[0m %s\n' "${failed[*]}"

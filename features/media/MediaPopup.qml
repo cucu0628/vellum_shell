@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Mpris
 import "." as MediaUi
@@ -22,27 +21,15 @@ PanelWindow {
     property var calendarView: new Date()
     property var monthNames: []
     property var dayNames: []
-    property int currentTab: 0
-    property int previousTab: 0
     property var cavaValues: [0, 0, 0, 0, 0, 0]
-    property string userName: Quickshell.env("USER") || "user"
-    readonly property alias weatherLocation: weatherController.location
-    readonly property alias weatherTemp: weatherController.temp
-    readonly property alias weatherFeels: weatherController.feels
-    readonly property alias weatherDesc: weatherController.description
-    readonly property alias weatherHumidity: weatherController.humidity
-    readonly property alias weatherWind: weatherController.wind
-    readonly property alias weatherPressure: weatherController.pressure
-    readonly property alias weatherPrecip: weatherController.precip
-    readonly property alias weatherSunrise: weatherController.sunrise
-    readonly property alias weatherSunset: weatherController.sunset
-    readonly property alias weatherForecast: weatherController.forecast
-    readonly property alias cpuUsage: statsController.cpuUsage
-    readonly property alias ramUsage: statsController.ramUsage
-    readonly property alias diskUsage: statsController.diskUsage
+    // A kivetelek nelkuli lejatszolista (core/MprisController).
+    property var players: []
+    // A shell szintjen futo SystemStatsController: igy a CPU-grafikon mar a
+    // megnyitas pillanataban az utolso percet mutatja, nem uresen indul.
+    property var stats: null
     readonly property var selectedPlayer: {
         if (selectedPlayerDbusName === "") return null
-        var players = Mpris.players.values
+        var players = mediaPopup.players
         for (var i = 0; i < players.length; i++) {
             if (players[i].dbusName === selectedPlayerDbusName) return players[i]
         }
@@ -51,65 +38,45 @@ PanelWindow {
     readonly property var effectivePlayer: selectedPlayer || activePlayer
     readonly property real trackedPosition: positionController.valid ? positionController.position : -1
 
-    readonly property string panelBg: theme ? theme.background : "#11130f"
-    readonly property string panelFg: theme ? theme.foreground : "#e8ddc7"
-    readonly property string panelAccent: theme ? theme.accent : "#b7372f"
-    readonly property string panelSurface: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
-    readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
-    readonly property color lineBg: Qt.rgba(1, 1, 1, 0.055)
-
-    visible: opened || mediaMenuContainer.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     anchors { top: true; bottom: true; left: true; right: true }
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.media"
     WlrLayershell.exclusiveZone: -1
 
+    // Melyik kartya van kinagyitva: "", "calendar" vagy "weather". Nyitaskor
+    // all vissza (nem zaraskor, hogy a felcsuszo lap ne valtson nezetet).
+    property string expandedCard: ""
+    property string initialCard: ""
+
     onOpenedChanged: {
         if (opened) {
-            previousTab = currentTab
+            expandedCard = initialCard
             calendarNow = new Date()
             calendarView = new Date(calendarNow.getFullYear(), calendarNow.getMonth(), 1)
         }
-    }
-
-    onCurrentTabChanged: {
-        if (!opened) {
-            previousTab = currentTab
-            return
-        }
-        pageUnloadTimer.restart()
     }
 
     function changeCalendarMonth(delta) {
         calendarView = new Date(calendarView.getFullYear(), calendarView.getMonth() + delta, 1)
     }
 
-    function two(value) {
-        return value.toString().padStart(2, "0")
-    }
-
-    function headerDate() {
-        if (dayNames.length === 0 || monthNames.length === 0) return ""
-        return (dayNames[(calendarNow.getDay() + 6) % 7] + ", " + monthNames[calendarNow.getMonth()] + " " + calendarNow.getDate()).toUpperCase()
-    }
-
     Core.WeatherController {
         id: weatherController
         backend: mediaPopup.backend
-        active: mediaPopup.opened && mediaPopup.currentTab === 2
+        active: mediaPopup.opened
     }
 
-    MediaUi.SystemStatsController {
-        id: statsController
+    Core.CalendarController {
+        id: calendarController
         backend: mediaPopup.backend
-        active: mediaPopup.opened && mediaPopup.currentTab === 0
+        active: mediaPopup.opened
     }
 
     MediaUi.PlaybackPositionController {
         id: positionController
-        active: mediaPopup.opened && mediaPopup.currentTab !== 2
+        active: mediaPopup.opened
         dbusName: mediaPopup.effectivePlayer ? (mediaPopup.effectivePlayer.dbusName || "") : ""
         trackKey: mediaPopup.effectivePlayer
             ? (mediaPopup.effectivePlayer.trackTitle || "") + "\u001f"
@@ -125,313 +92,163 @@ PanelWindow {
         id: mediaMenuContainer
         anchors.horizontalCenter: parent.horizontalCenter
         enabled: mediaPopup.opened
-        y: mediaPopup.barHeight + 6
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: mediaPopup.barHeight
         width: Math.min(760, mediaPopup.width - 24)
-        height: mediaPopup.opened ? Math.min(600, mediaPopup.height - mediaPopup.barHeight - 18) : 0
+        // A lap annyi, amennyi a tartalom: csendben a lejatszo osszehuzodik,
+        // es vele a lap is.
+        height: Math.min(dashboard.implicitHeight + 32, mediaPopup.height - mediaPopup.barHeight - 12)
         clip: true
-        opacity: mediaPopup.opened ? 1 : 0
-        Behavior on height { NumberAnimation { duration: 230; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+        Behavior on height { NumberAnimation { duration: 260; easing.type: Easing.OutQuint } }
 
-        Rectangle {
+        SharedUi.PopupFrame {
+            id: sheet
+            shown: mediaPopup.opened
             anchors.fill: parent
-            color: panelBg
-            border.color: Qt.rgba(1, 1, 1, 0.12)
-            border.width: 1
-            radius: 0
-            clip: true
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 1
-                height: 2
-                color: panelAccent
-            }
-
-            SharedUi.ShellLogo {
-                anchors.right: parent.right
-                anchors.rightMargin: -34
-                anchors.top: parent.top
-                anchors.topMargin: -54
-                size: 190
-                color: panelFg
-                opacity: 0.025
-            }
+            theme: mediaPopup.theme
 
             MouseArea { anchors.fill: parent; onClicked: (mouse) => mouse.accepted = true }
 
-            Item {
-                id: header
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 18
-                height: 44
+            Column {
+                id: dashboard
 
-                SharedUi.ShellLogo {
-                    id: headerSeal
+                x: 16
+                y: 16
+                width: parent.width - 32
+                spacing: 12
 
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    size: 38
-                    color: panelAccent
+                MediaUi.PlayerBand {
+                    width: parent.width
+                    theme: mediaPopup.theme
+                    player: mediaPopup.effectivePlayer
+                    players: mediaPopup.players
+                    pinnedDbusName: mediaPopup.selectedPlayerDbusName
+                    // A borito addig marad, amig a lap latszik -- zaraskor is,
+                    // kulonben a felcsuszo lapon mar ures keret lenne.
+                    artworkEnabled: mediaPopup.visible
+                    cavaValues: mediaPopup.cavaValues
+                    livePosition: mediaPopup.trackedPosition
+                    onPlayerSelected: (player) => mediaPopup.selectedPlayerDbusName = player ? (player.dbusName || "") : ""
+                    onSeeked: (seconds) => positionController.adopt(seconds)
+                    onTrackChangeRequested: positionController.beginTrackChange()
                 }
 
-                Column {
-                    anchors.left: headerSeal.right
-                    anchors.leftMargin: 12
-                    anchors.right: headerClock.left
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 3
-
-                    Text {
-                        text: "Vellum"
-                        color: panelFg
-                        font.family: "serif"
-                        font.pixelSize: 22
-                        font.weight: Font.Medium
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: "DASHBOARD  ·  " + mediaPopup.userName.toUpperCase()
-                        color: mutedFg
-                        font.pixelSize: 8
-                        font.letterSpacing: 1.8
-                        elide: Text.ElideRight
-                    }
-                }
-
-                Column {
-                    id: headerClock
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 1
-
-                    Text {
-                        anchors.right: parent.right
-                        text: two(calendarNow.getHours()) + ":" + two(calendarNow.getMinutes())
-                        color: panelFg
-                        font.family: "serif"
-                        font.pixelSize: 25
-                        font.weight: Font.Light
-                    }
-
-                    Text {
-                        anchors.right: parent.right
-                        text: mediaPopup.headerDate()
-                        color: panelAccent
-                        font.pixelSize: 9
-                        font.letterSpacing: 2
-                        font.bold: true
-                    }
-                }
-            }
-
-            Rectangle {
-                id: headerRule
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: header.bottom
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 10
-                height: 1
-                color: mutedFg
-                opacity: 0.2
-            }
-
-            Row {
-                id: tabBar
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: headerRule.bottom
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 10
-                height: 32
-                spacing: 8
-
-                Repeater {
-                    model: [
-                        { icon: "󰕮", label: "OVERVIEW" },
-                        { icon: "󰎆", label: "MEDIA" },
-                        { icon: "󰖕", label: "WEATHER" }
-                    ]
-
-                    Rectangle {
-                        id: tabChip
-                        property bool selected: mediaPopup.currentTab === index
-
-                        width: (tabBar.width - tabBar.spacing * 2) / 3
-                        height: tabBar.height
-                        radius: 0
-                        color: tabMouse.containsMouse ? hoverBg : "transparent"
-                        Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
-
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            height: tabChip.selected ? 2 : 1
-                            color: tabChip.selected ? panelAccent : mutedFg
-                            opacity: tabChip.selected ? 1 : 0.22
-                        }
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 8
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.icon
-                                color: tabChip.selected ? panelAccent : mutedFg
-                                font.pixelSize: 14
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: modelData.label
-                                color: tabChip.selected ? panelAccent : mutedFg
-                                font.pixelSize: 9
-                                font.letterSpacing: 1.8
-                                font.bold: tabChip.selected
-                            }
-
-                        }
-
-                        MouseArea {
-                            id: tabMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: mediaPopup.currentTab = index
-                        }
-                    }
-                }
-            }
-
-            Item {
-                id: pages
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: tabBar.bottom
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-                anchors.topMargin: 12
-                anchors.bottomMargin: 16
-                clip: true
-
-                // Keep the outgoing page until the slide finishes, then unload it.
+                // A kartyak sora es a kinagyitott nezet ugyanazon a helyen
+                // osztozik; a magassag valtasat a lap is kovetni tudja.
                 Item {
-                    id: pageTrack
-                    // Animate the index, not x: a width change then repositions the
-                    // track instantly instead of sliding it.
-                    property real slidePosition: mediaPopup.currentTab
-                    readonly property bool sliding: pageSlide.running
-                    // Gap between pages so two panels read as separate sheets
-                    // passing each other rather than one smeared surface.
-                    readonly property real stride: pages.width + 16
+                    id: cardsArea
 
-                    width: pages.width
-                    height: pages.height
-                    x: -slidePosition * stride
+                    readonly property bool expanded: mediaPopup.expandedCard !== ""
 
-                    Behavior on slidePosition {
-                        NumberAnimation { id: pageSlide; duration: 320; easing.type: Easing.OutQuart }
-                    }
+                    width: parent.width
+                    // A kinagyitott nezet a sajat tartalmahoz igazodik: a naptar
+                    // racsa magasabb, az idojaras alacsonyabb.
+                    height: !expanded ? 250 : (mediaPopup.expandedCard === "calendar" ? (calendarController.connected ? 360 : 330) : 268)
+                    focus: expanded
+                    Keys.onEscapePressed: mediaPopup.expandedCard = ""
 
-                    Loader {
-                        x: 0
-                        width: pages.width
-                        height: pages.height
-                        enabled: mediaPopup.currentTab === 0
-                        active: mediaPopup.currentTab === 0 || mediaPopup.previousTab === 0
+                    Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
 
-                        sourceComponent: Column {
-                            anchors.fill: parent
-                            spacing: 12
+                    Row {
+                        id: cards
 
-                            MediaUi.MediaCard {
-                                width: parent.width
-                                height: 168
-                                theme: mediaPopup.theme
-                                player: mediaPopup.effectivePlayer
-                                players: Mpris.players.values
-                                compact: true
-                                artworkEnabled: mediaPopup.currentTab === 0
-                                livePosition: mediaPopup.trackedPosition
-                                onPlayerSelected: (player) => mediaPopup.selectedPlayerDbusName = player ? (player.dbusName || "") : ""
-                                onSeeked: (seconds) => positionController.adopt(seconds)
-                                onTrackChangeRequested: positionController.beginTrackChange()
-                            }
+                        readonly property real share: width - spacing * 2
 
-                            Row {
-                                width: parent.width
-                                height: parent.height - 180
-                                spacing: 12
+                        width: parent.width
+                        height: 250
+                        spacing: 12
+                        opacity: cardsArea.expanded ? 0 : 1
+                        visible: opacity > 0
+                        scale: cardsArea.expanded ? 0.97 : 1
 
-                                MediaUi.CalendarCard {
-                                    width: parent.width - 244
-                                    height: parent.height
-                                    theme: mediaPopup.theme
-                                    now: mediaPopup.calendarView
-                                    today: mediaPopup.calendarNow
-                                    monthNames: mediaPopup.monthNames
-                                    dayNames: mediaPopup.dayNames
-                                    dense: true
-                                    onMonthChangeRequested: (delta) => mediaPopup.changeCalendarMonth(delta)
-                                }
+                        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                        Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutQuint } }
 
-                                MediaUi.SystemStatsCard {
-                                    width: 232
-                                    height: parent.height
-                                    theme: mediaPopup.theme
-                                    cpuUsage: statsController.cpuUsage
-                                    ramUsage: statsController.ramUsage
-                                    diskUsage: statsController.diskUsage
-                                }
-                            }
-                        }
-                    }
-
-                    Loader {
-                        x: pageTrack.stride
-                        width: pages.width
-                        height: pages.height
-                        enabled: mediaPopup.currentTab === 1
-                        active: mediaPopup.currentTab === 1 || mediaPopup.previousTab === 1
-
-                        sourceComponent: MediaUi.MediaCard {
-                            anchors.fill: parent
+                        MediaUi.CalendarCard {
+                            width: Math.round(cards.share * 0.37)
+                            height: parent.height
                             theme: mediaPopup.theme
-                            player: mediaPopup.effectivePlayer
-                            players: Mpris.players.values
-                            compact: false
-                            cavaValues: mediaPopup.cavaValues
-                            artworkEnabled: mediaPopup.currentTab === 1
-                            livePosition: mediaPopup.trackedPosition
-                            onPlayerSelected: (player) => mediaPopup.selectedPlayerDbusName = player ? (player.dbusName || "") : ""
-                            onSeeked: (seconds) => positionController.adopt(seconds)
-                            onTrackChangeRequested: positionController.beginTrackChange()
+                            now: mediaPopup.calendarView
+                            today: mediaPopup.calendarNow
+                            monthNames: mediaPopup.monthNames
+                            dayNames: mediaPopup.dayNames
+                            eventIndex: calendarController.connected ? calendarController.eventsByDay : ({})
+                            dense: true
+                            clickable: true
+                            onClicked: mediaPopup.expandedCard = "calendar"
+                            onMonthChangeRequested: (delta) => mediaPopup.changeCalendarMonth(delta)
+                        }
+
+                        MediaUi.WeatherSummaryCard {
+                            width: Math.round(cards.share * 0.33)
+                            height: parent.height
+                            theme: mediaPopup.theme
+                            location: weatherController.location
+                            temp: weatherController.temp
+                            description: weatherController.description
+                            forecast: weatherController.forecast
+                            clickable: true
+                            onClicked: mediaPopup.expandedCard = "weather"
+                        }
+
+                        MediaUi.SystemStatsCard {
+                            width: cards.share - Math.round(cards.share * 0.37) - Math.round(cards.share * 0.33)
+                            height: parent.height
+                            theme: mediaPopup.theme
+                            cpuUsage: mediaPopup.stats.cpuUsage
+                            ramUsage: mediaPopup.stats.ramUsage
+                            diskUsage: mediaPopup.stats.diskUsage
+                            ramUsedGib: mediaPopup.stats.ramUsedGib
+                            ramTotalGib: mediaPopup.stats.ramTotalGib
+                            diskUsedGib: mediaPopup.stats.diskUsedGib
+                            diskTotalGib: mediaPopup.stats.diskTotalGib
+                            uptimeSeconds: mediaPopup.stats.uptimeSeconds
+                            cpuHistory: mediaPopup.stats.cpuHistory
                         }
                     }
 
+                    // A kinagyitott kartya a sajat oldalarol no ki: a naptar
+                    // balrol, az idojaras kozeprol.
                     Loader {
-                        x: pageTrack.stride * 2
-                        width: pages.width
-                        height: pages.height
-                        enabled: mediaPopup.currentTab === 2
-                        active: mediaPopup.currentTab === 2 || mediaPopup.previousTab === 2
+                        id: detail
 
-                        sourceComponent: MediaUi.WeatherCard {
-                            anchors.fill: parent
+                        anchors.fill: parent
+                        active: cardsArea.expanded
+                        opacity: cardsArea.expanded ? 1 : 0
+                        scale: cardsArea.expanded ? 1 : 0.94
+                        transformOrigin: mediaPopup.expandedCard === "calendar" ? Item.Left : Item.Center
+                        sourceComponent: mediaPopup.expandedCard === "calendar" ? calendarDetail : weatherDetail
+                        onLoaded: cardsArea.forceActiveFocus()
+
+                        Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                        Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.OutQuint } }
+                    }
+
+                    Component {
+                        id: calendarDetail
+
+                        MediaUi.CalendarDetail {
+                            theme: mediaPopup.theme
+                            today: mediaPopup.calendarNow
+                            monthNames: mediaPopup.monthNames
+                            dayNames: mediaPopup.dayNames
+                            eventsEnabled: calendarController.connected
+                            keyringLocked: calendarController.locked
+                            eventIndex: calendarController.eventsByDay
+                            onCloseRequested: mediaPopup.expandedCard = ""
+                            // A bongeszo a panel mogott nyilna meg, ezert a
+                            // panel bezarul.
+                            onEventActivated: (link) => {
+                                Qt.openUrlExternally(link)
+                                mediaPopup.opened = false
+                            }
+                        }
+                    }
+
+                    Component {
+                        id: weatherDetail
+
+                        MediaUi.WeatherDetail {
                             theme: mediaPopup.theme
                             now: mediaPopup.calendarNow
                             location: weatherController.location
@@ -445,16 +262,11 @@ PanelWindow {
                             sunrise: weatherController.sunrise
                             sunset: weatherController.sunset
                             forecast: weatherController.forecast
+                            onCloseRequested: mediaPopup.expandedCard = ""
                         }
                     }
                 }
             }
-        }
-
-        Timer {
-            id: pageUnloadTimer
-            interval: 360
-            onTriggered: mediaPopup.previousTab = mediaPopup.currentTab
         }
 
         Timer {

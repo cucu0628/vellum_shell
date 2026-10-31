@@ -28,7 +28,9 @@ Item {
     readonly property bool planKnown: controller ? controller.planKnown : false
     readonly property string errorMessage: controller ? controller.errorMessage : ""
     readonly property var countries: controller ? controller.countries : []
-    readonly property int preferredHeight: locationSelection ? 504 : 350
+    // Allapotkartya, fo gomb, szakaszcim es a kill switch sor (212) + a lista
+    // vagy a tajekoztato szoveg.
+    readonly property int preferredHeight: 212 + (locationSelection ? 240 : 68)
     readonly property var visibleCountries: {
         if (countryFilter === "")
             return countries;
@@ -38,12 +40,11 @@ Item {
             return country.name.toLowerCase().indexOf(needle) !== -1 || country.code.toLowerCase().indexOf(needle) === 0;
         });
     }
-    readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
-    readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
+    readonly property bool killSwitchOn: killSwitch !== "" && killSwitch !== "off"
 
     signal closeRequested()
 
@@ -83,6 +84,7 @@ Item {
                 controller.panelOpened();
 
         } else {
+            filterInput.text = "";
             countryFilter = "";
         }
     }
@@ -91,217 +93,96 @@ Item {
         anchors.fill: parent
         spacing: 12
 
-        SharedUi.PopupHeader {
+        SharedUi.StatusCard {
             width: parent.width
             theme: vpnPanel.theme
-            title: "Proton VPN"
-            subtitle: !cliAvailable
+            active: connected
+            glyph: connected ? "󰦝" : "󰦜"
+            title: !cliAvailable
                 ? "protonvpn CLI not found"
                 : (busy
-                    ? (action === "connect" ? "Connecting..." : "Disconnecting...")
-                    : (connected
-                        ? "Connected" + (protocol !== "" ? "  ·  " + protocol : "") + (checking ? "  ·  updating" : "")
-                        : "Disconnected"))
-            trailingWidth: 47
+                    ? (action === "connect" ? "Connecting…" : "Disconnecting…")
+                    : (connected ? (location !== "" ? location : server) : "Traffic is not tunnelled"))
+            subtitle: {
+                if (!cliAvailable)
+                    return "Install proton-vpn-cli to control the VPN here";
 
-            Rectangle {
-                anchors.fill: parent
-                anchors.bottomMargin: 4
-                color: connected ? panelAccent : inkBg
-                border.color: connected ? panelAccent : mutedFg
+                if (!connected)
+                    return "Quick connect picks the fastest server";
 
-                Text {
-                    anchors.centerIn: parent
-                    text: connected ? "ON" : "OFF"
-                    color: connected ? panelBg : mutedFg
-                    font.family: "monospace"
-                    font.pixelSize: 8
-                    font.bold: true
-                }
+                var parts = [];
+                // The title already shows the server name
+                // while the location is still unknown.
+                if (server !== "" && location !== "")
+                    parts.push(server);
 
+                if (protocol !== "")
+                    parts.push(protocol);
+
+                if (load !== "")
+                    parts.push("Load " + load);
+
+                if (publicIp !== "")
+                    parts.push(publicIp);
+
+                if (parts.length > 0)
+                    return parts.join("  ·  ");
+
+                // The CLI reports nothing about tunnels the
+                // Proton app brought up on its own.
+                return checking ? "Reading server details…" : "Connected outside the CLI  ·  no details";
             }
-
         }
 
-        Rectangle {
+        // Csatlakozas kiemelt (akcentes) gomb, bontas csendes, telt gomb.
+        SharedUi.HeaderChip {
             width: parent.width
-            height: 72
-            color: inkBg
-            border.color: "transparent"
-
-            Rectangle {
-                anchors.left: parent.left
-                width: 3
-                height: parent.height
-                color: connected ? panelAccent : mutedFg
-            }
-
-            Row {
-                anchors.fill: parent
-                anchors.margins: 12
-                spacing: 12
-
-                Text {
-                    width: 34
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: connected ? "󰦝" : "󰦜"
-                    color: connected ? panelAccent : mutedFg
-                    font.family: "Symbols Nerd Font Mono"
-                    font.pixelSize: 25
-                }
-
-                Column {
-                    width: parent.width - 46
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
-
-                    Text {
-                        width: parent.width
-                        text: connected ? (location !== "" ? location : server) : "Traffic is not tunnelled"
-                        color: panelFg
-                        font.pixelSize: 13
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: {
-                            if (!connected)
-                                return cliAvailable ? "Quick connect picks the fastest server" : "Install proton-vpn-cli to control the VPN here";
-
-                            var parts = [];
-                            // The title already shows the server name
-                            // while the location is still unknown.
-                            if (server !== "" && location !== "")
-                                parts.push(server);
-
-                            if (load !== "")
-                                parts.push("Load " + load);
-
-                            if (publicIp !== "")
-                                parts.push(publicIp);
-
-                            if (parts.length > 0)
-                                return parts.join("  ·  ");
-
-                            // The CLI reports nothing about tunnels the
-                            // Proton app brought up on its own.
-                            return checking ? "Reading server details..." : "Connected outside the CLI  ·  no details";
-                        }
-                        color: mutedFg
-                        font.pixelSize: 12
-                        font.letterSpacing: 0.5
-                        elide: Text.ElideRight
-                    }
-
-                }
-
-            }
-
+            height: 36
+            theme: vpnPanel.theme
+            emphasized: !connected
+            filled: connected
+            enabled: cliAvailable && !busy
+            label: busy
+                ? (action === "connect" ? "Connecting…" : "Disconnecting…")
+                : (connected ? "Disconnect" : "Quick connect")
+            onClicked: primaryAction()
         }
 
-        Rectangle {
+        SharedUi.SectionBar {
             width: parent.width
-            height: 40
-            color: connected ? inkBg : panelAccent
-            border.color: panelAccent
-            border.width: 1
-            opacity: cliAvailable && !busy ? 1 : 0.55
+            theme: vpnPanel.theme
+            title: locationSelection ? "COUNTRIES" : "SERVER"
+            detail: locationSelection ? String(countries.length) : (checking ? "Updating…" : "")
 
-            Text {
-                anchors.centerIn: parent
-                text: busy
-                    ? (action === "connect" ? "CONNECTING..." : "DISCONNECTING...")
-                    : (connected ? "DISCONNECT" : "QUICK CONNECT")
-                color: connected ? panelAccent : panelBg
-                font.family: "monospace"
-                font.pixelSize: 11
-                font.bold: true
-                font.letterSpacing: 2
+            SharedUi.HeaderChip {
+                theme: vpnPanel.theme
+                label: "Refresh"
+                accessibleName: qsTr("Refresh VPN status")
+                onClicked: refresh()
             }
 
-            MouseArea {
-                anchors.fill: parent
-                enabled: cliAvailable && !busy
-                cursorShape: Qt.PointingHandCursor
-                onClicked: primaryAction()
-            }
-
-        }
-
-        Row {
-            width: parent.width
-            height: 28
-
-            Text {
-                width: parent.width - 170
-                height: parent.height
-                text: locationSelection ? "COUNTRIES  ·  " + countries.length : "SERVER"
-                color: panelAccent
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.letterSpacing: 2
-                font.bold: true
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            Text {
-                width: 100
-                height: parent.height
-                text: "Open app"
-                color: appMouse.containsMouse ? panelAccent : mutedFg
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: 10
-                font.family: "monospace"
-
-                MouseArea {
-                    id: appMouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: openProtonApp()
-                }
-
-            }
-
-            Text {
-                width: 70
-                height: parent.height
-                text: "Refresh"
-                color: refreshMouse.containsMouse ? panelAccent : mutedFg
-                horizontalAlignment: Text.AlignRight
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: 10
-                font.family: "monospace"
-
-                MouseArea {
-                    id: refreshMouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: refresh()
-                }
-
+            SharedUi.HeaderChip {
+                theme: vpnPanel.theme
+                label: "Open app"
+                accessibleName: qsTr("Open the Proton VPN app")
+                onClicked: openProtonApp()
             }
 
         }
 
         Item {
             width: parent.width
-            height: parent.height - 282 - (errorLine.visible ? 26 : 0)
+            height: parent.height - 212 - (errorLine.visible ? 26 : 0)
 
             Text {
                 anchors.centerIn: parent
-                width: parent.width - 10
+                width: parent.width - 32
                 visible: !locationSelection
                 text: !cliAvailable
                     ? "The protonvpn command is missing. Install the proton-vpn-cli package to connect from here."
                     : (planKnown
                         ? "Free plan: Proton picks the fastest free server automatically. Location selection needs VPN Plus."
-                        : "Reading plan details...")
+                        : "Reading plan details…")
                 color: mutedFg
                 font.pixelSize: 12
                 horizontalAlignment: Text.AlignHCenter
@@ -313,40 +194,29 @@ Item {
                 visible: locationSelection
                 spacing: 8
 
-                Rectangle {
+                SharedUi.SearchField {
+                    id: filterInput
+
                     width: parent.width
-                    height: 30
-                    color: inkBg
-                    border.color: filterInput.activeFocus ? panelAccent : "transparent"
-
-                    TextInput {
-                        id: filterInput
-
-                        anchors.fill: parent
-                        anchors.leftMargin: 10
-                        anchors.rightMargin: 10
-                        color: panelFg
-                        verticalAlignment: TextInput.AlignVCenter
-                        font.pixelSize: 12
-                        onTextChanged: vpnPanel.countryFilter = text
-                        Keys.onEscapePressed: text = ""
-
-                        Text {
-                            anchors.fill: parent
-                            visible: filterInput.text === ""
-                            text: "Search country"
-                            color: mutedFg
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: 11
+                    height: 36
+                    inputVerticalPadding: 8
+                    placeholder: "Search country"
+                    foreground: panelFg
+                    accent: panelAccent
+                    muted: mutedFg
+                    surface: inkBg
+                    onTextEdited: (text) => vpnPanel.countryFilter = text
+                    onKeyPressed: (event) => {
+                        if (event.key === Qt.Key_Escape && filterInput.text !== "") {
+                            filterInput.text = "";
+                            event.accepted = true;
                         }
-
                     }
-
                 }
 
                 Flickable {
                     width: parent.width
-                    height: parent.height - 38
+                    height: parent.height - 44
                     contentHeight: countryColumn.height
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
@@ -360,60 +230,20 @@ Item {
                         Repeater {
                             model: visibleCountries
 
-                            Rectangle {
+                            SharedUi.ListRow {
+                                required property var modelData
+
                                 width: countryColumn.width
-                                height: 40
-                                color: countryMouse.containsMouse ? inkBg : "transparent"
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 12
-                                    anchors.rightMargin: 12
-                                    spacing: 10
-
-                                    Text {
-                                        width: 30
-                                        height: parent.height
-                                        text: modelData.code
-                                        color: panelAccent
-                                        font.family: "monospace"
-                                        font.pixelSize: 10
-                                        font.bold: true
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-
-                                    Text {
-                                        width: parent.width - 130
-                                        height: parent.height
-                                        text: modelData.name
-                                        color: panelFg
-                                        font.pixelSize: 13
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-
-                                    Text {
-                                        width: 70
-                                        height: parent.height
-                                        text: "Connect"
-                                        color: countryMouse.containsMouse ? panelAccent : mutedFg
-                                        font.pixelSize: 11
-                                        horizontalAlignment: Text.AlignRight
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-
-                                }
-
-                                MouseArea {
-                                    id: countryMouse
-
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    enabled: !vpnPanel.busy
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: vpnPanel.controller.connectCountry(modelData.code)
-                                }
-
+                                height: 44
+                                theme: vpnPanel.theme
+                                glyph: modelData.code
+                                glyphFamily: "monospace"
+                                glyphSize: 10
+                                title: modelData.name
+                                trailing: "Connect"
+                                enabled: !vpnPanel.busy
+                                accessibleName: qsTr("Connect to %1").arg(modelData.name)
+                                onClicked: vpnPanel.controller.connectCountry(modelData.code)
                             }
 
                         }
@@ -426,43 +256,32 @@ Item {
 
         }
 
-        Row {
+        // `protonvpn config set` is broken in the CLI (it always reports an
+        // unexpected error), so this only reports the value the CLI hands back.
+        Item {
             width: parent.width
-            height: 30
-            spacing: 10
+            height: 28
 
             Text {
-                width: parent.width - 90
-                height: parent.height
-                // `protonvpn config set` is broken in the CLI (it always
-                // reports an unexpected error), so this only reports the
-                // value the CLI hands back.
-                text: "KILL SWITCH  ·  change it in the Proton app"
+                anchors.left: parent.left
+                anchors.right: killSwitchValue.left
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Kill switch  ·  change it in the Proton app"
                 color: mutedFg
-                font.family: "monospace"
-                font.pixelSize: 8
-                font.letterSpacing: 1
-                verticalAlignment: Text.AlignVCenter
+                font.pixelSize: 10
                 elide: Text.ElideRight
             }
 
-            Rectangle {
-                width: 80
-                height: 26
+            Text {
+                id: killSwitchValue
+
+                anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                color: killSwitch !== "" && killSwitch !== "off" ? panelAccent : inkBg
-                border.color: killSwitch !== "" && killSwitch !== "off" ? panelAccent : mutedFg
-                opacity: killSwitch === "" ? 0.55 : 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: killSwitch === "" ? "..." : (killSwitch === "off" ? "OFF" : killSwitch.toUpperCase())
-                    color: killSwitch !== "" && killSwitch !== "off" ? panelBg : mutedFg
-                    font.family: "monospace"
-                    font.pixelSize: 8
-                    font.bold: true
-                }
-
+                text: killSwitch === "" ? "…" : (killSwitch === "off" ? "Off" : killSwitch.charAt(0).toUpperCase() + killSwitch.slice(1))
+                color: killSwitchOn ? panelAccent : mutedFg
+                font.pixelSize: 11
+                font.weight: killSwitchOn ? Font.Medium : Font.Normal
             }
 
         }
@@ -474,6 +293,7 @@ Item {
             height: 14
             visible: errorMessage !== ""
             text: errorMessage
+            textFormat: Text.PlainText
             color: panelAccent
             font.pixelSize: 10
             elide: Text.ElideRight

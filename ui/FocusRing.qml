@@ -10,6 +10,8 @@ Rectangle {
 
     property var theme: null
     property bool active: false
+    // A keretezett vezerlo sarkanak kerekitese; a gyuru ezt koveti kifele.
+    property real cornerRadius: 0
 
     readonly property string accent: theme ? theme.accent : "#b7372f"
 
@@ -18,7 +20,7 @@ Rectangle {
     color: "transparent"
     border.color: ring.accent
     border.width: 1
-    radius: 0
+    radius: ring.cornerRadius > 0 ? ring.cornerRadius + 3 : 0
     visible: ring.active
     // Csak vizualis reteg: fokuszban se kerulhet a mogotte levo Pressable vagy
     // ActionButton pointeresemenyei ele.

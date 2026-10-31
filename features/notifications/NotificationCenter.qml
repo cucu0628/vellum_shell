@@ -7,10 +7,11 @@ Item {
 
     property var theme: null
     property bool opened: false
+    property int barHeight: 26
     property bool dnd: false
     property var history: []
     property var groups: []
-    readonly property bool transitionActive: opened || menuContent.opacity > 0
+    readonly property bool transitionActive: opened || sheet.reveal > 0
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
@@ -56,15 +57,19 @@ Item {
         id: menuContent
 
         anchors.right: parent.right
-        anchors.rightMargin: 10
-        y: 32
-        width: Math.min(380, parent.width - 20)
-        height: center.opened ? Math.min(parent.height - 46, menuPanelColumn.implicitHeight + 32) : 0
-        opacity: center.opened ? 1 : 0
+        anchors.rightMargin: 0
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: center.barHeight
+        width: Math.min(420, parent.width - 20)
+        height: Math.min(parent.height - center.barHeight - 12, menuPanelColumn.implicitHeight + 32)
         enabled: center.opened
         clip: true
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: center.opened
             anchors.fill: parent
             theme: center.theme
 
@@ -95,94 +100,46 @@ Item {
                         width: parent.width
                         theme: center.theme
                         title: "Notifications"
-                        subtitle: center.history.length + (center.history.length === 1 ? " recent item" : " recent items")
-                        trailingWidth: 80
+                        trailingWidth: 84
 
-                        Rectangle {
+                        SharedUi.HeaderChip {
                             anchors.fill: parent
                             anchors.bottomMargin: 6
-                            color: center.dnd ? center.panelAccent : center.inkBg
-                            border.color: center.panelAccent
-                            border.width: 1
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: center.dnd ? "DND ON" : "DND"
-                                color: center.dnd ? center.panelBg : center.panelAccent
-                                font.family: "monospace"
-                                font.pixelSize: 8
-                                font.bold: true
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.dndToggleRequested()
-                            }
-
+                            theme: center.theme
+                            label: "Silence"
+                            checkable: true
+                            checked: center.dnd
+                            accessibleName: center.dnd ? qsTr("Turn do not disturb off") : qsTr("Turn do not disturb on")
+                            onClicked: center.dndToggleRequested()
                         }
 
                     }
 
-                    Row {
+                    // Ures listanal az "All quiet" sor mondja el ugyanezt.
+                    SharedUi.SectionBar {
                         width: parent.width
-                        height: 18
-                        spacing: 8
+                        height: visible ? implicitHeight : 0
+                        visible: center.history.length > 0
+                        theme: center.theme
+                        title: "RECENT"
+                        detail: center.history.length
+                            + (center.groups.length > 0 && center.groups.length !== center.history.length
+                                ? "  ·  " + center.groups.length + (center.groups.length === 1 ? " app" : " apps")
+                                : "")
 
-                        Text {
-                            width: parent.width - 136
-                            text: "RECENT  /  " + center.history.length
-                                + (center.groups.length > 0 && center.groups.length !== center.history.length ? "  ·  " + center.groups.length + " APPS" : "")
-                            color: center.panelAccent
-                            font.family: "monospace"
-                            font.pixelSize: 8
-                            font.letterSpacing: 2
-                            font.bold: true
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
+                        SharedUi.HeaderChip {
+                            visible: center.hasGroupedApps
+                            theme: center.theme
+                            label: center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")
+                            accessibleName: center.allGroupsExpanded ? qsTr("Collapse all groups") : qsTr("Expand all groups")
+                            onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
                         }
 
-                        Text {
-                            width: 64
-                            height: parent.height
-                            text: center.hasGroupedApps ? (center.allGroupsExpanded ? "COLLAPSE" : "EXPAND") : ""
-                            color: expandAllMouse.containsMouse ? center.panelAccent : center.mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 9
-                            font.bold: true
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
-
-                            MouseArea {
-                                id: expandAllMouse
-
-                                anchors.fill: parent
-                                enabled: center.hasGroupedApps
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
-                            }
-
-                        }
-
-                        Text {
-                            width: 56
-                            height: parent.height
-                            text: center.history.length > 0 ? "CLEAR" : ""
-                            color: center.mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 9
-                            font.bold: true
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
-
-                            MouseArea {
-                                anchors.fill: parent
-                                enabled: center.history.length > 0
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.clearRequested()
-                            }
-
+                        SharedUi.HeaderChip {
+                            theme: center.theme
+                            label: qsTr("Clear all")
+                            accessibleName: qsTr("Clear all notifications")
+                            onClicked: center.clearRequested()
                         }
 
                     }
@@ -200,17 +157,18 @@ Item {
                             spacing: 9
 
                             Text {
-                                text: "󰂜"
-                                color: center.panelAccent
-                                opacity: 0.55
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: center.dnd ? "󰂛" : "󰂜"
+                                color: center.mutedFg
                                 font.family: "Symbols Nerd Font Mono"
                                 font.pixelSize: 17
                             }
 
                             Text {
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: "All quiet"
                                 color: center.mutedFg
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
 
                         }
@@ -283,14 +241,6 @@ Item {
         Behavior on height {
             NumberAnimation {
                 duration: 210
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
                 easing.type: Easing.OutCubic
             }
 

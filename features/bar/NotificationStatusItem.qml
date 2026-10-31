@@ -18,19 +18,16 @@ Item {
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -1
         text: root.dnd ? "󰂛" : (root.hasToast || root.unreadCount > 0 ? "󰂚" : "󰂞")
-        color: mouse.containsMouse || root.highlighted ? root.theme.accent : root.theme.foreground
+        color: root.highlighted ? root.theme.accent : root.theme.foreground
         font.family: "Symbols Nerd Font Mono"
         font.pixelSize: 14
         Behavior on color { ColorAnimation { duration: 120 } }
     }
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: mouse.containsMouse || root.highlighted ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: mouse.containsMouse
+        active: root.menuOpened
+        z: -1
     }
     SharedUi.Pressable {
         id: mouse

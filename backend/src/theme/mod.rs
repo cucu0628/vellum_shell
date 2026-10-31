@@ -8,7 +8,7 @@ pub mod paths;
 pub mod render;
 
 use anyhow::{Context, Result};
-use palette::{Palette, ThemeSummary};
+use palette::{Palette, TerminalColors, ThemeSummary};
 use std::path::PathBuf;
 
 pub const DYNAMIC_SLUG: &str = "dynamic-matugen";
@@ -96,6 +96,14 @@ fn summarize(slug: &str, palette: &Palette, current: Option<&str>) -> ThemeSumma
         kind: if slug == DYNAMIC_SLUG { "dynamic".into() } else { "static".into() },
         icon_theme: generators::icon::resolve(palette),
         current: current == Some(slug),
+        terminal: TerminalColors {
+            red: palette.color(&["RED"], "#f38ba8"),
+            yellow: palette.color(&["YELLOW"], "#f9e2af"),
+            green: palette.color(&["GREEN"], "#a6e3a1"),
+            cyan: palette.color(&["CYAN"], "#94e2d5"),
+            blue: palette.color(&["BLUE"], "#89b4fa"),
+            magenta: palette.color(&["MAGENTA"], "#cba6f7"),
+        },
     }
 }
 
@@ -152,7 +160,7 @@ pub fn apply(slug: &str, wallpaper: Option<&str>, include_zen: bool) -> Result<A
     let outcomes =
         generators::run_all(&palette, source.as_deref().map(std::path::Path::new), include_zen);
 
-    // Egy hianyzo Zen profil vagy a root nelkuli SDDM nem hiba. Egy sajat
+    // Egy hianyzo Zen profil vagy egy nem telepitett greeter nem hiba. Egy sajat
     // fajlunk kiirhatatlansaga viszont igen: olyankor a tema nem lett
     // alkalmazva, es nem is jegyezzuk be.
     let failures = generators::required_failures(&outcomes);
@@ -208,7 +216,7 @@ pub fn set_wallpaper(path: &str) -> Result<()> {
     // nem eri el az eredetit. Enelkul a bejelentkezo kepernyo csak a kovetkezo
     // temavaltaskor kovetne a valtozast. Ha nincs paletta, nincs mit frissiteni.
     if let Ok(palette) = load_current() {
-        let _ = generators::sddm::generate(&palette, Some(std::path::Path::new(path)));
+        let _ = generators::greeter::generate(&palette, Some(std::path::Path::new(path)));
     }
     Ok(())
 }
@@ -282,4 +290,23 @@ fn write_state(path: &PathBuf, value: &str) -> Result<()> {
     std::fs::write(path, format!("{value}\n"))
         .with_context(|| format!("nem irhato: {}", path.display()))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summary_carries_terminal_colors_with_fallback() {
+        let palette = Palette::parse("NAME=Proba\nRED=#aa0000\nBLUE=#0000aa\nGREEN=szemet\n");
+        let summary = summarize("proba", &palette, None);
+        assert_eq!(summary.terminal.red, "#aa0000");
+        assert_eq!(summary.terminal.blue, "#0000aa");
+        // Ervenytelen vagy hianyzo szinnel az alapertelmezes marad.
+        assert_eq!(summary.terminal.green, "#a6e3a1");
+        assert_eq!(summary.terminal.magenta, "#cba6f7");
+
+        let json = serde_json::to_value(&summary).unwrap();
+        assert_eq!(json["terminal"]["red"], "#aa0000");
+    }
 }

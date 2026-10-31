@@ -173,13 +173,16 @@ menupopup :is(menu, menuitem)[disabled] :is(.menu-text, .menu-accel) {
   background-color: #1a1110 !important;
 }
 
-#zen-sidebar-top-buttons-customization-target,
-#zen-sidebar-splitter {
+#zen-sidebar-top-buttons-customization-target {
   background-color: #1a1110 !important;
 }
 
-#zen-sidebar-splitter {
-  opacity: 1 !important;
+/* The floating compact-mode sidebar draws its own rounded background;
+   a filled toolbox would show as a square block behind it. The sidebar
+   splitter stays Zen's transparent, hidden handle: painted, it overlaps
+   the right edge of the compact sidebar. */
+#navigator-toolbox {
+  background: transparent !important;
 }
 
 .urlbar-background {

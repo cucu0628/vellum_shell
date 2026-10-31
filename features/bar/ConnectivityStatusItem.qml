@@ -13,7 +13,7 @@ Item {
     property bool vpnActive: false
     property string vpnName: ""
     property bool popupOpen: false
-    readonly property bool highlighted: mouse.containsMouse || root.popupOpen
+    readonly property bool highlighted: root.popupOpen
     readonly property int badgeWidth: 15
     readonly property int gap: 3
     readonly property int baseWidth: 22 + (root.vpnActive ? gap + badgeWidth : 0)
@@ -26,14 +26,11 @@ Item {
     clip: true
     Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 2
-        color: root.theme.accent
-        opacity: root.highlighted || root.vpnActive ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+    SharedUi.BarPill {
+        theme: root.theme
+        hovered: mouse.containsMouse
+        active: root.popupOpen
+        z: -1
     }
 
     Row {

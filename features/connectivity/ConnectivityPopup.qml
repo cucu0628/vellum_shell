@@ -16,6 +16,7 @@ PanelWindow {
     property var statusController: null
     property var vpnCli: null
     property bool opened: false
+    property int barHeight: 26
     property int currentTab: 0
     readonly property bool vpnTab: currentTab === 1
     readonly property int panelHeight: vpnTab ? vpnPanel.preferredHeight : networkPanel.preferredHeight
@@ -25,7 +26,7 @@ PanelWindow {
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#9f8f7c"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#1b1613"
 
-    visible: opened || content.opacity > 0
+    visible: opened || sheet.reveal > 0
     color: "transparent"
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "quickshell.connectivity"
@@ -51,15 +52,19 @@ PanelWindow {
         focus: connectivityWindow.opened
         Keys.onEscapePressed: connectivityWindow.opened = false
         anchors.right: parent.right
-        anchors.rightMargin: 10
+        anchors.rightMargin: 0
         enabled: opened
-        y: 32
-        width: Math.min(430, parent.width - 20)
-        height: opened ? Math.min(connectivityWindow.panelHeight + 74, parent.height - 46) : 0
+        // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
+        y: connectivityWindow.barHeight
+        width: Math.min(420, parent.width - 20)
+        height: Math.min(connectivityWindow.panelHeight + 76, parent.height - connectivityWindow.barHeight - 12)
         clip: true
-        opacity: opened ? 1 : 0
 
         SharedUi.PopupFrame {
+            id: sheet
+            rightEar: false
+            squareRight: true
+            shown: connectivityWindow.opened
             anchors.fill: parent
             theme: connectivityWindow.theme
 
@@ -75,91 +80,123 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 12
 
-                Row {
+                // A fulvalaszto egyben a panel cime: a kivalasztott fel egy
+                // csendes, kerekitett lapka alatt all. Jobbra a Wi-Fi kapcsolo,
+                // amig a halozati ful latszik.
+                Item {
                     id: tabs
 
                     width: parent.width
-                    height: 30
-                    spacing: 6
+                    height: 32
 
-                    Repeater {
-                        model: [{
-                            "icon": "󰤨",
-                            "label": "NETWORK"
-                        }, {
-                            "icon": "󰦝",
-                            "label": "VPN"
-                        }]
+                    Rectangle {
+                        id: tabTrack
+
+                        width: Math.min(232, parent.width - wifiChip.width - 12)
+                        height: parent.height
+                        radius: 8
+                        color: inkBg
 
                         Rectangle {
-                            id: tab
+                            x: 2 + connectivityWindow.currentTab * (tabTrack.width - 4) / 2
+                            y: 2
+                            width: (tabTrack.width - 4) / 2
+                            height: tabTrack.height - 4
+                            radius: 6
+                            color: Qt.rgba(1, 1, 1, 0.08)
+                            Behavior on x { NumberAnimation { duration: 260; easing.type: Easing.OutQuint } }
+                        }
 
-                            required property int index
-                            required property var modelData
-                            readonly property bool selected: connectivityWindow.currentTab === index
-                            readonly property string labelColor: selected ? panelAccent : (tabMouse.containsMouse ? panelFg : mutedFg)
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 2
 
-                            width: (tabs.width - tabs.spacing) / 2
-                            height: tabs.height
-                            color: tabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.045) : "transparent"
+                            Repeater {
+                                model: [{
+                                    "icon": "󰤨",
+                                    "label": "Network"
+                                }, {
+                                    "icon": "󰦝",
+                                    "label": "VPN"
+                                }]
 
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.bottom: parent.bottom
-                                height: tab.selected ? 2 : 1
-                                color: tab.selected ? panelAccent : mutedFg
-                                opacity: tab.selected ? 1 : 0.22
-                            }
+                                Item {
+                                    id: tab
 
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 7
+                                    required property int index
+                                    required property var modelData
+                                    readonly property bool selected: connectivityWindow.currentTab === index
 
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: tab.modelData.icon
-                                    color: tab.labelColor
-                                    font.family: "Symbols Nerd Font Mono"
-                                    font.pixelSize: 15
+                                    width: (tabTrack.width - 4) / 2
+                                    height: tabTrack.height - 4
+
+                                    Row {
+                                        anchors.centerIn: parent
+                                        spacing: 8
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: tab.modelData.icon
+                                            color: tab.selected ? panelFg : mutedFg
+                                            font.family: "Symbols Nerd Font Mono"
+                                            font.pixelSize: 13
+                                        }
+
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: tab.modelData.label
+                                            color: tab.selected || tabMouse.containsMouse ? panelFg : mutedFg
+                                            font.pixelSize: 12
+                                            font.weight: tab.selected ? Font.Medium : Font.Normal
+                                        }
+
+                                        // A live dot for each side, so the merged
+                                        // module still reports both states.
+                                        Rectangle {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            width: 6
+                                            height: 6
+                                            radius: 3
+                                            visible: tab.index === 0
+                                                ? (statusController && statusController.connected)
+                                                : (vpnCli && vpnCli.protonActive)
+                                            color: panelAccent
+                                        }
+
+                                    }
+
+                                    SharedUi.Pressable {
+                                        id: tabMouse
+
+                                        anchors.fill: parent
+                                        theme: connectivityWindow.theme
+                                        focusRadius: 6
+                                        accessibleName: tab.modelData.label
+                                        accessibleRole: Accessible.PageTab
+                                        onClicked: connectivityWindow.currentTab = tab.index
+                                    }
+
                                 }
 
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: tab.modelData.label
-                                    color: tab.labelColor
-                                    font.family: "monospace"
-                                    font.pixelSize: 9
-                                    font.letterSpacing: 2
-                                    font.bold: true
-                                }
-
-                                // A live dot for the tab that is not on screen,
-                                // so the merged module still reports both states.
-                                Rectangle {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: 6
-                                    height: 6
-                                    radius: 3
-                                    visible: tab.index === 0
-                                        ? (statusController && statusController.connected)
-                                        : (vpnCli && vpnCli.protonActive)
-                                    color: panelAccent
-                                }
-
-                            }
-
-                            SharedUi.Pressable {
-                                id: tabMouse
-
-                                anchors.fill: parent
-                                theme: connectivityWindow.theme
-                                accessibleName: tab.modelData.label
-                                onClicked: connectivityWindow.currentTab = tab.index
                             }
 
                         }
 
+                    }
+
+                    SharedUi.HeaderChip {
+                        id: wifiChip
+
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: !connectivityWindow.vpnTab
+                        enabled: !networkPanel.radioBusy
+                        theme: connectivityWindow.theme
+                        label: "Wi-Fi"
+                        checkable: true
+                        checked: networkPanel.wifiEnabled
+                        accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
+                        onClicked: networkPanel.toggleWifi()
                     }
 
                 }
@@ -200,14 +237,6 @@ PanelWindow {
         Behavior on height {
             NumberAnimation {
                 duration: 210
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
                 easing.type: Easing.OutCubic
             }
 

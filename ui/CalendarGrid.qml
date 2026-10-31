@@ -25,6 +25,10 @@ Item {
     property real rowSpacing: 6
     property real columnSpacing: 6
     property real headerHeight: 18
+    // A megjelenitett honap jelolt napjai (pl. amelyiken esemeny van): a szam
+    // ala egy kis pottyot kapnak.
+    property var markedDays: []
+    property color markerColor: accent
 
     readonly property real cellWidth: (width - columnSpacing * 6) / 7
     readonly property real daysHeight: cellHeight * 6 + rowSpacing * 5
@@ -90,26 +94,37 @@ Item {
                 property bool activeDay: day > 0 && day <= calendarGrid.daysInMonth()
                 property bool today: activeDay && calendarGrid.isToday(day)
                 property bool hovered: activeDay && dayMouse.containsMouse
+                property bool marked: activeDay && calendarGrid.markedDays.indexOf(day) >= 0
 
                 width: calendarGrid.cellWidth
                 height: calendarGrid.cellHeight
                 color: today
                     ? calendarGrid.accent
                     : (hovered && calendarGrid.hoverEnabled ? calendarGrid.hoverBackground : (activeDay ? calendarGrid.activeBackground : "transparent"))
-                border.color: activeDay && !today
-                    ? (hovered && calendarGrid.hoverEnabled ? calendarGrid.accent : calendarGrid.activeBorder)
-                    : "transparent"
-                border.width: activeDay && !today && ((hovered && calendarGrid.hoverEnabled) || calendarGrid.activeBorder.a > 0) ? 1 : 0
-                radius: 0
+                border.color: activeDay && !today ? calendarGrid.activeBorder : "transparent"
+                border.width: activeDay && !today && calendarGrid.activeBorder.a > 0 ? 1 : 0
+                radius: 4
                 Behavior on color { ColorAnimation { duration: 90; easing.type: Easing.OutCubic } }
 
                 Text {
                     anchors.centerIn: parent
+                    anchors.verticalCenterOffset: parent.marked ? -2 : 0
                     text: parent.activeDay ? parent.day.toString() : ""
                     color: parent.today ? calendarGrid.todayForeground : calendarGrid.foreground
                     opacity: parent.activeDay ? 1 : 0
                     font.pixelSize: 12
                     font.weight: parent.today ? Font.DemiBold : Font.Normal
+                }
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 2
+                    width: 4
+                    height: 4
+                    radius: 2
+                    visible: parent.marked
+                    color: parent.today ? calendarGrid.todayForeground : calendarGrid.markerColor
                 }
 
                 MouseArea {

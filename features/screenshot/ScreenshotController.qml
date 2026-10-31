@@ -6,6 +6,14 @@ Item {
 
     required property string shellDir
     property string pendingMode: ""
+    // Egy fuggo (pl. beragadt) kijeloles nem blokkolhatja a kovetkezo Printet:
+    // ilyenkor leallitjuk, es a leallas utan indul az uj.
+    property bool restartPending: false
+
+    function start() {
+        captureProcess.command = [shellDir + "/scripts/screenshot-capture", pendingMode]
+        captureProcess.running = true
+    }
 
     width: 0
     height: 0
@@ -20,10 +28,23 @@ Item {
         id: captureDelay
         interval: 40
         onTriggered: {
-            captureProcess.command = [controller.shellDir + "/scripts/screenshot-capture", controller.pendingMode]
-            captureProcess.running = true
+            if (captureProcess.running) {
+                controller.restartPending = true
+                captureProcess.running = false
+                return
+            }
+            controller.start()
         }
     }
 
-    Process { id: captureProcess }
+    Process {
+        id: captureProcess
+
+        onRunningChanged: {
+            if (!running && controller.restartPending) {
+                controller.restartPending = false
+                controller.start()
+            }
+        }
+    }
 }

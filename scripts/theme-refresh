@@ -43,7 +43,10 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 
-export MALLOC_CONF='background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:1000'
 # A 9-es fd-t zarjuk: kulonben az uj peldany oroklene a zarat, es tobbe egy
-# frissites sem jutna at rajta.
-exec quickshell --path "$shell_path" --daemonize 9>&-
+# frissites sem jutna at rajta. A script mar sajat munkamenetben, levalasztva
+# fut (lasd fent), ezert a felugyelo itt maradhat az uj peldany mellett -- a
+# frissitett shell is ugyanugy ujraindul egy osszeomlas utan, mint az
+# eredeti.
+export VELLUM_SHELL_DIR=$shell_dir
+exec "$self_dir/shell-run" 9>&-

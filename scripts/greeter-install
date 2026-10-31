@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+# A Vellum greeter (greetd + Quickshell, minimalis Hyprlandben) telepitese.
+#
+#   greeter-install              -> a greeter QML-je /usr/share/vellum-greeter ala,
+#                                   az allapotmappa letrehozasa es szinkronja
+#   greeter-install --enable     -> ugyanez, plusz a greetd beallitasa es
+#                                   aktivalasa (a tobbi display manager helyett)
+#   greeter-install --preview    -> a greeter elonezete a sajat munkamenetben
+#                                   (nem kell root, nem jelentkeztet be; Esc kilep)
+#
+# Felhasznalokent kell futtatni: a rendszerreszhez maga ker sudo-t, a
+# szinkronhoz viszont az elo Hyprland munkamenet kell (monitorok, kiosztas).
+set -euo pipefail
+
+base="$(cd "$(dirname "$0")/.." && pwd)"
+dest="/usr/share/vellum-greeter"
+state_dir="/var/lib/vellum-greeter"
+cache_dir="/var/cache/vellum-greeter"
+tmpfiles_conf="/etc/tmpfiles.d/vellum-greeter.conf"
+greetd_conf="/etc/greetd/config.toml"
+font_name="SymbolsNerdFontMono-Regular.ttf"
+# Amit a greeter a felhasznalo munkamenetebol kap; a daemon frissiti oket.
+state_files=(theme.json background.jpg layout.conf input-screen)
+
+enable=0
+preview=0
+system_phase=0
+owner=""
+font_source=""
+for arg in "$@"; do
+  case "$arg" in
+    --enable|-e) enable=1 ;;
+    --preview|-p) preview=1 ;;
+    # Belso: a sudo alatt futo resz.
+    --system) system_phase=1 ;;
+    --owner=*) owner=${arg#--owner=} ;;
+    --font=*) font_source=${arg#--font=} ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) printf 'error: unknown option: %s\n' "$arg" >&2; exit 2 ;;
+  esac
+done
+
+[[ -r $base/GreeterShell.qml ]] || { printf 'error: greeter source not found: %s\n' "$base" >&2; exit 1; }
+
+# --- rendszerresz (root) ------------------------------------------------------
+
+# A greetd konfigjaban mar megnevezett greeter felhasznalo, kulonben a
+# disztribucio sajatja: Archon `greeter`, Fedoran `greetd`.
+greeter_user() {
+  local configured=""
+  if [[ -r $greetd_conf ]]; then
+    configured=$(sed -n '/^\[default_session\]/,/^\[/{s/^[[:space:]]*user[[:space:]]*=[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p}' "$greetd_conf" | head -n 1)
+  fi
+  local name
+  for name in "$configured" greeter greetd; do
+    [[ -n $name ]] && id "$name" >/dev/null 2>&1 && { printf '%s\n' "$name"; return; }
+  done
+  useradd --system --no-create-home --home-dir "$cache_dir" --shell /usr/sbin/nologin \
+    --comment "Vellum greeter" greeter >&2
+  printf '%s\n' greeter
+}
+
+install_tree() {
+  local staging
+  staging=$(mktemp -d "$(dirname "$dest")/.vellum-greeter.XXXXXX")
+  # A telepitett peldany szerkezete ugyanaz, mint a repoe, igy a relativ
+  # QML-importok valtozatlanul mukodnek.
+  install -d -m 755 "$staging/features/lock" "$staging/ui" "$staging/fonts"
+  install -m 644 "$base/GreeterShell.qml" "$staging/shell.qml"
+  install -m 644 "$base"/features/lock/*.qml "$staging/features/lock/"
+  install -m 644 "$base"/features/lock/*.png "$staging/features/lock/"
+  install -m 644 "$base"/ui/*.qml "$staging/ui/"
+  install -m 644 "$base/greeter/hyprland.lua" "$staging/hyprland.lua"
+  if [[ -n $font_source && -r $font_source ]]; then
+    install -m 644 "$font_source" "$staging/fonts/$font_name"
+  else
+    printf 'figyelmeztetes: a Symbols Nerd Font Mono nem talalhato, a greeter ikonjai hianyozhatnak\n' >&2
+  fi
+  chmod 755 "$staging"
+  rm -rf "$dest"
+  mv "$staging" "$dest"
+}
+
+install_state() {
+  local greeter=$1
+  install -d -m 755 "$(dirname "$tmpfiles_conf")"
+  cat > "$tmpfiles_conf" <<EOF
+# Vellum greeter: allapot (a felhasznalo frissiti) es gyorsitotar (a greetere).
+d $state_dir 0755 root root -
+d $cache_dir 0750 $greeter $greeter -
+EOF
+  chmod 644 "$tmpfiles_conf"
+  systemd-tmpfiles --create "$tmpfiles_conf"
+
+  # A mappa root tulajdonu: a backend csak a mar letezo, ra chownolt fajlokat
+  # tudja felulirni, ujat letrehozni nem.
+  local name
+  for name in "${state_files[@]}"; do
+    [[ -e $state_dir/$name ]] || : > "$state_dir/$name"
+    chown "$owner" "$state_dir/$name"
+    chmod 644 "$state_dir/$name"
+  done
+}
+
+write_greetd_config() {
+  local greeter=$1 hyprland vt="1"
+  hyprland=$(command -v Hyprland) || { printf 'error: Hyprland not found\n' >&2; exit 1; }
+  if [[ -r $greetd_conf ]]; then
+    local current
+    current=$(sed -n '/^\[terminal\]/,/^\[/{s/^[[:space:]]*vt[[:space:]]*=[[:space:]]*\([^[:space:]#]*\).*/\1/p}' "$greetd_conf" | head -n 1)
+    [[ -n $current ]] && vt=$current
+    cp -p "$greetd_conf" "$greetd_conf.before-vellum-$(date +%Y%m%d-%H%M%S)"
+  fi
+
+  install -d -m 755 "$(dirname "$greetd_conf")"
+  # A dms-greeter RPM %post scriptje minden csomagfrissiteskor visszairja a
+  # sajat parancsat, ha a fajlban nem talalja a nevet (`grep -q dms-greeter`).
+  # A lenti megjegyzes ezt a feltetelt teljesiti, igy a dnf update nem irja
+  # felul a Vellum greetert.
+  cat > "$greetd_conf" <<EOF
+# Vellum greeter -- a scripts/greeter-install irta. Az elozo valtozat mellette,
+# .before-vellum-* neven.
+#
+# Ne torold: a dms-greeter csomag frissitese ennek a sornak a hianyaban
+# felulirna a command sort. (Ha nem hasznalod: sudo dnf remove dms-greeter)
+[terminal]
+vt = $vt
+
+[default_session]
+command = "$hyprland --config $dest/hyprland.lua"
+user = "$greeter"
+EOF
+  chmod 644 "$greetd_conf"
+  printf 'greetd: %s\n' "$greetd_conf"
+  if rpm -q dms-greeter >/dev/null 2>&1 || pacman -Q dms-greeter >/dev/null 2>&1; then
+    printf 'figyelmeztetes: a dms-greeter csomag telepitve van; ha mar nem kell: eltavolithato\n' >&2
+  fi
+
+  # Egyszerre csak egy display manager lehet aktiv. Nem allitjuk le oket: a
+  # valtas a kovetkezo inditaskor lep eletbe, a futo munkamenet megmarad.
+  local unit
+  for unit in sddm.service gdm.service lightdm.service plasmalogin.service ly.service; do
+    if systemctl is-enabled "$unit" >/dev/null 2>&1; then
+      systemctl disable "$unit"
+    fi
+  done
+  systemctl enable greetd.service
+}
+
+if ((system_phase)); then
+  [[ $EUID -eq 0 ]] || { printf 'error: --system needs root\n' >&2; exit 1; }
+  id "$owner" >/dev/null 2>&1 || { printf 'error: unknown owner: %s\n' "$owner" >&2; exit 1; }
+  greeter=$(greeter_user)
+  install_tree
+  install_state "$greeter"
+  ((enable)) && write_greetd_config "$greeter"
+  if command -v restorecon >/dev/null 2>&1; then
+    restorecon -R "$dest" "$state_dir" "$cache_dir" >/dev/null 2>&1 || true
+  fi
+  printf 'installed: %s (greeter user: %s, state owner: %s)\n' "$dest" "$greeter" "$owner"
+  exit 0
+fi
+
+# --- felhasznaloi resz ----------------------------------------------------------
+
+if [[ $EUID -eq 0 ]]; then
+  printf 'error: futtasd felhasznalokent; a script maga ker sudo-t\n' >&2
+  exit 1
+fi
+
+if ((preview)); then
+  # A telepitett allapotot mutatja, ha van; kulonben semleges szinekkel indul.
+  runtime=${XDG_RUNTIME_DIR:-/tmp}/vellum-greeter-preview
+  mkdir -p "$runtime"
+  VELLUM_GREETER_DIR=$state_dir VELLUM_GREETER_CACHE=$runtime exec qs -p "$base/GreeterShell.qml"
+fi
+
+font_source=$(fc-match -f '%{file}' 'Symbols Nerd Font Mono' 2>/dev/null || true)
+[[ $(basename -- "$font_source") == "$font_name" ]] || font_source=""
+
+system_args=(--system "--owner=$USER" "--font=$font_source")
+((enable)) && system_args+=(--enable)
+sudo -- "$0" "${system_args[@]}"
+
+# A szinkron a felhasznalo munkamenetebol: paletta, hatterkep es elrendezes a
+# backendtol, a beviteli kijelzo a lockscreen beallitasabol. A --no-zen azert
+# kell, hogy egy greeter-telepites ne nyuljon a bongeszo profiljahoz.
+vellum="$HOME/.local/bin/vellum"
+if [[ -x $vellum && -r "$base/current-theme" ]]; then
+  "$vellum" theme apply "$(<"$base/current-theme")" --no-zen >/dev/null 2>&1 || \
+    printf 'figyelmeztetes: a tema szinkronja nem sikerult\n' >&2
+else
+  printf 'figyelmeztetes: a Vellum backend nem elerheto; a greeter semleges szinekkel indul\n' >&2
+fi
+# Egy regebbi backend-binaris (greeter-generator nelkul) hibatlanul lefut, de
+# semmit nem ir: a greeter ilyenkor angol kiosztassal, semleges szinekkel es
+# talalomra rakott monitorokkal indulna. Ezt nem szabad csendben hagyni.
+if [[ ! -s $state_dir/theme.json || ! -s $state_dir/layout.conf ]]; then
+  printf 'figyelmeztetes: a backend nem irta meg a greeter allapotat (%s);\n' "$state_dir" >&2
+  printf '  valoszinuleg regebbi a telepitett vellum: %s, majd futtasd ujra ezt a scriptet\n' \
+    "$base/scripts/backend-install" >&2
+fi
+
+# A beviteli kijelzo: a kifejezetten beallitott lockscreen-monitor, kulonben a
+# fo kijelzo (legnagyobb frissites, aztan legnagyobb felulet). A
+# `lockscreen-monitor current` tartaleka a pillanatnyilag fokuszalt monitor --
+# az a telepites pillanatanak veletlene, a greeternek nem jo alap.
+monitor=""
+if [[ -s $base/lockscreen-monitor ]]; then
+  monitor=$(sh "$base/scripts/lockscreen-monitor" current 2>/dev/null || true)
+else
+  monitor=$(hyprctl monitors -j 2>/dev/null \
+    | jq -r 'sort_by(-.refreshRate, -(.width * .height)) | .[0].name // empty' 2>/dev/null || true)
+fi
+[[ -n $monitor ]] && printf '%s\n' "$monitor" > "$state_dir/input-screen"
+
+printf 'synced: %s (input: %s)\n' "$state_dir" "${monitor:-?}"
+((enable)) || printf 'aktivalas: %s --enable\n' "$0"

@@ -86,26 +86,49 @@ fn vars(palette: &Palette) -> Vars {
     vars
 }
 
-/// Bekoti a stiluslapokat az aktiv Zen profilba. Ha nincs Zen telepitve, ez
-/// csendben kimarad -- nem hiba.
+/// Ahol egy Zen telepites profiljai lehetnek: a nativ csomag (`~/.config/zen`,
+/// regebben `~/.zen`) es a Flatpak (`~/.var/app/app.zen_browser.zen/.zen`).
+fn profile_roots() -> Vec<PathBuf> {
+    vec![
+        paths::config_dir().join("zen"),
+        paths::home().join(".zen"),
+        paths::home().join(".var/app/app.zen_browser.zen/.zen"),
+    ]
+}
+
+/// A profil `chrome` mappajaba masolt stiluslapok neve. A Flatpak sandbox nem
+/// latja a shell mappajat, ezert a fajlok a profilba kerulnek, es onnan
+/// relativ utvonallal importaljuk oket -- igy nem kell extra jogosultsag.
+const CHROME_COPY: &str = "vellum-zen-theme.css";
+const CONTENT_COPY: &str = "vellum-zen-content-theme.css";
+
+/// Bekoti a stiluslapokat minden talalt Zen telepites alapertelmezett
+/// profiljaba. Ha nincs Zen telepitve, ez csendben kimarad -- nem hiba.
 fn install_into_profile(chrome_output: &Path, content_output: &Path) -> Result<()> {
-    let zen_root = paths::config_dir().join("zen");
-    let Some(profile_dir) = default_profile(&zen_root) else {
-        return Ok(());
-    };
+    for zen_root in profile_roots() {
+        let Some(profile_dir) = default_profile(&zen_root) else {
+            continue;
+        };
 
-    // A Zen csak akkor olvassa a userChrome.css-t, ha ez a pref be van kapcsolva.
-    set_user_prefs(&profile_dir)?;
+        // A Zen csak akkor olvassa a userChrome.css-t, ha ez a pref be van kapcsolva.
+        set_user_prefs(&profile_dir)?;
 
-    let chrome_dir = profile_dir.join("chrome");
-    std::fs::create_dir_all(&chrome_dir)?;
+        let chrome_dir = profile_dir.join("chrome");
+        std::fs::create_dir_all(&chrome_dir)?;
 
-    upsert_import(&chrome_dir.join("userChrome.css"), chrome_output, "/zen-theme.css\");")?;
-    upsert_import(
-        &chrome_dir.join("userContent.css"),
-        content_output,
-        "/zen-content-theme.css\");",
-    )?;
+        write_if_changed(&chrome_dir.join(CHROME_COPY), &std::fs::read_to_string(chrome_output)?)?;
+        write_if_changed(
+            &chrome_dir.join(CONTENT_COPY),
+            &std::fs::read_to_string(content_output)?,
+        )?;
+
+        upsert_import(&chrome_dir.join("userChrome.css"), CHROME_COPY, &["/zen-theme.css\");"])?;
+        upsert_import(
+            &chrome_dir.join("userContent.css"),
+            CONTENT_COPY,
+            &["/zen-content-theme.css\");"],
+        )?;
+    }
 
     Ok(())
 }
@@ -155,20 +178,30 @@ fn set_user_prefs(profile_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Kicsereli a sajat `@import` sorunkat, vagy ha nincs, a fajl elejere teszi.
-/// A tobbi sort erintetlenul hagyja -- a felhasznalo sajat CSS-e megmarad.
-fn upsert_import(target: &Path, stylesheet: &Path, suffix: &str) -> Result<()> {
-    let import = format!("@import url(\"{}\");", stylesheet.display());
+/// Kicsereli a sajat `@import` sorunkat, vagy ha nincs, a fajl elejere teszi
+/// (az `@import`-nak minden mas szabaly elott kell allnia). A tobbi sort
+/// erintetlenul hagyja -- a felhasznalo sajat CSS-e megmarad. A `legacy`
+/// vegzodesu regi importok (abszolut ut a shell mappajaba) is a mieink: ezeket
+/// az uj, relativ sorra csereljuk.
+fn upsert_import(target: &Path, file_name: &str, legacy: &[&str]) -> Result<()> {
+    let import = format!("@import url(\"{file_name}\");");
     let existing: Vec<String> = std::fs::read_to_string(target)
         .map(|text| text.lines().map(str::to_string).collect())
         .unwrap_or_default();
 
+    let ours = |line: &str| {
+        line.starts_with("@import url(\"")
+            && (line == import || legacy.iter().any(|suffix| line.ends_with(suffix)))
+    };
+
     let mut lines = Vec::with_capacity(existing.len() + 2);
     let mut found = false;
     for line in existing {
-        if line.starts_with("@import url(\"") && line.ends_with(suffix) {
-            lines.push(import.clone());
-            found = true;
+        if ours(&line) {
+            if !found {
+                lines.push(import.clone());
+                found = true;
+            }
         } else {
             lines.push(line);
         }
@@ -183,4 +216,40 @@ fn upsert_import(target: &Path, stylesheet: &Path, suffix: &str) -> Result<()> {
     contents.push('\n');
     write_if_changed(target, &contents)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_file(name: &str, contents: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("vellum-zen-test-{}-{name}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("userChrome.css");
+        std::fs::write(&path, contents).unwrap();
+        path
+    }
+
+    #[test]
+    fn import_goes_first_and_keeps_user_css() {
+        let path = temp_file("first", "#nav-bar { color: red; }\n");
+        upsert_import(&path, CHROME_COPY, &["/zen-theme.css\");"]).unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.starts_with("@import url(\"vellum-zen-theme.css\");"), "{text}");
+        assert!(text.contains("#nav-bar { color: red; }"));
+    }
+
+    #[test]
+    fn legacy_absolute_import_is_replaced_once() {
+        let path = temp_file(
+            "legacy",
+            "@import url(\"/home/x/.config/quickshell/vellum_shell/zen-theme.css\");\n\n#a {}\n",
+        );
+        upsert_import(&path, CHROME_COPY, &["/zen-theme.css\");"]).unwrap();
+        upsert_import(&path, CHROME_COPY, &["/zen-theme.css\");"]).unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(text.matches("@import").count(), 1, "{text}");
+        assert!(text.starts_with("@import url(\"vellum-zen-theme.css\");"));
+    }
 }

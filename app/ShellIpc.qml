@@ -9,6 +9,14 @@ Item {
     required property var lockProvider
     required property var focusedScreenProvider
     required property var screenshotCaptureProvider
+    // Az eppen szolo (vagy utolso) MPRIS lejatszo a medagombokhoz.
+    property var activePlayer: null
+    // A zene hangerejet lepteto core/MprisController.
+    property var mediaController: null
+    // Az alapertelmezett kimenet es bemenet: core/AudioSummaryController.
+    property var audioController: null
+    // A beepitett kijelzo fenyereje: core/BrightnessController.
+    property var brightnessController: null
     property string pendingAboutAction: ""
 
     width: 0
@@ -20,8 +28,9 @@ Item {
         aboutMonitorDelay.restart()
     }
 
-    function openMediaTab(tab) {
-        coordinator.openMediaTab(tab, focusedScreenProvider())
+    function openMedia(card) {
+        coordinator.mediaPopup.initialCard = card || ""
+        coordinator.setMediaOpen(true, focusedScreenProvider())
     }
 
     Timer {
@@ -126,16 +135,50 @@ Item {
         function toggle(): void { coordinator.toggleAudio(focusedScreenProvider()) }
         function open(): void { coordinator.setAudioOpen(true, focusedScreenProvider()) }
         function close(): void { coordinator.setAudioOpen(false) }
+        // Az alapertelmezett kimenet 5%-os lepesben; az OSD a PipeWire
+        // valtozasabol magatol megjelenik.
+        function volumeUp(): void { if (root.audioController) root.audioController.stepVolume(true) }
+        function volumeDown(): void { if (root.audioController) root.audioController.stepVolume(false) }
+        function mute(): void { if (root.audioController) root.audioController.toggleMute() }
+        function micMute(): void { if (root.audioController) root.audioController.toggleMicMute() }
+    }
+
+    IpcHandler {
+        target: "brightness"
+
+        // 5%-os lepes; hattervilagitas vagy daemon nelkul nem csinal semmit.
+        // A billentyuk a `vellum call brightness step` parancsot hasznaljak,
+        // ami a shell nelkul is mukodik.
+        function up(): void { if (root.brightnessController) root.brightnessController.step(5) }
+        function down(): void { if (root.brightnessController) root.brightnessController.step(-5) }
     }
 
     IpcHandler {
         target: "media"
 
         function toggle(): void { coordinator.toggleCenterPopup(focusedScreenProvider()) }
-        function open(): void { root.openMediaTab(coordinator.mediaPopup.currentTab) }
-        function overview(): void { root.openMediaTab(0) }
-        function player(): void { root.openMediaTab(1) }
-        function weather(): void { root.openMediaTab(2) }
+        function open(): void { root.openMedia() }
+        // A dashboard mar egyetlen lap; a regi fulnevek megmaradnak, hogy a
+        // meglevo billentyuparancsok es szkriptek ne torjenek el.
+        function overview(): void { root.openMedia() }
+        function player(): void { root.openMedia() }
+        // A dashboard egy kinagyitott kartyaval.
+        function weather(): void { root.openMedia("weather") }
+        function calendar(): void { root.openMedia("calendar") }
+        // Medagombok: nem kell hozzajuk playerctl, a shell maga vezerli az
+        // aktiv lejatszot.
+        function playPause(): void {
+            if (root.activePlayer && root.activePlayer.canTogglePlaying) root.activePlayer.togglePlaying()
+        }
+        function next(): void {
+            if (root.activePlayer && root.activePlayer.canGoNext) root.activePlayer.next()
+        }
+        function previous(): void {
+            if (root.activePlayer && root.activePlayer.canGoPrevious) root.activePlayer.previous()
+        }
+        // A zene hangereje 5%-os lepesben; az OSD kulon jelzi.
+        function volumeUp(): void { if (root.mediaController) root.mediaController.stepVolume(0.05) }
+        function volumeDown(): void { if (root.mediaController) root.mediaController.stepVolume(-0.05) }
         function close(): void { coordinator.setMediaOpen(false) }
     }
 

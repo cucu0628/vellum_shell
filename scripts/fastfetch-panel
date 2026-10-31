@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Az about ablak tartalma: egyetlen fastfetch futas, semmi mas.
+# Az about ablak tartalma: a fastfetch kimenete, semmi mas.
 #
 # A `kitty --hold` a kimenet ala egy shell promptot tesz, amitol az ablak
 # gepelesre varo terminalnak latszik. Itt a kimenet maga az ablak: a kurzort
@@ -17,23 +17,55 @@ trap show_cursor EXIT
 # jelenjen meg az ablakvaltoban is.
 printf '\033]2;fastfetch\007'
 
-hide_cursor
+# A kitty a sajat alapmereteben indul, es a Hyprland csak utana meretezi at az
+# ablakot a kert meretre. Ha a fastfetch addigra mar kiirt, a kitty az
+# atmeretezeskor ujratordeli a sorokat, a grafikus protokollal rajzolt logo
+# viszont a helyen marad: a szoveg racsuszik a logora. Ezert minden
+# atmeretezes utan tisztan ujrarajzolunk.
+render() {
+  # Kepernyo es scrollback torlese, a kitty kepeinek eldobasa, kurzor a sarokba.
+  printf '\033[2J\033[3J\033[H'
+  if [[ -n ${KITTY_WINDOW_ID:-} ]]; then
+    printf '\033_Ga=d\033\134'
+  fi
+  hide_cursor
 
-if ! command -v fastfetch >/dev/null 2>&1; then
-  printf 'fastfetch is not installed.\n' >&2
-elif [[ -x ${SHELL:-} ]]; then
-  # A fastfetch a szulofolyamatbol olvassa ki a shellt. A panelt bash inditja,
-  # ezert a felhasznalo sajat shelljebol hivjuk: az ablak ugyanazt mutassa,
-  # mint egy kezzel nyitott terminal. `exec` nelkul, kulonben a shell kilepne a
-  # folyamatlancbol, es megint a bash latszana.
-  "$SHELL" -c fastfetch || true
-else
-  fastfetch || true
-fi
+  if ! command -v fastfetch >/dev/null 2>&1; then
+    printf 'fastfetch is not installed.\n' >&2
+  elif [[ -x ${SHELL:-} ]]; then
+    # A fastfetch a szulofolyamatbol olvassa ki a shellt. A panelt bash inditja,
+    # ezert a felhasznalo sajat shelljebol hivjuk: az ablak ugyanazt mutassa,
+    # mint egy kezzel nyitott terminal. `exec` nelkul, kulonben a shell kilepne a
+    # folyamatlancbol, es megint a bash latszana.
+    "$SHELL" -c fastfetch || true
+  else
+    fastfetch || true
+  fi
 
-# A fastfetch visszakapcsolhatja a kurzort, ezert a kimenet utan ujra elrejtjuk.
-hide_cursor
+  # A fastfetch visszakapcsolhatja a kurzort, ezert a kimenet utan ujra elrejtjuk.
+  hide_cursor
+}
+
+resized=0
+trap 'resized=1' WINCH
+
+# Az elso rajzolas elott kivarjuk, hogy a Hyprland atmeretezze az ablakot; ha
+# addig nem jon jel, a mostani meret a vegleges.
+sleep 0.15 & wait $! || true
+resized=0
+render
 
 while :; do
-  sleep 86400
+  sleep 86400 &
+  sleeper=$!
+  wait "$sleeper" || true
+  if (( resized )); then
+    kill "$sleeper" 2>/dev/null || true
+    # Egy atmeretezes tobb jelet is kuld: a sor vegere varunk.
+    while (( resized )); do
+      resized=0
+      sleep 0.1 & wait $! || true
+    done
+    render
+  fi
 done
