@@ -12,13 +12,10 @@ PanelWindow {
     property int barHeight: 26
 
     readonly property var devices: deviceController ? deviceController.devices : []
-    readonly property string panelBg: theme ? theme.background : "#11130f"
     readonly property string panelFg: theme ? theme.foreground : "#e8ddc7"
     readonly property string panelAccent: theme ? theme.accent : "#b7372f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
-    readonly property string inkBg: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
-    readonly property color lineBg: Qt.rgba(1, 1, 1, 0.07)
+    readonly property bool hasError: deviceController ? deviceController.errorMessage !== "" : false
 
     function actionLabel(device) {
         if (deviceController && deviceController.busyPath === device.path) return "Busy"
@@ -56,9 +53,10 @@ PanelWindow {
         anchors.rightMargin: 0
         // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
         y: popup.barHeight
-        width: Math.min(410, parent.width - 20)
-        height: Math.min(500, parent.height - popup.barHeight - 12, 120 + popup.devices.length * 78
-            + (deviceController && deviceController.errorMessage !== "" ? 38 : 0))
+        width: Math.min(420, parent.width - 20)
+        // Margok (32), fejlec es koz; soronkent 52 + 4.
+        height: Math.min(500, parent.height - popup.barHeight - 12,
+            44 + header.implicitHeight + Math.max(52, popup.devices.length * 56 - 4) + (popup.hasError ? 26 : 0))
         enabled: popup.opened
         clip: true
 
@@ -77,25 +75,30 @@ PanelWindow {
             Column {
                 anchors.fill: parent
                 anchors.margins: 16
-                spacing: 10
+                spacing: 12
 
                 SharedUi.PopupHeader {
+                    id: header
+
                     width: parent.width
                     theme: popup.theme
                     title: "Removable"
-                    subtitle: popup.devices.length + (popup.devices.length === 1 ? " volume available" : " volumes available")
+                    // Ures listanal a lenti mondat mar elmondja.
+                    subtitle: popup.devices.length === 0
+                        ? ""
+                        : popup.devices.length + (popup.devices.length === 1 ? " volume available" : " volumes available")
                 }
 
                 Item {
                     width: parent.width
-                    height: parent.height - 54 - (deviceController && deviceController.errorMessage !== "" ? 28 : 0)
+                    height: parent.height - header.height - 12 - (popup.hasError ? 26 : 0)
 
                     Text {
                         anchors.centerIn: parent
                         visible: popup.devices.length === 0
-                        text: "No removable devices connected"
+                        text: "No removable drives connected."
                         color: popup.mutedFg
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                     }
 
                     Flickable {
@@ -108,124 +111,47 @@ PanelWindow {
                         Column {
                             id: deviceColumn
                             width: parent.width
-                            spacing: 6
+                            spacing: 4
 
                             Repeater {
                                 model: popup.devices
 
-                                Rectangle {
+                                SharedUi.ListRow {
                                     id: deviceRow
                                     required property var modelData
                                     readonly property bool busy: deviceController && (deviceController.busyPath === modelData.path
                                         || deviceController.busyPath === modelData.diskPath)
 
                                     width: deviceColumn.width
-                                    height: 72
-                                    color: popup.inkBg
-                                    border.color: popup.lineBg
-                                    opacity: busy ? 0.62 : 1
+                                    theme: popup.theme
+                                    interactive: false
+                                    active: modelData.mounted
+                                    opacity: busy ? 0.6 : 1
+                                    glyph: modelData.transport === "usb" ? "󰕓" : "󰋊"
+                                    title: modelData.name
+                                    // Csatolva a csatolasi pont a fontos, kulonben a fajlrendszer.
+                                    subtitle: modelData.size + "  ·  " + (modelData.mounted
+                                        ? modelData.mountpoint
+                                        : modelData.filesystem.toUpperCase() + "  ·  Not mounted")
+                                    subtitleElide: Text.ElideMiddle
 
-                                    Text {
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 14
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: deviceRow.modelData.transport === "usb" ? "󰕓" : "󰋊"
-                                        color: deviceRow.modelData.mounted ? popup.panelAccent : popup.panelFg
-                                        font.family: "Symbols Nerd Font Mono"
-                                        font.pixelSize: 22
+                                    SharedUi.HeaderChip {
+                                        theme: popup.theme
+                                        emphasized: true
+                                        enabled: !deviceRow.busy
+                                        label: popup.actionLabel(deviceRow.modelData)
+                                        accessibleName: (deviceRow.modelData.mounted ? qsTr("Open %1") : qsTr("Mount %1")).arg(deviceRow.modelData.name)
+                                        onClicked: popup.activate(deviceRow.modelData)
                                     }
 
-                                    Column {
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 48
-                                        anchors.right: actionRow.left
-                                        anchors.rightMargin: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 3
-
-                                        Text {
-                                            width: parent.width
-                                            text: deviceRow.modelData.name
-                                            color: popup.panelFg
-                                            font.pixelSize: 12
-                                            font.weight: Font.DemiBold
-                                            elide: Text.ElideRight
-                                        }
-
-                                        Text {
-                                            width: parent.width
-                                            text: deviceRow.modelData.size + "  ·  " + deviceRow.modelData.filesystem.toUpperCase()
-                                            color: popup.mutedFg
-                                            font.family: "monospace"
-                                            font.pixelSize: 8
-                                            elide: Text.ElideRight
-                                        }
-
-                                        Text {
-                                            width: parent.width
-                                            text: deviceRow.modelData.mounted ? deviceRow.modelData.mountpoint : "Not mounted"
-                                            color: deviceRow.modelData.mounted ? popup.panelAccent : popup.mutedFg
-                                            font.pixelSize: 9
-                                            elide: Text.ElideMiddle
-                                        }
-                                    }
-
-                                    Row {
-                                        id: actionRow
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: 10
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 5
-
-                                        Rectangle {
-                                            width: 58
-                                            height: 30
-                                            color: primaryMouse.containsMouse ? popup.panelAccent : "transparent"
-                                            border.color: popup.panelAccent
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: popup.actionLabel(deviceRow.modelData)
-                                                color: primaryMouse.containsMouse ? popup.panelBg : popup.panelFg
-                                                font.pixelSize: 9
-                                                font.bold: true
-                                            }
-
-                                            MouseArea {
-                                                id: primaryMouse
-                                                anchors.fill: parent
-                                                enabled: !deviceRow.busy
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: popup.activate(deviceRow.modelData)
-                                            }
-                                        }
-
-                                        Rectangle {
-                                            width: 58
-                                            height: 30
-                                            color: secondaryMouse.containsMouse ? popup.hoverBg : "transparent"
-                                            border.color: popup.lineBg
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: deviceRow.modelData.mounted ? "Unmount" : "Eject"
-                                                color: popup.mutedFg
-                                                font.pixelSize: 9
-                                                font.bold: true
-                                            }
-
-                                            MouseArea {
-                                                id: secondaryMouse
-                                                anchors.fill: parent
-                                                enabled: !deviceRow.busy
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    if (deviceRow.modelData.mounted) deviceController.unmount(deviceRow.modelData.path)
-                                                    else deviceController.powerOff(deviceRow.modelData.diskPath)
-                                                }
-                                            }
+                                    SharedUi.HeaderChip {
+                                        theme: popup.theme
+                                        enabled: !deviceRow.busy
+                                        label: deviceRow.modelData.mounted ? "Unmount" : "Eject"
+                                        accessibleName: (deviceRow.modelData.mounted ? qsTr("Unmount %1") : qsTr("Eject %1")).arg(deviceRow.modelData.name)
+                                        onClicked: {
+                                            if (deviceRow.modelData.mounted) deviceController.unmount(deviceRow.modelData.path)
+                                            else deviceController.powerOff(deviceRow.modelData.diskPath)
                                         }
                                     }
                                 }
@@ -236,10 +162,12 @@ PanelWindow {
 
                 Text {
                     width: parent.width
-                    visible: deviceController && deviceController.errorMessage !== ""
+                    height: 14
+                    visible: popup.hasError
                     text: deviceController ? deviceController.errorMessage : ""
+                    textFormat: Text.PlainText
                     color: popup.panelAccent
-                    font.pixelSize: 9
+                    font.pixelSize: 10
                     elide: Text.ElideRight
                 }
             }

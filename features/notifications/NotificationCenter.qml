@@ -60,7 +60,7 @@ Item {
         anchors.rightMargin: 0
         // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
         y: center.barHeight
-        width: Math.min(380, parent.width - 20)
+        width: Math.min(420, parent.width - 20)
         height: Math.min(parent.height - center.barHeight - 12, menuPanelColumn.implicitHeight + 32)
         enabled: center.opened
         clip: true
@@ -100,7 +100,6 @@ Item {
                         width: parent.width
                         theme: center.theme
                         title: "Notifications"
-                        subtitle: center.history.length + (center.history.length === 1 ? " recent item" : " recent items")
                         trailingWidth: 84
 
                         SharedUi.HeaderChip {
@@ -116,64 +115,31 @@ Item {
 
                     }
 
-                    // Ures listanal a fejlec alcime mar elmondja ugyanezt.
-                    Row {
+                    // Ures listanal az "All quiet" sor mondja el ugyanezt.
+                    SharedUi.SectionBar {
                         width: parent.width
-                        height: visible ? 18 : 0
+                        height: visible ? implicitHeight : 0
                         visible: center.history.length > 0
-                        spacing: 8
+                        theme: center.theme
+                        title: "RECENT"
+                        detail: center.history.length
+                            + (center.groups.length > 0 && center.groups.length !== center.history.length
+                                ? "  ·  " + center.groups.length + (center.groups.length === 1 ? " app" : " apps")
+                                : "")
 
-                        Text {
-                            width: parent.width - 136
-                            text: "Recent  ·  " + center.history.length
-                                + (center.groups.length > 0 && center.groups.length !== center.history.length ? "  ·  " + center.groups.length + (center.groups.length === 1 ? " app" : " apps") : "")
-                            color: center.mutedFg
-                            font.pixelSize: 10
-                            font.letterSpacing: 0
-                            font.weight: Font.Medium
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
+                        SharedUi.HeaderChip {
+                            visible: center.hasGroupedApps
+                            theme: center.theme
+                            label: center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")
+                            accessibleName: center.allGroupsExpanded ? qsTr("Collapse all groups") : qsTr("Expand all groups")
+                            onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
                         }
 
-                        Text {
-                            width: 64
-                            height: parent.height
-                            text: center.hasGroupedApps ? (center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")) : ""
-                            color: expandAllMouse.containsMouse ? center.panelFg : center.mutedFg
-                            font.pixelSize: 10
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
-
-                            MouseArea {
-                                id: expandAllMouse
-
-                                anchors.fill: parent
-                                enabled: center.hasGroupedApps
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
-                            }
-
-                        }
-
-                        Text {
-                            width: 56
-                            height: parent.height
-                            text: center.history.length > 0 ? qsTr("Clear all") : ""
-                            color: clearAllMouse.containsMouse ? center.panelFg : center.mutedFg
-                            font.pixelSize: 10
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
-
-                            MouseArea {
-                                id: clearAllMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                enabled: center.history.length > 0
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: center.clearRequested()
-                            }
-
+                        SharedUi.HeaderChip {
+                            theme: center.theme
+                            label: qsTr("Clear all")
+                            accessibleName: qsTr("Clear all notifications")
+                            onClicked: center.clearRequested()
                         }
 
                     }
@@ -191,16 +157,18 @@ Item {
                             spacing: 9
 
                             Text {
-                                text: "󰂜"
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: center.dnd ? "󰂛" : "󰂜"
                                 color: center.mutedFg
                                 font.family: "Symbols Nerd Font Mono"
                                 font.pixelSize: 17
                             }
 
                             Text {
+                                anchors.verticalCenter: parent.verticalCenter
                                 text: "All quiet"
                                 color: center.mutedFg
-                                font.pixelSize: 11
+                                font.pixelSize: 12
                             }
 
                         }

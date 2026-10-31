@@ -2,8 +2,9 @@ import "." as AudioUi
 import QtQuick
 import "../../ui" as SharedUi
 
-// Egy alkalmazas hangja. Lejatszasnal sajat csuszkaval; felvetelnel csak azt
-// mutatja, ki hasznalja a mikrofont.
+// Egy alkalmazas hangja, ugyanabban a sorformaban, mint a tobbi panel listai:
+// csempe (kattintasra nemit), nev es mit jatszik, jobbra a sajat csuszka.
+// Felvetelnel csak azt mutatja, ki hasznalja a mikrofont.
 Rectangle {
     id: streamRow
 
@@ -12,13 +13,19 @@ Rectangle {
     property bool input: false
 
     readonly property bool muted: node && node.audio && node.audio.muted
+    readonly property var theme: controller ? controller.theme : null
     readonly property string fg: controller ? controller.panelFg : "#f1e7d0"
     readonly property string mutedColor: controller ? controller.mutedFg : "#9f8f7c"
     readonly property string accent: controller ? controller.panelAccent : "#d7472f"
+    readonly property string title: controller ? controller.nodeTitle(node) : ""
+    readonly property string detail: input
+        ? qsTr("Recording")
+        : (controller ? controller.nodeSubtitle(node) : "")
 
-    height: 44
+    height: 52
     radius: 8
     color: streamHover.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+    Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
 
     MouseArea {
         id: streamHover
@@ -32,14 +39,15 @@ Rectangle {
     }
 
     Rectangle {
-        id: icon
+        id: tile
 
-        x: 12
+        x: 10
         anchors.verticalCenter: parent.verticalCenter
-        width: 28
-        height: 28
-        radius: 6
-        color: iconMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+        width: 32
+        height: 32
+        radius: 8
+        color: iconMouse.containsMouse ? Qt.lighter(controller ? controller.inkBg : "#1b1613", 1.25) : (controller ? controller.inkBg : "#1b1613")
+        Behavior on color { ColorAnimation { duration: 110 } }
 
         Text {
             anchors.centerIn: parent
@@ -48,13 +56,16 @@ Rectangle {
                 : (streamRow.muted ? "󰖁" : "󰕾")
             color: streamRow.muted ? streamRow.mutedColor : streamRow.fg
             font.family: "Symbols Nerd Font Mono"
-            font.pixelSize: 14
+            font.pixelSize: 16
         }
 
         SharedUi.Pressable {
             id: iconMouse
+
             anchors.fill: parent
-            accessibleName: streamRow.muted ? qsTr("Unmute") : qsTr("Mute")
+            theme: streamRow.theme
+            focusRadius: tile.radius
+            accessibleName: (streamRow.muted ? qsTr("Unmute %1") : qsTr("Mute %1")).arg(streamRow.title)
             onClicked: if (streamRow.controller) streamRow.controller.toggleMute(streamRow.node)
         }
     }
@@ -62,37 +73,35 @@ Rectangle {
     Column {
         id: label
 
-        anchors.left: icon.right
-        anchors.leftMargin: 10
+        anchors.left: tile.right
+        anchors.leftMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        width: streamRow.input ? parent.width - x - 100 : Math.min(170, (parent.width - x) * 0.4)
-        spacing: 1
+        width: streamRow.input ? parent.width - x - 12 : Math.min(150, (parent.width - x) * 0.4)
+        spacing: 2
 
         Text {
             width: parent.width
-            text: streamRow.controller ? streamRow.controller.nodeTitle(streamRow.node) : ""
+            text: streamRow.title
             textFormat: Text.PlainText
             color: streamRow.fg
-            font.pixelSize: 12
+            font.pixelSize: 13
             elide: Text.ElideRight
         }
 
         Text {
             width: parent.width
-            text: streamRow.input
-                ? qsTr("Recording")
-                : (streamRow.controller ? streamRow.controller.nodeSubtitle(streamRow.node) : "")
+            text: streamRow.detail
             textFormat: Text.PlainText
             color: streamRow.input ? streamRow.accent : streamRow.mutedColor
             font.pixelSize: 10
             elide: Text.ElideRight
-            visible: text !== "" && text !== (streamRow.controller ? streamRow.controller.nodeTitle(streamRow.node) : "")
+            visible: text !== "" && text !== streamRow.title
         }
     }
 
     AudioUi.VolumeBar {
         anchors.left: label.right
-        anchors.leftMargin: 14
+        anchors.leftMargin: 16
         anchors.right: percentText.left
         anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
@@ -105,9 +114,9 @@ Rectangle {
         id: percentText
 
         anchors.right: parent.right
-        anchors.rightMargin: 14
+        anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        width: 38
+        width: 36
         horizontalAlignment: Text.AlignRight
         visible: !streamRow.input
         text: (streamRow.controller ? streamRow.controller.percent(streamRow.node) : 0) + "%"

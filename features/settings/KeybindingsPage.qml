@@ -39,27 +39,21 @@ Item {
         return result;
     }
 
-    SettingsSection {
-        id: section
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        theme: page.theme
-        title: "Shortcut index"
-        description: "Filter the bindings currently reported by Hyprland"
-    }
-
+    // Az oldal cime a fejlecben all. Itt: kereso a frissitessel, egy rovid
+    // osszesito sor, alatta a lista egy kerek kartyaban. Balra a muvelet, jobbra
+    // a kombinacio billentyusapkakkent -- igy a lista a muvelet neve szerint
+    // olvashato vegig.
     SharedUi.SearchField {
         id: searchField
 
         anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: section.bottom
-        height: 42
+        anchors.right: refreshButton.left
+        anchors.rightMargin: 8
+        anchors.top: parent.top
+        height: 40
         opened: true
         indicator: "⌕"
-        placeholder: "Search shortcuts or actions..."
+        placeholder: "Search shortcuts or actions…"
         foreground: page.foreground
         accent: page.accent
         muted: page.muted
@@ -74,129 +68,136 @@ Item {
         }
     }
 
-    Item {
+    SharedUi.ActionButton {
+        id: refreshButton
+
+        anchors.right: parent.right
+        anchors.verticalCenter: searchField.verticalCenter
+        enabled: !page.controller.loading
+        theme: page.theme
+        label: "Refresh"
+        onClicked: page.controller.reload()
+    }
+
+    Text {
         id: summary
 
         anchors.left: parent.left
+        anchors.leftMargin: 4
         anchors.right: parent.right
         anchors.top: searchField.bottom
-        height: 38
-
-        Text {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: page.controller.loading
-                ? "Reading shortcuts..."
-                : page.filteredBindings.length + (page.query === "" ? " shortcuts" : " of " + page.controller.bindings.length + " shortcuts")
-            color: page.muted
-            font.pixelSize: 10
-        }
-
-        SharedUi.ActionButton {
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            height: 26
-            theme: page.theme
-            label: "Refresh"
-            onClicked: page.controller.reload()
-        }
+        height: 36
+        verticalAlignment: Text.AlignVCenter
+        text: page.controller.loading
+            ? "Reading shortcuts…"
+            : page.filteredBindings.length + (page.query.trim() === "" ? " shortcuts" : " of " + page.controller.bindings.length + " shortcuts")
+        color: page.muted
+        font.pixelSize: 11
     }
 
     Rectangle {
-        id: tableHeader
+        id: listCard
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: summary.bottom
-        height: 32
+        anchors.bottom: parent.bottom
+        radius: 12
         color: page.surface
 
-        Text {
-            anchors.left: parent.left
-            anchors.leftMargin: 12
-            anchors.verticalCenter: parent.verticalCenter
-            width: 270
-            text: "SHORTCUT"
-            color: page.accent
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 1.5
+        ListView {
+            id: bindingList
+
+            anchors.fill: parent
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            anchors.topMargin: 4
+            anchors.bottomMargin: 4
+            clip: true
+            model: page.filteredBindings
+            boundsBehavior: Flickable.StopAtBounds
+
+            delegate: Item {
+                id: bindingRow
+
+                required property var modelData
+                required property int index
+
+                readonly property var keys: (modelData.shortcut || "").split(" + ")
+
+                width: ListView.view.width
+                height: 44
+
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    height: 1
+                    visible: bindingRow.index > 0
+                    color: page.muted
+                    opacity: 0.12
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: keycaps.left
+                    anchors.rightMargin: 24
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: bindingRow.modelData.action
+                    textFormat: Text.PlainText
+                    color: page.foreground
+                    font.pixelSize: 12
+                    elide: Text.ElideRight
+                }
+
+                Row {
+                    id: keycaps
+
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 4
+
+                    Repeater {
+                        model: bindingRow.keys
+
+                        Rectangle {
+                            id: keycap
+
+                            required property string modelData
+
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(24, keyLabel.implicitWidth + 14)
+                            height: 24
+                            radius: 6
+                            color: Qt.rgba(1, 1, 1, 0.06)
+                            border.color: Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+
+                            Text {
+                                id: keyLabel
+
+                                anchors.centerIn: parent
+                                text: keycap.modelData
+                                textFormat: Text.PlainText
+                                color: page.foreground
+                                font.family: "monospace"
+                                font.pixelSize: 11
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         Text {
-            anchors.left: parent.left
-            anchors.leftMargin: 294
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: "ACTION"
-            color: page.accent
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 1.5
+            anchors.centerIn: parent
+            width: parent.width - 48
+            visible: !page.controller.loading && page.filteredBindings.length === 0
+            text: page.query.trim() === "" ? "No shortcuts reported by Hyprland." : "No matching shortcuts."
+            color: page.muted
+            font.pixelSize: 12
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
         }
-    }
-
-    ListView {
-        id: bindingList
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: tableHeader.bottom
-        anchors.bottom: parent.bottom
-        clip: true
-        model: page.filteredBindings
-        boundsBehavior: Flickable.StopAtBounds
-
-        delegate: Rectangle {
-            id: bindingRow
-
-            required property var modelData
-            required property int index
-
-            width: ListView.view.width
-            height: 40
-            color: index % 2 === 0 ? "transparent" : Qt.rgba(1, 1, 1, 0.025)
-
-            Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                width: 270
-                text: bindingRow.modelData.shortcut
-                color: page.foreground
-                font.family: "monospace"
-                font.pixelSize: 11
-                elide: Text.ElideRight
-            }
-
-            Text {
-                anchors.left: parent.left
-                anchors.leftMargin: 294
-                anchors.right: parent.right
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                text: bindingRow.modelData.action
-                color: page.muted
-                font.pixelSize: 11
-                elide: Text.ElideRight
-            }
-
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 1
-                color: page.muted
-                opacity: 0.1
-            }
-        }
-    }
-
-    Text {
-        anchors.centerIn: bindingList
-        visible: !page.controller.loading && page.filteredBindings.length === 0
-        text: page.query === "" ? "No shortcuts reported by Hyprland." : "No matching shortcuts."
-        color: page.muted
-        font.pixelSize: 11
     }
 }

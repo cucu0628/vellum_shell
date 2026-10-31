@@ -20,9 +20,9 @@ PanelWindow {
     property var applications: []
     property var projects: []
     property var delayedActionCommand: []
-    // A Terminal=true bejegyzesek gazdaja. A shell tobbi resze is kittyt
-    // hasznal (scripts/floating-terminal, a launcher terminal muvelete).
-    property string terminalProgram: "kitty"
+    // A Terminal=true bejegyzesek gazdaja: a core TerminalController, vagyis a
+    // Settings > Default apps-ban valasztott terminal. Nelkule a kitty marad.
+    property var terminal: null
     // A visszafordithatatlan muveletek elso Enterre csak kijelolodnek; a
     // masodik inditja el oket. -1, ha nincs ilyen fuggoben.
     property int pendingConfirmIndex: -1
@@ -392,13 +392,17 @@ PanelWindow {
             command.push(parsed[i]);
         }
         if (command.length > 0)
-            return [terminalProgram, "--"].concat(command);
+            return terminalCommand(command);
 
         var exec = (app.execString || "").replace(/%[fFuUdDnNickvm]/g, "").replace(/%%/g, "%").trim();
         if (exec === "")
             return [];
 
-        return [terminalProgram, "--", "sh", "-c", exec];
+        return terminalCommand(["sh", "-c", exec]);
+    }
+
+    function terminalCommand(command) {
+        return terminal ? terminal.argv(command) : ["kitty", "--"].concat(command);
     }
 
     // A muveleteket lecsatolva inditjuk, nem `Process`-kent: a Quickshell a
@@ -636,6 +640,7 @@ PanelWindow {
         id: launcherActions
         homeDir: launcherWindow.homeDir
         shellDir: launcherWindow.shellDir
+        terminal: launcherWindow.terminal
     }
 
     LauncherUi.EmojiData {

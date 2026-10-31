@@ -52,10 +52,16 @@
     "break",
 
     { "type": "custom", "format": "{#title}SYSTEM{#}" },
-    { "type": "os", "key": "os", "format": "{pretty-name} {arch}" },
+    // `pretty-name` carries the edition ("Fedora Linux 44 (KDE Plasma Desktop
+    // Edition)"), which overruns the window; the architecture is already in the
+    // kernel release. Every line has to fit, or the terminal wraps it under the
+    // logo.
+    { "type": "os", "key": "os", "format": "{name} {version-id}" },
     { "type": "kernel", "key": "kernel", "format": "{release}" },
     { "type": "uptime", "key": "uptime" },
-    { "type": "packages", "key": "packages" },
+    // One total instead of a per-manager list, which grows past the window on
+    // a system with several package managers; Flatpak apps stay visible.
+    { "type": "packages", "key": "packages", "format": "{all}{?flatpak-all} ({flatpak-all} flatpak){?}" },
     "break",
 
     { "type": "custom", "format": "{#title}DESKTOP{#}" },

@@ -62,39 +62,37 @@ PanelWindow {
             Column {
                 id: menuColumn
                 anchors { fill: parent; margins: 8 }
-                spacing: 3
+                spacing: 2
 
                 Repeater {
                     model: trayMenu.visible ? menuOpener.children : null
 
                     Rectangle {
                         width: parent.width
-                        height: modelData.isSeparator ? 9 : 31
-                        color: !modelData.isSeparator && itemMouse.containsMouse ? inkBg : "transparent"
-                        radius: 0
+                        height: modelData.isSeparator ? 8 : 32
+                        color: !modelData.isSeparator && itemMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                        radius: 6
                         opacity: modelData.enabled === false ? 0.45 : 1
 
                         Behavior on color { ColorAnimation { duration: 120 } }
 
                         Rectangle {
                             visible: modelData.isSeparator
-                            width: parent.width - 10
+                            width: parent.width - 16
                             height: 1
-                            color: mutedFg
-                            opacity: 0.2
+                            color: Qt.rgba(1, 1, 1, 0.06)
                             anchors.centerIn: parent
                         }
 
                         Text {
                             visible: !modelData.isSeparator
                             text: modelData.text ? modelData.text.replace(/&/g, "") : ""
-                            color: itemMouse.containsMouse ? panelAccent : panelFg
+                            textFormat: Text.PlainText
+                            color: panelFg
                             font.pixelSize: 12
-                            font.weight: itemMouse.containsMouse ? Font.DemiBold : Font.Normal
                             anchors { left: parent.left; leftMargin: 12; verticalCenter: parent.verticalCenter }
                             elide: Text.ElideRight
                             width: parent.width - 24
-                            Behavior on color { ColorAnimation { duration: 120 } }
                         }
 
                         MouseArea {

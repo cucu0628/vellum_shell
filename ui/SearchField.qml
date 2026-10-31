@@ -7,6 +7,8 @@ Rectangle {
     id: field
 
     property alias text: input.text
+    // Jelszomezokent: TextInput.Password.
+    property alias echoMode: input.echoMode
     property bool opened: false
     property string indicator: "⌕"
     property string placeholder: "Search..."
@@ -25,6 +27,10 @@ Rectangle {
 
     function forceActiveFocus() {
         input.forceActiveFocus()
+    }
+
+    function selectAll() {
+        input.selectAll()
     }
 
     height: 40

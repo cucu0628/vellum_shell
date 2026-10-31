@@ -26,25 +26,32 @@ Item {
         anchors.top: parent.top
         height: 34
 
-        Text {
+        // Ugyanaz a csendes, nagybetus szakaszcimke, mint a lenyilo panelek
+        // SectionBar-jan; mellette a darabszam.
+        Row {
             anchors.left: parent.left
+            anchors.leftMargin: 4
             anchors.verticalCenter: parent.verticalCenter
-            text: lane.title.toUpperCase()
-            color: lane.accent
-            font.pixelSize: 9
-            font.bold: true
-            font.letterSpacing: 1.3
-        }
+            spacing: 8
 
-        Text {
-            id: count
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: lane.title.toUpperCase()
+                color: lane.targeted ? lane.accent : lane.muted
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
+                font.letterSpacing: 1
+            }
 
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: lane.zoneItems.length
-            color: lane.muted
-            font.family: "monospace"
-            font.pixelSize: 9
+            Text {
+                id: count
+
+                anchors.verticalCenter: parent.verticalCenter
+                text: lane.zoneItems.length
+                color: lane.muted
+                font.pixelSize: 10
+                font.features: { "tnum": 1 }
+            }
         }
     }
 
@@ -55,15 +62,22 @@ Item {
         anchors.right: parent.right
         anchors.top: heading.bottom
         anchors.bottom: parent.bottom
-        color: Qt.rgba(1, 1, 1, 0.018)
-        border.color: lane.targeted ? lane.accent : lane.muted
+        readonly property color accentColor: lane.accent
+
+        radius: 12
+        color: lane.targeted
+            ? Qt.rgba(frame.accentColor.r, frame.accentColor.g, frame.accentColor.b, 0.08)
+            : (lane.zone === "hidden" ? Qt.rgba(0, 0, 0, 0.16) : lane.surface)
+        border.color: lane.targeted ? Qt.rgba(frame.accentColor.r, frame.accentColor.g, frame.accentColor.b, 0.55) : "transparent"
         border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Flickable {
             id: laneScroll
 
             anchors.fill: parent
-            anchors.margins: 1
+            anchors.margins: 2
             contentWidth: width
             contentHeight: dropSurface.height
             clip: true
@@ -110,6 +124,7 @@ Item {
                     anchors.rightMargin: 6
                     y: 7 + lane.dragController.targetIndex * 48 - 2
                     height: 3
+                    radius: 1.5
                     visible: lane.targeted
                     color: lane.accent
                     z: 20
@@ -121,8 +136,7 @@ Item {
                     visible: lane.zoneItems.length === 0 && !lane.targeted
                     text: lane.zone === "hidden" ? "Drop here to hide" : "Drop modules here"
                     color: lane.muted
-                    opacity: 0.7
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                 }

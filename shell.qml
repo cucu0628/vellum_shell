@@ -108,9 +108,17 @@ ShellRoot {
         id: workspaceController
     }
 
+    // A Settings > Default apps-ban valasztott terminal; a launcher ezzel nyitja
+    // a terminalt es a Terminal=true alkalmazasokat.
+    Core.TerminalController {
+        id: terminalController
+        configHome: paths.configHome
+    }
+
     Core.BrightnessController {
         id: brightnessController
         backend: shellRoot.shellBackend
+        onPercentChanged: shellRoot.showBrightnessOsd()
     }
 
     Core.AudioSummaryController {
@@ -173,9 +181,72 @@ ShellRoot {
     onAudioVolumePercentChanged: showVolumeOsd()
     onAudioMutedChanged: showVolumeOsd()
 
+    // Az elso ertek (inditas, daemon-ujracsatlakozas) nem allitas: csak a
+    // mar ismert ertekhez kepesti valtozasra mutatjuk.
+    property int lastBrightness: -1
+
+    function showBrightnessOsd() {
+        var percent = brightnessController.percent
+        var previous = lastBrightness
+        lastBrightness = percent
+        if (!audioOsdReady || percent < 0 || previous < 0 || percent === previous) return
+        volumeOsd.showBrightness(percent, focusedScreen())
+    }
+
     function showVolumeOsd() {
         if (!audioOsdReady) return
-        volumeOsd.showVolume(audioVolumePercent, audioMuted, focusedScreen())
+        volumeOsd.showVolume(audioVolumePercent, audioMuted, focusedScreen(), audioSummaryController.deviceName)
+    }
+
+    // A zene sajat (MPRIS) hangereje kulon OSD-valtozatot kap, barhonnan
+    // allitjak (lejatszo, dashboard, Ctrl + hangerogomb). A billentyus lepes
+    // azonnal, a kert ertekkel jelez; a kivulrol jovo valtozast a jelentett
+    // ertekbol vesszuk. Lejatszovaltas utan egy masodpercig csak megjegyezzuk
+    // az erteket: ekkor toltodnek be a lejatszo tulajdonsagai, az nem allitas.
+    property real lastPlayerVolume: -1
+
+    onActivePlayerChanged: {
+        lastPlayerVolume = activePlayer && activePlayer.volumeSupported ? activePlayer.volume : -1
+        playerVolumeSettleTimer.restart()
+    }
+
+    Timer {
+        id: playerVolumeSettleTimer
+        interval: 1000
+    }
+
+    Connections {
+        target: mprisController
+
+        function onVolumeStepped(player, volume) {
+            shellRoot.lastPlayerVolume = volume
+            shellRoot.showPlayerVolumeOsd(player, volume)
+        }
+    }
+
+    Connections {
+        target: shellRoot.activePlayer
+
+        function onVolumeChanged() {
+            shellRoot.playerVolumeChanged()
+        }
+    }
+
+    function playerVolumeChanged() {
+        var player = activePlayer
+        if (!player || !player.volumeSupported) return
+        var volume = player.volume
+        // Nehany lejatszo valtozatlan hangerot is jelent; a sajat lepesunk
+        // visszaigazolasa is ide fut be.
+        if (lastPlayerVolume >= 0 && Math.abs(volume - lastPlayerVolume) < 0.005) return
+        lastPlayerVolume = volume
+        if (playerVolumeSettleTimer.running) return
+        showPlayerVolumeOsd(player, volume)
+    }
+
+    function showPlayerVolumeOsd(player, volume) {
+        if (!audioOsdReady) return
+        volumeOsd.showPlayerVolume(Math.round(Math.max(0, Math.min(1, volume)) * 100), player, focusedScreen())
     }
 
     Timer {
@@ -232,6 +303,7 @@ ShellRoot {
                     mpris: mprisController
                     barLayout: shellRoot.barLayoutState
                     theme: shellRoot.shellTheme
+                    terminal: terminalController
                     shellDir: shellRoot.shellDir
                     visible: settingsApp.opened
                     onClosed: settingsApp.opened = false
@@ -253,6 +325,7 @@ ShellRoot {
                 screen: appLauncher.screen
                 homeDir: shellRoot.homeDir
                 shellDir: shellRoot.shellDir
+                terminal: terminalController
             }
         }
     }
@@ -424,6 +497,7 @@ ShellRoot {
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
         screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
         activePlayer: shellRoot.activePlayer
+        mediaController: mprisController
         audioController: audioSummaryController
         brightnessController: brightnessController
     }

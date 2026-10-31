@@ -55,12 +55,26 @@ Item {
         "label": "File manager",
         "description": "Folders opened from applications.",
         "mimeTypes": ["inode/directory"]
+    }, {
+        "id": "terminal",
+        "label": "Terminal",
+        "description": "Terminal apps and the launcher's terminal action.",
+        "mimeTypes": []
     }]
+
+    // Az alapertelmezett terminalt nem az xdg-mime tarolja, hanem a core
+    // TerminalController (`xdg-terminals.list`). Nelkule a sor nem allithato.
+    property var terminal: null
 
     property var applications: []
     property var defaults: ({})
     property bool loading: false
     property bool available: true
+    // A GLib (es vele a `gio open`, az `xdg-open` es a fajlkezelok) csak az
+    // xdg-terminal-exec-en at olvassa a terminallistat. Nelkule a sajat
+    // beepitett sorrendjet koveti, amiben a kitty nem szerepel -- ott
+    // tipikusan a Konsole nyerne.
+    property bool terminalExecAvailable: true
     property string busyCategory: ""
     property string message: ""
     property var defaultsBeforeWrite: ({})
@@ -111,24 +125,48 @@ Item {
         applications = result;
     }
 
+    function isTerminal(category) {
+        return category && category.id === "terminal";
+    }
+
     function valueFor(categoryId) {
+        if (categoryId === "terminal")
+            return terminal ? terminal.effectiveId : "";
+
         return defaults[categoryId] || "";
+    }
+
+    function descriptionFor(category) {
+        if (isTerminal(category) && !terminalExecAvailable)
+            return "Install xdg-terminal-exec so other apps use it too.";
+
+        return category.description;
+    }
+
+    function canChange(category) {
+        if (isTerminal(category))
+            return terminal !== null && !terminal.saving;
+
+        return available && busyCategory === "";
     }
 
     // Egy eltavolitott vagy NoDisplay desktop-fajl meg mindig lehet aktiv
     // tarsitas. Ne tunjon el a jelenlegi ertek csak azert, mert nincs a listaban.
-    function applicationsFor(currentValue) {
+    // A terminal sorban csak a TerminalEmulator kategoriaju alkalmazasok allnak.
+    function applicationsFor(category) {
+        var list = isTerminal(category) ? (terminal ? terminal.terminals : []) : applications;
+        var currentValue = valueFor(category.id);
         if (currentValue === "")
-            return applications;
+            return list;
 
-        for (var i = 0; i < applications.length; i++) {
-            if (applications[i].value === currentValue)
-                return applications;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].value === currentValue)
+                return list;
         }
         return [{
             "label": currentValue,
             "value": currentValue
-        }].concat(applications);
+        }].concat(list);
     }
 
     function reload() {
@@ -137,8 +175,11 @@ Item {
 
         loading = true;
         message = "";
-        var command = ["sh", "-c", "command -v xdg-mime >/dev/null 2>&1 || exit 127; while [ \"$#\" -ge 2 ]; do key=$1; mime=$2; shift 2; value=$(xdg-mime query default \"$mime\" 2>/dev/null || true); printf '%s\\t%s\\n' \"$key\" \"$value\"; done", "sh"];
+        var command = ["sh", "-c", "if command -v xdg-terminal-exec >/dev/null 2>&1; then t=1; else t=0; fi; printf '@terminal-exec\\t%s\\n' \"$t\"; command -v xdg-mime >/dev/null 2>&1 || exit 127; while [ \"$#\" -ge 2 ]; do key=$1; mime=$2; shift 2; value=$(xdg-mime query default \"$mime\" 2>/dev/null || true); printf '%s\\t%s\\n' \"$key\" \"$value\"; done", "sh"];
         for (var i = 0; i < categories.length; i++) {
+            if (categories[i].mimeTypes.length === 0)
+                continue;
+
             command.push(categories[i].id);
             command.push(categories[i].mimeTypes[0]);
         }
@@ -147,6 +188,15 @@ Item {
     }
 
     function setDefault(category, desktopId) {
+        if (isTerminal(category)) {
+            if (!terminal || desktopId === "" || desktopId === terminal.effectiveId)
+                return;
+
+            message = "";
+            terminal.setDefault(desktopId);
+            return;
+        }
+
         if (writer.running || desktopId === "")
             return;
 
@@ -159,6 +209,14 @@ Item {
 
         writer.command = ["xdg-mime", "default", desktopId].concat(category.mimeTypes);
         writer.running = true;
+    }
+
+    Connections {
+        target: controller.terminal
+
+        function onSaveFinished(ok) {
+            controller.message = ok ? "Default terminal updated." : "The default terminal could not be changed.";
+        }
     }
 
     Process {
@@ -182,6 +240,8 @@ Item {
 
                     parsed[lines[i].slice(0, separator)] = lines[i].slice(separator + 1).trim();
                 }
+                controller.terminalExecAvailable = parsed["@terminal-exec"] !== "0";
+                delete parsed["@terminal-exec"];
                 controller.defaults = parsed;
             }
         }

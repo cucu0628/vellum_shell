@@ -96,7 +96,7 @@ vellum_shell/
 │   ├── Cargo.toml
 │   └── rustfmt.toml                  # A fa stílusához rögzített formázás
 ├── core/                             # UI-független shell szolgáltatások
-│   ├── AudioSummaryController.qml    # Panel hangerőállapot
+│   ├── AudioSummaryController.qml    # Panel hangerőállapot, 100%-os felső korlát
 │   ├── BrightnessController.qml      # Beépített kijelző fényereje a `brightness` topicból
 │   ├── BarLayoutController.qml       # Topbar modulzónák és perzisztens sorrend
 │   ├── Backend.qml
@@ -109,6 +109,7 @@ vellum_shell/
 │   ├── Paths.qml                     # XDG- és shell-útvonalak egyetlen forrásból
 │   ├── PrivacyController.qml         # Mikrofon- és kamerahasználat figyelése
 │   ├── RemovableDeviceController.qml # Cserélhető kötetek és mount műveletek
+│   ├── TerminalController.qml        # Alapértelmezett terminál (`xdg-terminals.list`)
 │   ├── ThemeStore.qml                # Paletta betöltése és frissítése
 │   ├── VpnController.qml             # ProtonVPN állapot a backend `vpn` topicjából
 │   ├── WallpaperController.qml       # Háttérkép állapot és monitorablakok
@@ -130,8 +131,7 @@ vellum_shell/
 │   ├── audio/
 │   │   ├── AudioPopup.qml
 │   │   ├── DeviceCard.qml            # Alapértelmezett eszköz, benne az eszközváltó lista
-│   │   ├── EmptyCard.qml
-│   │   ├── SectionHeader.qml         # Általános szekciófejléc
+│   │   ├── EmptyCard.qml             # Üres állapot (nincs eszköz)
 │   │   ├── StreamRow.qml             # Lejátszó vagy felvevő alkalmazás
 │   │   └── VolumeBar.qml             # Lekerekített hangerő-csúszka gombbal
 │   ├── bar/
@@ -221,17 +221,19 @@ vellum_shell/
 │   │   ├── BarLayoutPage.qml         # Topbar elrendezésszerkesztő
 │   │   ├── BarModuleCard.qml         # Mozgatható modul-kártya
 │   │   ├── CalendarPage.qml          # Google Naptár bejelentkezés és naptárválasztás
-│   │   ├── DefaultAppsController.qml # MIME-alapú alapértelmezett alkalmazások
+│   │   ├── DefaultAppsController.qml # MIME-alapú alapértelmezett alkalmazások és terminál
 │   │   ├── DefaultAppsPage.qml       # Alapértelmezett alkalmazások oldala
 │   │   ├── DisplayPage.qml           # Monitorok, visszaszámlálós megerősítéssel
 │   │   ├── InputPage.qml             # Bevitel oldal
 │   │   ├── KeybindingsController.qml # Gyorsbillentyűk beolvasása
 │   │   ├── KeybindingsPage.qml       # Kereshető gyorsbillentyű-jegyzék
 │   │   ├── MonitorCanvas.qml         # Monitor-elrendezés vászon
+│   │   ├── SegmentedTabs.qml         # Nézetváltó (pl. Login apps / User services)
 │   │   ├── SettingsController.qml    # A settings állapota és backend-hívásai
-│   │   ├── SettingsSection.qml       # Beállítás-szekció
-│   │   ├── SettingsSidebar.qml       # Oldalsáv
+│   │   ├── SettingsSection.qml       # Szekció: cím, leírás, műveletek, sorok kártyában
+│   │   ├── SettingsSidebar.qml       # Oldalsáv: kereső, csoportos lista, daemon-állapot
 │   │   ├── SettingsWindow.qml        # A settings FloatingWindow ablaka
+│   │   ├── StatusBadge.qml           # Rövid állapotcímke egy sor szélén
 │   │   ├── SystemController.qml      # Rendszer-oldal állapota
 │   │   ├── SystemPage.qml            # Rendszer oldal
 │   │   ├── TextSetting.qml           # Szöveges beállítás
@@ -308,14 +310,17 @@ vellum_shell/
 │   ├── DashPanel.qml                 # Dashboard panelkeret fejléccel
 │   ├── FocusRing.qml                 # Egységes billentyűzet-fókuszjelzés
 │   ├── Pressable.qml                 # Kattintás, billentyűzet és Accessible egy helyen
-│   ├── HeaderChip.qml                # Csendes kapcsoló/gomb a popupfejlécben
+│   ├── HeaderChip.qml                # Csendes kapcsoló/gomb a popupfejlécben és a paneleken
+│   ├── ListRow.qml                   # Listasor a lenyíló panelekben: csempe, cím, metaadat, művelet
 │   ├── PopupFrame.qml                # Popupok közös, a sávból lenyíló kerete
 │   ├── PopupHeader.qml               # Popupok közös fejléce
-│   ├── SearchField.qml               # Közös keresőmező
+│   ├── SearchField.qml               # Közös kereső- és jelszómező
+│   ├── SectionBar.qml                # Szakaszcím darabszámmal és csendes műveletekkel
 │   ├── SettingRow.qml                # Beállítássor: címke, leírás, vezérlő
 │   ├── SettingSelect.qml             # Legördülő vezérlő
 │   ├── SettingSlider.qml             # Csúszka vezérlő
 │   ├── SettingToggle.qml             # Kapcsoló vezérlő
+│   ├── StatusCard.qml                # Állapotkártya a lenyíló panelek tetején
 │   └── ShellLogo.qml                 # Shell embléma (kalligrafikus V), témaszínt vesz fel
 ├── .gitignore
 ├── install.sh                        # Csomagfüggőségek telepítése
@@ -445,9 +450,11 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
   `calendar`, `session`, `brightness`.
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
-- Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, oldalsávos
-  navigációval: Display, Windows, Input, Top bar, Default applications,
-  System / Diagnostics, Autostart / Services és Keybindings oldal. A menü
+- Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, kereshető,
+  csoportosított oldalsávval: Desktop (Display, Windows, Input), Shell (Top bar,
+  Calendar, Keybindings) és System (Default apps, Autostart, System). A sorok
+  szakaszonként kerek kártyákban állnak; Ctrl+Tab / Ctrl+PgUp/PgDown lapoz, a
+  Ctrl+F az oldalsáv keresőjébe visz. A menü
   paletta megszűnt; a műveletei, köztük a csomagkezelő workflow-k a launcherbe,
   a beállításai ide kerültek.
 - `hypr` backend modul: monitorok és kompozitor-opciók olvasása `hyprctl`-lel,

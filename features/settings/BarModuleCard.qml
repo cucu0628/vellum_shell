@@ -22,10 +22,13 @@ Rectangle {
     readonly property bool dragging: dragArea.drag.active
 
     height: 42
-    color: dragArea.containsMouse || activeFocus ? Qt.rgba(1, 1, 1, 0.065) : surface
-    border.color: dragging || activeFocus ? accent : Qt.rgba(1, 1, 1, 0.1)
+    radius: 8
+    color: dragArea.containsMouse || activeFocus ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
+    border.color: activeFocus ? accent : "transparent"
     border.width: 1
     opacity: dragging ? 0.35 : 1
+
+    Behavior on color { ColorAnimation { duration: 120 } }
     activeFocusOnTab: true
 
     function adjacentZone(delta) {
@@ -74,7 +77,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         width: 20
         text: card.moduleInfo.icon
-        color: card.accent
+        color: card.activeFocus || dragArea.containsMouse ? card.accent : card.foreground
         font.family: "Symbols Nerd Font Mono"
         font.pixelSize: 13
     }
@@ -87,7 +90,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         text: card.moduleInfo.label
         color: card.foreground
-        font.pixelSize: 11
+        font.pixelSize: 12
         elide: Text.ElideRight
     }
 
@@ -111,17 +114,19 @@ Rectangle {
         height: card.height
         visible: card.dragging
         z: 1000
+        radius: 8
         color: card.surface
         border.color: card.accent
         border.width: 1
-        opacity: 0.92
+        opacity: 0.94
+        scale: 1.03
 
         Text {
             anchors.centerIn: parent
             width: parent.width - 16
             text: card.moduleInfo.label
             color: card.foreground
-            font.pixelSize: 11
+            font.pixelSize: 12
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
         }

@@ -11,6 +11,8 @@ Item {
     required property var screenshotCaptureProvider
     // Az eppen szolo (vagy utolso) MPRIS lejatszo a medagombokhoz.
     property var activePlayer: null
+    // A zene hangerejet lepteto core/MprisController.
+    property var mediaController: null
     // Az alapertelmezett kimenet es bemenet: core/AudioSummaryController.
     property var audioController: null
     // A beepitett kijelzo fenyereje: core/BrightnessController.
@@ -174,6 +176,9 @@ Item {
         function previous(): void {
             if (root.activePlayer && root.activePlayer.canGoPrevious) root.activePlayer.previous()
         }
+        // A zene hangereje 5%-os lepesben; az OSD kulon jelzi.
+        function volumeUp(): void { if (root.mediaController) root.mediaController.stepVolume(0.05) }
+        function volumeDown(): void { if (root.mediaController) root.mediaController.stepVolume(-0.05) }
         function close(): void { coordinator.setMediaOpen(false) }
     }
 

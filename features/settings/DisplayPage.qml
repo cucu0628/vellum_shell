@@ -206,7 +206,8 @@ Item {
 
         anchors.fill: parent
         contentWidth: width
-        contentHeight: column.height
+        // A lebego megerosito kartya ne takarja el a lap aljat.
+        contentHeight: column.height + (page.awaitingConfirmation ? confirmBar.height + 16 : 0)
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
@@ -214,306 +215,304 @@ Item {
             id: column
 
             width: settingsFlickable.width
-            spacing: 0
+            spacing: 24
 
             SettingsSection {
                 width: parent.width
                 theme: page.theme
                 title: "Display arrangement"
-                description: "Place active outputs in the shared workspace"
-            }
+                description: "Drag a display to move it; released edges snap to the neighbouring display."
 
-        Text {
-            width: parent.width
-            text: "Drag a display to move it. Released edges snap to the neighbouring display."
-            color: page.muted
-            font.pixelSize: 10
-            wrapMode: Text.WordWrap
-            bottomPadding: 8
-        }
+                Item {
+                    width: parent.width
+                    height: 12
+                }
 
-        MonitorCanvas {
-            id: monitorCanvas
+                MonitorCanvas {
+                    id: monitorCanvas
 
-            width: parent.width
-            height: 190
-            enabled: !page.applyingArrangement
-            theme: page.theme
-            monitors: page.controller.monitors
-            selectedOutput: page.controller.selectedOutput
-            onSelected: (output) => page.controller.selectedOutput = output
-            onMoved: (output, x, y) => page.stageMove(output, x, y)
-            onPreviewCleared: page.pendingArrangement = null
-        }
-
-        Item {
-            width: parent.width
-            height: 42
-
-            Text {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.rightMargin: 190
-                anchors.verticalCenter: parent.verticalCenter
-                text: page.errorMessage !== ""
-                    ? page.errorMessage
-                    : (page.pendingArrangement
-                        ? (page.applyingArrangement
-                            ? "Applying " + page.pendingArrangement.output + " at " + page.pendingArrangement.position + "…"
-                            : page.pendingArrangement.output + " staged at " + page.pendingArrangement.position)
-                        : "Drag a display, then press Apply.")
-                color: page.errorMessage !== ""
-                    ? page.errorColor
-                    : (page.pendingArrangement ? page.foreground : page.muted)
-                font.family: "monospace"
-                font.pixelSize: 10
-                elide: Text.ElideRight
-            }
-
-            Row {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 8
-
-                SharedUi.ActionButton {
-                    visible: page.pendingArrangement !== null
+                    width: parent.width
+                    height: 190
                     enabled: !page.applyingArrangement
-                    opacity: enabled ? 1 : 0.4
                     theme: page.theme
-                    label: "Cancel"
-                    onClicked: page.cancelPendingArrangement()
+                    monitors: page.controller.monitors
+                    selectedOutput: page.controller.selectedOutput
+                    onSelected: (output) => page.controller.selectedOutput = output
+                    onMoved: (output, x, y) => page.stageMove(output, x, y)
+                    onPreviewCleared: page.pendingArrangement = null
                 }
 
-                SharedUi.ActionButton {
-                    enabled: page.pendingArrangement !== null && !page.applyingArrangement
-                    opacity: enabled ? 1 : 0.4
-                    theme: page.theme
-                    label: page.applyingArrangement ? "Applying…" : "Apply"
-                    primary: true
-                    onClicked: page.applyPendingArrangement()
+                Item {
+                    width: parent.width
+                    height: 52
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.right: arrangementActions.left
+                        anchors.rightMargin: 16
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: page.errorMessage !== ""
+                            ? page.errorMessage
+                            : (page.pendingArrangement
+                                ? (page.applyingArrangement
+                                    ? "Applying " + page.pendingArrangement.output + " at " + page.pendingArrangement.position + "…"
+                                    : page.pendingArrangement.output + " staged at " + page.pendingArrangement.position)
+                                : "Drag a display, then press Apply.")
+                        textFormat: Text.PlainText
+                        color: page.errorMessage !== ""
+                            ? page.errorColor
+                            : (page.pendingArrangement ? page.foreground : page.muted)
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                    }
+
+                    Row {
+                        id: arrangementActions
+
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        SharedUi.ActionButton {
+                            visible: page.pendingArrangement !== null
+                            enabled: !page.applyingArrangement
+                            theme: page.theme
+                            label: "Cancel"
+                            onClicked: page.cancelPendingArrangement()
+                        }
+
+                        SharedUi.ActionButton {
+                            enabled: page.pendingArrangement !== null && !page.applyingArrangement
+                            theme: page.theme
+                            label: page.applyingArrangement ? "Applying…" : "Apply"
+                            primary: true
+                            onClicked: page.applyPendingArrangement()
+                        }
+                    }
                 }
             }
-        }
 
             SettingsSection {
                 width: parent.width
                 theme: page.theme
                 title: page.monitor ? page.monitor.name : "Display"
                 description: "Mode and output-specific rendering controls"
+
+                SharedUi.SettingRow {
+                    theme: page.theme
+                    enabled: page.monitor !== null
+                    label: "Resolution and refresh rate"
+                    description: "Applied immediately; reverts on its own unless you confirm."
+
+                    SharedUi.SettingSelect {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        theme: page.theme
+                        model: page.modeOptions
+                        value: page.currentMode
+                        onActivated: (value) => page.applyWithRevert({
+                            "mode": value
+                        })
+                    }
+
+                }
+
+                SharedUi.SettingRow {
+                    theme: page.theme
+                    enabled: page.monitor !== null
+                    label: "Scale"
+                    description: "Fractional scales can blur applications that do not support them."
+
+                    SharedUi.SettingSelect {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        theme: page.theme
+                        model: [{
+                            "label": "100%",
+                            "value": "1"
+                        }, {
+                            "label": "125%",
+                            "value": "1.25"
+                        }, {
+                            "label": "150%",
+                            "value": "1.5"
+                        }, {
+                            "label": "175%",
+                            "value": "1.75"
+                        }, {
+                            "label": "200%",
+                            "value": "2"
+                        }]
+                        value: page.monitor ? page.monitor.scale.toString() : "1"
+                        onActivated: (value) => page.applyWithRevert({
+                            "scale": Number(value)
+                        })
+                    }
+
+                }
+
+                SharedUi.SettingRow {
+                    theme: page.theme
+                    enabled: page.monitor !== null
+                    label: "Orientation"
+                    description: "Rotates the display output."
+
+                    SharedUi.SettingSelect {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        theme: page.theme
+                        model: [{
+                            "label": "Landscape",
+                            "value": "0"
+                        }, {
+                            "label": "Portrait",
+                            "value": "1"
+                        }, {
+                            "label": "Landscape (flipped)",
+                            "value": "2"
+                        }, {
+                            "label": "Portrait (flipped)",
+                            "value": "3"
+                        }]
+                        value: page.monitor ? (page.monitor.transform || 0).toString() : "0"
+                        onActivated: (value) => page.applyWithRevert({
+                            "transform": Number(value)
+                        })
+                    }
+
+                }
+
+                SharedUi.SettingRow {
+                    theme: page.theme
+                    enabled: page.monitor !== null
+                    label: "Variable refresh rate"
+                    description: "Lets the display follow the render rate. Can flicker on some panels."
+
+                    SharedUi.SettingToggle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        theme: page.theme
+                        checked: page.monitor ? page.monitor.vrr === true : false
+                        onToggled: (value) => page.applyWithRevert({
+                            "vrr": value ? 1 : 0
+                        })
+                    }
+
+                }
+
+                SharedUi.SettingRow {
+                    theme: page.theme
+                    // Az utolso aktiv kijelzot nem engedjuk kikapcsolni: utana nem
+                    // lenne mivel visszakapcsolni.
+                    enabled: page.monitor !== null && (page.activeMonitorCount > 1 || (page.monitor && page.monitor.disabled))
+                    label: "Enabled"
+                    description: "Turning a display off frees its workspaces for the others."
+
+                    SharedUi.SettingToggle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        theme: page.theme
+                        checked: page.monitor ? page.monitor.disabled !== true : false
+                        onToggled: (value) => page.applyWithRevert({
+                            "disabled": !value
+                        })
+                    }
+
+                }
             }
-
-            SharedUi.SettingRow {
-            theme: page.theme
-            enabled: page.monitor !== null
-            label: "Resolution and refresh rate"
-            description: "Applied immediately; reverts on its own unless you confirm."
-            showDescription: true
-
-            SharedUi.SettingSelect {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                theme: page.theme
-                model: page.modeOptions
-                value: page.currentMode
-                onActivated: (value) => page.applyWithRevert({
-                    "mode": value
-                })
-            }
-
-        }
-
-        SharedUi.SettingRow {
-            theme: page.theme
-            enabled: page.monitor !== null
-            label: "Scale"
-            description: "Fractional scales can blur applications that do not support them."
-            showDescription: true
-
-            SharedUi.SettingSelect {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                theme: page.theme
-                model: [{
-                    "label": "100%",
-                    "value": "1"
-                }, {
-                    "label": "125%",
-                    "value": "1.25"
-                }, {
-                    "label": "150%",
-                    "value": "1.5"
-                }, {
-                    "label": "175%",
-                    "value": "1.75"
-                }, {
-                    "label": "200%",
-                    "value": "2"
-                }]
-                value: page.monitor ? page.monitor.scale.toString() : "1"
-                onActivated: (value) => page.applyWithRevert({
-                    "scale": Number(value)
-                })
-            }
-
-        }
-
-        SharedUi.SettingRow {
-            theme: page.theme
-            enabled: page.monitor !== null
-            label: "Orientation"
-            description: "Rotates the display output."
-
-            SharedUi.SettingSelect {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                theme: page.theme
-                model: [{
-                    "label": "Landscape",
-                    "value": "0"
-                }, {
-                    "label": "Portrait",
-                    "value": "1"
-                }, {
-                    "label": "Landscape (flipped)",
-                    "value": "2"
-                }, {
-                    "label": "Portrait (flipped)",
-                    "value": "3"
-                }]
-                value: page.monitor ? (page.monitor.transform || 0).toString() : "0"
-                onActivated: (value) => page.applyWithRevert({
-                    "transform": Number(value)
-                })
-            }
-
-        }
-
-        SharedUi.SettingRow {
-            theme: page.theme
-            enabled: page.monitor !== null
-            label: "Variable refresh rate"
-            description: "Lets the display follow the render rate. Can flicker on some panels."
-            showDescription: true
-
-            SharedUi.SettingToggle {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                theme: page.theme
-                checked: page.monitor ? page.monitor.vrr === true : false
-                onToggled: (value) => page.applyWithRevert({
-                    "vrr": value ? 1 : 0
-                })
-            }
-
-        }
-
-        SharedUi.SettingRow {
-            theme: page.theme
-            // Az utolso aktiv kijelzot nem engedjuk kikapcsolni: utana nem
-            // lenne mivel visszakapcsolni.
-            enabled: page.monitor !== null && (page.activeMonitorCount > 1 || (page.monitor && page.monitor.disabled))
-            label: "Enabled"
-            description: "Turning a display off frees its workspaces for the others."
-
-            SharedUi.SettingToggle {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                theme: page.theme
-                checked: page.monitor ? page.monitor.disabled !== true : false
-                onToggled: (value) => page.applyWithRevert({
-                    "disabled": !value
-                })
-            }
-
-            }
-
         }
     }
 
     // A megerosito sav. Modalis szandekkal ul a tartalom felett, de nem blokkolja
-    // az ablakot -- csak ez a ket gomb szamit, amig fut.
+    // az ablakot -- csak ez a ket gomb szamit, amig fut. Lebego kartya, alatta
+    // egy fogyo csik mutatja, mennyi ido van meg a visszaallitasig.
     Rectangle {
+        id: confirmBar
+
+        // A visszaszamlalas kezdoerteke: a csik ehhez merten fogy.
+        property int totalSeconds: 1
+
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 62
+        height: 64
         visible: page.awaitingConfirmation
+        radius: 12
         color: page.theme && page.theme.surface ? page.theme.surface : "#1b1613"
-        border.color: page.accent
-        border.width: 2
+        border.color: Qt.rgba(confirmBar.accentColor.r, confirmBar.accentColor.g, confirmBar.accentColor.b, 0.5)
+        border.width: 1
+
+        readonly property color accentColor: page.accent
+
+        onVisibleChanged: if (visible) totalSeconds = Math.max(1, page.controller.previewSeconds)
 
         Column {
             anchors.left: parent.left
-            anchors.leftMargin: 14
+            anchors.leftMargin: 16
+            anchors.right: confirmActions.left
+            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
             Text {
+                width: parent.width
                 text: "Keep these display settings?"
                 color: page.foreground
                 font.pixelSize: 13
+                font.weight: Font.Medium
+                elide: Text.ElideRight
             }
 
             Text {
+                width: parent.width
                 text: "Reverting in " + page.controller.previewSeconds + " s"
                 color: page.muted
-                font.family: "monospace"
-                font.pixelSize: 10
+                font.pixelSize: 11
+                font.features: { "tnum": 1 }
+                elide: Text.ElideRight
             }
 
         }
 
         Row {
+            id: confirmActions
+
             anchors.right: parent.right
-            anchors.rightMargin: 14
+            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             spacing: 8
 
-            Rectangle {
-                width: 84
-                height: 30
-                color: revertMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                border.color: page.muted
-                border.width: 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "Revert"
-                    color: page.foreground
-                    font.pixelSize: 12
-                }
-
-                MouseArea {
-                    id: revertMouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: page.controller.revertPreview()
-                }
-
+            SharedUi.ActionButton {
+                theme: page.theme
+                label: "Revert"
+                onClicked: page.controller.revertPreview()
             }
 
-            Rectangle {
-                width: 84
-                height: 30
-                color: page.accent
+            SharedUi.ActionButton {
+                theme: page.theme
+                label: "Keep"
+                primary: true
+                onClicked: page.controller.confirmPreview()
+            }
 
-                Text {
-                    anchors.centerIn: parent
-                    text: "Keep"
-                    color: page.theme ? page.theme.background : "#11130f"
-                    font.pixelSize: 12
-                    font.bold: true
-                }
+        }
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: page.controller.confirmPreview()
+        // A kerek sarkok kozott fut, hogy ne logjon ki a kartya ivei ala.
+        Rectangle {
+            x: confirmBar.radius
+            anchors.bottom: parent.bottom
+            height: 2
+            radius: 1
+            width: (parent.width - 2 * confirmBar.radius) * Math.max(0, page.controller.previewSeconds) / confirmBar.totalSeconds
+            color: page.accent
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 1000
+                    easing.type: Easing.Linear
                 }
 
             }

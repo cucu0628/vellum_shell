@@ -68,8 +68,10 @@ Item {
     // vezerlo gyereke, ahogy korabban.
     readonly property Item overlayHost: select.Window.contentItem
     readonly property bool windowActive: select.Window.active
-    readonly property int rowHeight: 26
-    readonly property int searchHeight: searchable ? 34 : 0
+    readonly property int rowHeight: 30
+    readonly property int searchHeight: searchable ? 38 : 0
+    // A lista belso margoja: a lekerekitett sarkok ne vagjak a szelso sorokat.
+    readonly property int listPadding: 4
 
     // A lista helye a gazdaelemben; nyitaskor szamoljuk ki.
     property real anchorX: 0
@@ -118,12 +120,12 @@ Item {
         var margin = 8
         var below = host.height - (origin.y + box.height + 2) - margin
         var above = origin.y - 2 - margin
-        var wanted = select.searchHeight + Math.min(select.maxVisibleRows, Math.max(1, select.model.length)) * select.rowHeight + 2
+        var wanted = select.searchHeight + Math.min(select.maxVisibleRows, Math.max(1, select.model.length)) * select.rowHeight + 2 * select.listPadding
 
         select.openUpward = below < wanted && above > below
         var room = select.openUpward ? above : below
         select.fittingRows = Math.max(3, Math.min(select.maxVisibleRows,
-            Math.floor((room - select.searchHeight - 2) / select.rowHeight)))
+            Math.floor((room - select.searchHeight - 2 * select.listPadding) / select.rowHeight)))
         select.anchorX = origin.x
         select.anchorY = origin.y
     }
@@ -218,7 +220,7 @@ Item {
     }
 
     implicitWidth: 240
-    implicitHeight: 30
+    implicitHeight: 32
 
     activeFocusOnTab: enabled
     Keys.onSpacePressed: (event) => { select.activate(); event.accepted = true }
@@ -252,20 +254,32 @@ Item {
     Accessible.description: select.accessibleDescription
     Accessible.onPressAction: select.activate()
 
+    // Ugyanaz a kerek mezo, mint a SearchField: vekony keret, ami nyitva sem
+    // vastagodik, csak akcentes lesz.
     Rectangle {
         id: box
+
+        readonly property color accentColor: select.accent
+        readonly property color mutedColor: select.muted
+        readonly property bool hovered: boxMouse.containsMouse
 
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         width: parent.width
-        height: 30
-        color: select.surface
-        border.color: select.expanded ? select.accent : select.muted
+        height: 32
+        radius: 8
+        color: box.hovered && !select.expanded ? Qt.lighter(select.surface, 1.25) : select.surface
         border.width: 1
+        border.color: select.expanded
+            ? Qt.rgba(box.accentColor.r, box.accentColor.g, box.accentColor.b, 0.55)
+            : Qt.rgba(box.mutedColor.r, box.mutedColor.g, box.mutedColor.b, box.hovered ? 0.34 : 0.22)
+
+        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on border.color { ColorAnimation { duration: 120 } }
 
         Text {
             anchors.left: parent.left
-            anchors.leftMargin: 10
+            anchors.leftMargin: 12
             anchors.right: chevron.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -281,18 +295,26 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter
-            text: select.expanded ? "▴" : "▾"
-            color: select.accent
-            font.pixelSize: 10
+            text: "󰅀"
+            color: select.expanded ? select.accent : select.muted
+            font.family: "Symbols Nerd Font Mono"
+            font.pixelSize: 12
+            rotation: select.expanded ? 180 : 0
+
+            Behavior on rotation { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         }
 
         FocusRing {
             theme: select.theme
             active: select.activeFocus
+            cornerRadius: box.radius
         }
 
         MouseArea {
+            id: boxMouse
+
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {
                 if (select.expanded) select.close();
@@ -326,14 +348,15 @@ Item {
         parent: select.expanded && select.overlayHost ? select.overlayHost : select
         x: select.anchorX
         y: select.openUpward
-            ? select.anchorY - height - 2
-            : select.anchorY + box.height + 2
+            ? select.anchorY - height - 4
+            : select.anchorY + box.height + 4
         width: box.width
         height: select.searchHeight
-            + Math.min(select.fittingRows, Math.max(1, select.visibleModel.length)) * select.rowHeight + 2
+            + Math.min(select.fittingRows, Math.max(1, select.visibleModel.length)) * select.rowHeight + 2 * select.listPadding
         visible: select.expanded && select.model.length > 0
+        radius: 10
         color: select.background
-        border.color: select.accent
+        border.color: Qt.rgba(1, 1, 1, 0.1)
         border.width: 1
         z: 9999
 
@@ -351,13 +374,14 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 1
-            height: select.searchable ? 33 : 0
+            height: select.searchable ? 37 : 0
             visible: select.searchable
-            color: select.surface
+            radius: 9
+            color: "transparent"
 
             Text {
                 anchors.left: parent.left
-                anchors.leftMargin: 9
+                anchors.leftMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 text: "⌕"
                 color: select.accent
@@ -368,7 +392,7 @@ Item {
                 id: searchInput
 
                 anchors.left: parent.left
-                anchors.leftMargin: 30
+                anchors.leftMargin: 32
                 anchors.right: parent.right
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
@@ -376,7 +400,7 @@ Item {
                 verticalAlignment: TextInput.AlignVCenter
                 text: select.searchText
                 color: select.foreground
-                font.pixelSize: 11
+                font.pixelSize: 12
                 onTextEdited: select.searchText = text
                 onActiveFocusChanged: if (!activeFocus) select.closeIfFocusLeft()
                 Keys.onUpPressed: (event) => {
@@ -413,7 +437,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     text: select.searchPlaceholder
                     color: select.muted
-                    font.pixelSize: 11
+                    font.pixelSize: 12
                 }
             }
 
@@ -423,7 +447,7 @@ Item {
                 anchors.bottom: parent.bottom
                 height: 1
                 color: select.muted
-                opacity: 0.18
+                opacity: 0.14
             }
         }
 
@@ -434,9 +458,7 @@ Item {
             anchors.right: parent.right
             anchors.top: searchBox.bottom
             anchors.bottom: parent.bottom
-            anchors.leftMargin: 1
-            anchors.rightMargin: 1
-            anchors.bottomMargin: 1
+            anchors.margins: select.listPadding
             clip: true
             model: select.visibleModel
             boundsBehavior: Flickable.StopAtBounds
@@ -454,20 +476,33 @@ Item {
 
                 width: ListView.view.width
                 height: select.rowHeight
-                color: option.highlighted || option.current ? select.surface : "transparent"
-                border.color: option.highlighted ? select.accent : "transparent"
-                border.width: 1
+                radius: 6
+                color: option.highlighted ? Qt.rgba(1, 1, 1, 0.07) : "transparent"
 
                 Text {
                     anchors.left: parent.left
-                    anchors.leftMargin: 9
-                    anchors.right: parent.right
-                    anchors.rightMargin: 9
+                    anchors.leftMargin: 10
+                    anchors.right: checkMark.left
+                    anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     text: select.entryLabel(option.modelData)
                     color: option.current ? select.accent : select.foreground
                     font.pixelSize: 12
+                    font.weight: option.current ? Font.Medium : Font.Normal
                     elide: Text.ElideRight
+                }
+
+                Text {
+                    id: checkMark
+
+                    anchors.right: parent.right
+                    anchors.rightMargin: 10
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: option.current
+                    text: "󰄬"
+                    color: select.accent
+                    font.family: "Symbols Nerd Font Mono"
+                    font.pixelSize: 12
                 }
 
                 // Az eger es a billentyuzet ugyanazt a kiemelest mozgatja, igy
@@ -492,7 +527,7 @@ Item {
             visible: select.visibleModel.length === 0
             text: select.emptyText
             color: select.muted
-            font.pixelSize: 10
+            font.pixelSize: 11
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }

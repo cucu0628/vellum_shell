@@ -10,6 +10,8 @@ Item {
     property string accessibleDescription: ""
     property int accessibleRole: Accessible.Button
     property int acceptedButtons: Qt.LeftButton
+    // A lekerekitett vezerlok fokuszgyuruje is kerek legyen.
+    property real focusRadius: 0
     readonly property alias containsMouse: pointer.containsMouse
 
     signal clicked(var event)
@@ -45,5 +47,6 @@ Item {
         z: 1
         theme: pressable.theme
         active: pressable.activeFocus
+        cornerRadius: pressable.focusRadius
     }
 }

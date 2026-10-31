@@ -53,24 +53,15 @@ Item {
         targetIndex = -1;
     }
 
-    SettingsSection {
-        id: section
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        theme: page.theme
-        title: "Top bar layout"
-        description: "Drag modules between zones or move them to Hidden"
-    }
-
+    // Az oldal cimet es leirasat a fejlec adja; itt csak a teendo es a
+    // visszaallitas all.
     Item {
         id: toolbar
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: section.bottom
-        height: 42
+        anchors.top: parent.top
+        height: 44
 
         Text {
             anchors.left: parent.left
@@ -80,8 +71,9 @@ Item {
             text: page.controller.errorMessage !== ""
                 ? page.controller.errorMessage
                 : "Changes apply live. Arrow keys move a focused card; Delete hides it."
+            textFormat: Text.PlainText
             color: page.controller.errorMessage !== "" ? page.accent : page.muted
-            font.pixelSize: 10
+            font.pixelSize: 11
             elide: Text.ElideRight
         }
 
@@ -90,7 +82,6 @@ Item {
 
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            height: 28
             theme: page.theme
             label: "Reset layout"
             onClicked: page.controller.reset()
@@ -103,9 +94,10 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: toolbar.bottom
-        anchors.bottom: mediaSection.top
-        anchors.bottomMargin: 16
-        spacing: 10
+        anchors.topMargin: 4
+        anchors.bottom: mediaSection.visible ? mediaSection.top : parent.bottom
+        anchors.bottomMargin: mediaSection.visible ? 24 : 0
+        spacing: 12
 
         BarLayoutLane {
             id: leftLane
@@ -198,31 +190,21 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: mediaColumn.implicitHeight
+        height: mediaColumn.height
         visible: page.mpris !== null
 
-        Column {
+        SettingsSection {
             id: mediaColumn
 
             width: parent.width
-            spacing: 8
-
-            SettingsSection {
-                width: parent.width
-                theme: page.theme
-                title: "Media players"
-            }
-
-            Text {
-                width: parent.width
-                text: "Ignored players never show up in the top bar or the dashboard. Click a player to switch it."
-                color: page.muted
-                font.pixelSize: 11
-                wrapMode: Text.WordWrap
-            }
+            theme: page.theme
+            title: "Media players"
+            description: "Ignored players never show up in the top bar or the dashboard. Click a player to switch it."
 
             Flow {
                 width: parent.width
+                topPadding: 12
+                bottomPadding: 12
                 spacing: 8
 
                 Repeater {
@@ -236,8 +218,8 @@ Item {
 
                         width: chipRow.implicitWidth + 24
                         height: 32
-                        radius: 6
-                        color: chipMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.04)
+                        radius: 8
+                        color: chipMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
 
                         Row {
                             id: chipRow
@@ -276,6 +258,7 @@ Item {
 
                             anchors.fill: parent
                             theme: page.theme
+                            focusRadius: playerChip.radius
                             accessibleName: (playerChip.ignored ? "Show " : "Ignore ") + playerChip.modelData.name
                             onClicked: page.mpris.setIgnored(playerChip.modelData.name, !playerChip.ignored)
                         }

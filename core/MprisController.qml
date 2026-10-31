@@ -139,6 +139,36 @@ Item {
         activePlayer = chooseActivePlayer()
     }
 
+    // Billentyus hangeroleptetes az aktiv lejatszon (0-100%). A lejatszo csak
+    // a D-Bus valasz utan jelenti az uj erteket; az addig erkezo kovetkezo
+    // lepes a kert ertekrol folytatja, kulonben ugyanazt allitana be ujra.
+    property var pendingVolumePlayer: null
+    property real pendingVolume: -1
+
+    signal volumeStepped(var player, real volume)
+
+    function stepVolume(delta) {
+        var player = activePlayer
+        if (!player || !player.canControl || !player.volumeSupported) return
+        var base = pendingVolumePlayer === player && pendingVolume >= 0 ? pendingVolume : (player.volume || 0)
+        var next = Math.max(0, Math.min(1, Math.round((base + delta) * 100) / 100))
+        pendingVolumePlayer = player
+        pendingVolume = next
+        pendingVolumeTimer.restart()
+        player.volume = next
+        volumeStepped(player, next)
+    }
+
+    Timer {
+        id: pendingVolumeTimer
+
+        interval: 600
+        onTriggered: {
+            controller.pendingVolumePlayer = null
+            controller.pendingVolume = -1
+        }
+    }
+
     Component.onCompleted: updateActivePlayer()
 
     Connections {

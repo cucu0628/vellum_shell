@@ -24,13 +24,12 @@ PanelWindow {
     property string agentTail: ""
     property int agentConsumed: 0
 
-    readonly property string panelBg: theme ? theme.background : "#11130f"
     readonly property string panelFg: theme ? theme.foreground : "#e8ddc7"
     readonly property string panelAccent: theme ? theme.accent : "#b7372f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
-    readonly property color lineBg: Qt.rgba(1, 1, 1, 0.055)
+    // Fejlec (34), allapotkartya (72), szakaszcim (28) es a kozok.
+    readonly property int fixedHeight: 170 + (pairingBusy ? 84 : 0) + (errorMessage !== "" ? 26 : 0)
 
     readonly property var adapter: statusController ? statusController.adapter : null
     readonly property bool adapterAvailable: statusController ? statusController.available : false
@@ -293,8 +292,9 @@ PanelWindow {
         enabled: bluetoothWindow.opened
         // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
         y: bluetoothWindow.barHeight
-        width: Math.min(430, parent.width - 20)
-        height: Math.min(570, parent.height - bluetoothWindow.barHeight - 12, Math.max(284, 220 + Math.min(deviceList.length, 6) * 56) + (pairingBusy ? 84 : 0))
+        width: Math.min(420, parent.width - 20)
+        height: Math.min(parent.height - bluetoothWindow.barHeight - 12,
+            32 + bluetoothWindow.fixedHeight + Math.max(112, Math.min(deviceList.length, 6) * 56))
         clip: true
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
@@ -318,11 +318,6 @@ PanelWindow {
                     width: parent.width
                     theme: bluetoothWindow.theme
                     title: "Bluetooth"
-                    subtitle: !adapterAvailable
-                        ? "No adapter detected"
-                        : (statusController && statusController.connected
-                            ? "Connected  ·  " + statusController.primaryName
-                            : (adapterEnabled ? "Ready to connect" : "Bluetooth is off"))
                     trailingWidth: 64
 
                     SharedUi.HeaderChip {
@@ -338,121 +333,57 @@ PanelWindow {
                     }
                 }
 
-                Rectangle {
+                SharedUi.StatusCard {
                     width: parent.width
-                    height: 72
-                    color: inkBg
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 12
-
-                        Text {
-                            width: 34
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: !adapterEnabled ? "󰂲" : (primaryDevice ? deviceIcon(primaryDevice) : "󰂯")
-                            color: statusController && statusController.connected ? panelAccent : mutedFg
-                            font.pixelSize: 25
-                        }
-
-                        Column {
-                            width: parent.width - 46
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 4
-
-                            Text {
-                                width: parent.width
-                                text: primaryDevice ? deviceName(primaryDevice) : "No device connected"
-                                color: panelFg
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                width: parent.width
-                                text: primaryDevice
-                                    ? primaryDevice.address + (primaryDevice.batteryAvailable ? "  ·  battery " + Math.round(primaryDevice.battery * 100) + "%" : "")
-                                    : deviceList.length + (deviceList.length === 1 ? " device found" : " devices found")
-                                color: mutedFg
-                                font.pixelSize: 12
-                                font.letterSpacing: 0
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
+                    theme: bluetoothWindow.theme
+                    active: statusController && statusController.connected
+                    glyph: !adapterEnabled ? "󰂲" : (primaryDevice ? deviceIcon(primaryDevice) : "󰂯")
+                    title: !adapterAvailable
+                        ? "No adapter detected"
+                        : (!adapterEnabled ? "Bluetooth is off" : (primaryDevice ? deviceName(primaryDevice) : "No device connected"))
+                    subtitle: primaryDevice
+                        ? primaryDevice.address + (primaryDevice.batteryAvailable ? "  ·  Battery " + Math.round(primaryDevice.battery * 100) + "%" : "")
+                        : (adapterEnabled ? "Ready to connect" : "")
                 }
 
-                Row {
+                SharedUi.SectionBar {
                     width: parent.width
-                    height: 28
+                    theme: bluetoothWindow.theme
+                    title: "DEVICES"
+                    detail: adapterEnabled ? String(deviceList.length) : ""
 
-                    Text {
-                        width: parent.width - 190
-                        height: parent.height
-                        text: discovering ? "Scanning…" : "Devices  ·  " + deviceList.length
-                        color: mutedFg
-                        font.pixelSize: 10
-                        font.letterSpacing: 0
-                        font.weight: Font.Medium
-                        verticalAlignment: Text.AlignVCenter
+                    SharedUi.HeaderChip {
+                        theme: bluetoothWindow.theme
+                        label: discovering ? "Stop scan" : "Scan"
+                        checked: discovering
+                        enabled: bluetoothWindow.adapterEnabled
+                        accessibleName: discovering ? qsTr("Stop scanning for devices") : qsTr("Scan for devices")
+                        onClicked: toggleScan()
                     }
 
-                    Text {
-                        width: 110
-                        height: parent.height
-                        text: "Settings"
-                        color: advancedMouse.containsMouse ? panelAccent : mutedFg
-                        horizontalAlignment: Text.AlignRight
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 10
-                        font.family: "monospace"
-
-                        MouseArea {
-                            id: advancedMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: openAdvancedSettings()
-                        }
-                    }
-
-                    Text {
-                        width: 80
-                        height: parent.height
-                        text: discovering ? "Stop scan" : "Scan"
-                        color: scanMouse.containsMouse ? panelAccent : mutedFg
-                        opacity: adapterEnabled ? 1 : 0.45
-                        horizontalAlignment: Text.AlignRight
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 11
-                        font.family: "monospace"
-
-                        MouseArea {
-                            id: scanMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            enabled: bluetoothWindow.adapterEnabled
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: toggleScan()
-                        }
+                    SharedUi.HeaderChip {
+                        theme: bluetoothWindow.theme
+                        label: "Settings"
+                        accessibleName: qsTr("Open Bluetooth settings")
+                        onClicked: openAdvancedSettings()
                     }
                 }
 
                 Item {
                     width: parent.width
-                    height: parent.height - 200 - (bluetoothWindow.pairingBusy ? 84 : 0)
+                    height: parent.height - bluetoothWindow.fixedHeight
 
                     Text {
                         anchors.centerIn: parent
-                        width: parent.width
+                        width: parent.width - 32
                         visible: !adapterEnabled || deviceList.length === 0
                         text: !adapterAvailable
-                            ? "No Bluetooth adapter found"
-                            : (!adapterEnabled ? "Turn on Bluetooth to see devices" : "No devices found. Try scanning again.")
+                            ? "No Bluetooth adapter found."
+                            : (!adapterEnabled ? "Turn on Bluetooth to see devices." : "No devices found. Try scanning again.")
                         color: mutedFg
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
                     }
 
                     Flickable {
@@ -468,87 +399,30 @@ PanelWindow {
                             spacing: 4
 
                             Repeater {
-                                model: bluetoothWindow.deviceList
+                                // ScriptModel: a lista frissulesekor (pl. kereses kozben) a
+                                // meglevo sorok megmaradnak, csak az uj vagy eltunt eszkozok
+                                // sora jon letre / szunik meg.
+                                model: ScriptModel { values: bluetoothWindow.deviceList }
 
-                                Rectangle {
-                                    id: deviceRow
+                                // Jobb gomb: az eszkoz elfelejtese.
+                                SharedUi.ListRow {
                                     required property var modelData
 
                                     width: deviceColumn.width
-                                    height: 52
-                                    color: deviceMouse.containsMouse || deviceRow.modelData.connected ? inkBg : "transparent"
-                                    Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
-
-                                    Rectangle {
-                                        anchors.left: parent.left
-                                        width: 3
-                                        height: parent.height
-                                        color: panelAccent
-                                        opacity: deviceRow.modelData.connected ? 1 : 0
-                                    }
-
-                                    Row {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 12
-                                        anchors.rightMargin: 12
-                                        spacing: 10
-
-                                        Text {
-                                            width: 25
-                                            height: parent.height
-                                            text: deviceIcon(deviceRow.modelData)
-                                            color: deviceRow.modelData.connected ? panelAccent : panelFg
-                                            font.pixelSize: 19
-                                            verticalAlignment: Text.AlignVCenter
-                                        }
-
-                                        Column {
-                                            width: parent.width - 158
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: 2
-
-                                            Text {
-                                                width: parent.width
-                                                text: deviceName(deviceRow.modelData)
-                                                color: panelFg
-                                                font.pixelSize: 13
-                                                font.weight: deviceRow.modelData.connected ? Font.DemiBold : Font.Normal
-                                                elide: Text.ElideRight
-                                            }
-
-                                            Text {
-                                                width: parent.width
-                                                text: deviceStatus(deviceRow.modelData)
-                                                color: deviceRow.modelData.connected ? panelAccent : mutedFg
-                                                font.family: "monospace"
-                                                font.pixelSize: 9
-                                                elide: Text.ElideRight
-                                            }
-                                        }
-
-                                        Text {
-                                            width: 80
-                                            height: parent.height
-                                            text: deviceRow.modelData.connected
-                                                ? "Disconnect"
-                                                : (deviceRow.modelData.pairing ? "..." : (deviceRow.modelData.paired || deviceRow.modelData.bonded ? "Connect" : "Pair"))
-                                            color: deviceRow.modelData.connected ? panelAccent : mutedFg
-                                            font.pixelSize: 11
-                                            verticalAlignment: Text.AlignVCenter
-                                            horizontalAlignment: Text.AlignRight
-                                        }
-                                    }
-
-                                    MouseArea {
-                                        id: deviceMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: (mouse) => {
-                                            if (mouse.button === Qt.RightButton) forget(deviceRow.modelData)
-                                            else activate(deviceRow.modelData)
-                                        }
+                                    theme: bluetoothWindow.theme
+                                    glyph: deviceIcon(modelData)
+                                    title: deviceName(modelData)
+                                    subtitle: deviceStatus(modelData)
+                                    trailing: modelData.connected
+                                        ? "Disconnect"
+                                        : (modelData.pairing ? "Pairing…" : (modelData.paired || modelData.bonded ? "Connect" : "Pair"))
+                                    active: modelData.connected
+                                    selected: bluetoothWindow.pairingAddress !== "" && bluetoothWindow.pairingAddress === modelData.address
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    accessibleName: (modelData.connected ? qsTr("Disconnect %1") : qsTr("Connect %1")).arg(deviceName(modelData))
+                                    onClicked: (event) => {
+                                        if (event.button === Qt.RightButton) forget(modelData)
+                                        else activate(modelData)
                                     }
                                 }
                             }
@@ -556,42 +430,36 @@ PanelWindow {
                     }
                 }
 
+                // Parositas: a kod nagyban, mellette a dontes. Ugyanaz a
+                // kartyafelulet, mint felul, keret es oldalcsik nelkul.
                 Rectangle {
                     width: parent.width
                     height: bluetoothWindow.pairingBusy ? 72 : 0
                     visible: height > 0
                     clip: true
+                    radius: 10
                     color: inkBg
-                    border.color: panelAccent
-                    border.width: 1
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 3
-                        color: panelAccent
-                    }
 
                     Row {
                         anchors.fill: parent
-                        anchors.leftMargin: 14
-                        anchors.rightMargin: 10
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 12
                         anchors.topMargin: 10
                         anchors.bottomMargin: 10
                         spacing: 12
 
                         Column {
-                            width: parent.width - (bluetoothWindow.pairingWaiting ? 168 : 92)
+                            width: parent.width - pairingActions.width - parent.spacing
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 4
+                            spacing: 2
 
                             Text {
                                 width: parent.width
                                 text: bluetoothWindow.pairingLabel
+                                textFormat: Text.PlainText
                                 color: panelFg
                                 font.pixelSize: 12
-                                font.weight: Font.DemiBold
+                                font.weight: Font.Medium
                                 elide: Text.ElideRight
                             }
 
@@ -599,11 +467,12 @@ PanelWindow {
                                 width: parent.width
                                 text: bluetoothWindow.pairingPasskey !== ""
                                     ? bluetoothWindow.pairingPasskey
-                                    : (bluetoothWindow.pairingPrompt !== "" ? bluetoothWindow.pairingPrompt : "Pairing...")
+                                    : (bluetoothWindow.pairingPrompt !== "" ? bluetoothWindow.pairingPrompt : "Pairing…")
                                 color: bluetoothWindow.pairingPasskey !== "" ? panelAccent : mutedFg
-                                font.pixelSize: bluetoothWindow.pairingPasskey !== "" ? 20 : 9
+                                font.family: bluetoothWindow.pairingPasskey !== "" ? "monospace" : "sans-serif"
+                                font.pixelSize: bluetoothWindow.pairingPasskey !== "" ? 20 : 10
                                 font.letterSpacing: bluetoothWindow.pairingPasskey !== "" ? 4 : 0
-                                font.bold: bluetoothWindow.pairingPasskey !== ""
+                                font.weight: bluetoothWindow.pairingPasskey !== "" ? Font.DemiBold : Font.Normal
                                 elide: Text.ElideRight
                             }
 
@@ -613,85 +482,42 @@ PanelWindow {
                                 text: bluetoothWindow.pairingPasskey !== ""
                                     ? bluetoothWindow.pairingPrompt
                                     : bluetoothWindow.agentStatus
+                                textFormat: Text.PlainText
                                 color: mutedFg
-                                font.pixelSize: 9
+                                font.pixelSize: 10
                                 elide: Text.ElideRight
                             }
                         }
 
-                        Rectangle {
+                        Row {
+                            id: pairingActions
+
                             anchors.verticalCenter: parent.verticalCenter
-                            visible: bluetoothWindow.pairingBusy && !bluetoothWindow.pairingWaiting
-                            width: 82
-                            height: 34
-                            color: cancelPairMouse.containsMouse ? hoverBg : "transparent"
-                            border.color: lineBg
-                            border.width: 1
+                            spacing: 4
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Cancel"
-                                color: panelFg
-                                font.pixelSize: 10
-                            }
-
-                            MouseArea {
-                                id: cancelPairMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                            SharedUi.HeaderChip {
+                                visible: !bluetoothWindow.pairingWaiting
+                                height: 32
+                                theme: bluetoothWindow.theme
+                                label: "Cancel"
                                 onClicked: cancelPairing()
                             }
-                        }
 
-                        Row {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: bluetoothWindow.pairingWaiting
-                            spacing: 6
-
-                            Rectangle {
-                                width: 74
-                                height: 34
-                                color: rejectMouse.containsMouse ? hoverBg : "transparent"
-                                border.color: lineBg
-                                border.width: 1
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "Reject"
-                                    color: panelFg
-                                    font.pixelSize: 11
-                                }
-
-                                MouseArea {
-                                    id: rejectMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: confirmPairing(false)
-                                }
+                            SharedUi.HeaderChip {
+                                visible: bluetoothWindow.pairingWaiting
+                                height: 32
+                                theme: bluetoothWindow.theme
+                                label: "Reject"
+                                onClicked: confirmPairing(false)
                             }
 
-                            Rectangle {
-                                width: 82
-                                height: 34
-                                color: acceptMouse.containsMouse ? Qt.lighter(panelAccent, 1.15) : panelAccent
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "Confirm"
-                                    color: panelBg
-                                    font.pixelSize: 11
-                                    font.bold: true
-                                }
-
-                                MouseArea {
-                                    id: acceptMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: confirmPairing(true)
-                                }
+                            SharedUi.HeaderChip {
+                                visible: bluetoothWindow.pairingWaiting
+                                height: 32
+                                theme: bluetoothWindow.theme
+                                emphasized: true
+                                label: "Confirm"
+                                onClicked: confirmPairing(true)
                             }
                         }
                     }
@@ -699,8 +525,10 @@ PanelWindow {
 
                 Text {
                     width: parent.width
+                    height: 14
                     visible: bluetoothWindow.errorMessage !== ""
                     text: bluetoothWindow.errorMessage
+                    textFormat: Text.PlainText
                     color: panelAccent
                     font.pixelSize: 10
                     elide: Text.ElideRight

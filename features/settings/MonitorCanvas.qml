@@ -213,12 +213,11 @@ Item {
         };
     }
 
+    // Sullyesztett "asztal" a kartyan belul: sotetebb, keret nelkuli mezo.
     Rectangle {
         anchors.fill: parent
-        color: canvas.surface
-        opacity: 0.35
-        border.color: canvas.muted
-        border.width: 1
+        radius: 10
+        color: Qt.rgba(0, 0, 0, 0.2)
     }
 
     Text {
@@ -247,9 +246,19 @@ Item {
             y: canvas.offsetY + screenBox.currentBox.y * canvas.zoom
             width: Math.max(24, screenBox.modelData.width * canvas.zoom)
             height: Math.max(18, screenBox.modelData.height * canvas.zoom)
-            color: screenBox.isSelected ? Qt.rgba(0, 0, 0, 0.25) : "transparent"
-            border.color: screenBox.isSelected ? canvas.accent : canvas.muted
+            readonly property color accentColor: canvas.accent
+            readonly property color mutedColor: canvas.muted
+
+            radius: 6
+            color: screenBox.isSelected
+                ? Qt.rgba(screenBox.accentColor.r, screenBox.accentColor.g, screenBox.accentColor.b, 0.16)
+                : Qt.rgba(1, 1, 1, dragArea.containsMouse ? 0.09 : 0.05)
+            border.color: screenBox.isSelected
+                ? screenBox.accentColor
+                : Qt.rgba(screenBox.mutedColor.r, screenBox.mutedColor.g, screenBox.mutedColor.b, 0.3)
             border.width: screenBox.isSelected ? 2 : 1
+
+            Behavior on color { ColorAnimation { duration: 140 } }
 
             Column {
                 anchors.centerIn: parent
@@ -259,8 +268,8 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: screenBox.modelData.name
                     color: screenBox.isSelected ? canvas.accent : canvas.foreground
-                    font.pixelSize: 11
-                    font.bold: true
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
                 }
 
                 Text {
@@ -268,7 +277,7 @@ Item {
                     text: screenBox.modelData.width + " × " + screenBox.modelData.height
                     color: canvas.muted
                     font.family: "monospace"
-                    font.pixelSize: 9
+                    font.pixelSize: 10
                 }
 
             }
@@ -283,6 +292,7 @@ Item {
                 property bool dragged: false
 
                 anchors.fill: parent
+                hoverEnabled: true
                 cursorShape: pressed && dragged ? Qt.ClosedHandCursor : Qt.OpenHandCursor
                 onPressed: (mouse) => {
                     var point = dragArea.mapToItem(canvas, mouse.x, mouse.y);

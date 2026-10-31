@@ -25,8 +25,14 @@ terminal helpers.
   appearance, screenshot) and emoji at once, and evaluates anything that looks
   like a maths expression.
 - Launcher project mode (`>`) for directories under `~/Projects`.
-- Terminal desktop entries (`Terminal=true`, such as Neovim or btop) open in a
-  kitty window instead of being started without a TTY.
+- Terminal desktop entries (`Terminal=true`, such as Neovim or btop) open in the
+  default terminal instead of being started without a TTY. Settings > Default
+  apps picks it from the installed `TerminalEmulator` entries and stores it as
+  the first line of `~/.config/xdg-terminals.list` (the xdg-terminal-exec list);
+  without one, Kitty is used. GLib launches (`xdg-open`, file managers) only read
+  that list through `xdg-terminal-exec`; without it they fall back to their own
+  order, which skips Kitty and picks e.g. Konsole. The floating helpers (btop, installers, About)
+  stay on Kitty.
 - Clipboard history with text and image previews, activation, and deletion.
 - Notification server with toasts, history, actions, unread state, and DND.
   History and DND survive a shell restart (kept in `$XDG_RUNTIME_DIR`, so
@@ -92,7 +98,7 @@ require the corresponding command:
 | Interactive utility scripts | `fzf`, Kitty |
 | Package management | `pacman` plus `paru`/`yay` on Arch; `dnf` plus its COPR plugin on Fedora |
 | Power profiles | `powerprofilesctl` or a compatible PPD D-Bus service |
-| Settings default applications | `xdg-mime` from `xdg-utils` |
+| Settings default applications | `xdg-mime` from `xdg-utils`; `xdg-terminal-exec` so GLib apps (`xdg-open`, file managers) honour the default terminal |
 | Settings user services | A reachable systemd user manager |
 | Bluetooth settings | `blueman-manager`, Blueberry, or KDE System Settings |
 | Removable devices | `util-linux`, `udisks2`, `xdg-utils` |
@@ -222,7 +228,7 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `notifications` | `toggle`, `dnd`, `close`, `clear`, `grouping`, `expand`, `collapse` |
 | `audio` | `toggle`, `open`, `close`, `volumeUp`, `volumeDown` (5% steps), `mute`, `micMute` |
 | `brightness` | `up`, `down` (5% steps on the built-in display; no-op without a backlight) |
-| `media` | `toggle`, `open`, `close`, `calendar`, `weather` (open with that card expanded), `playPause`, `next`, `previous`; `overview` and `player` are kept as aliases of `open` |
+| `media` | `toggle`, `open`, `close`, `calendar`, `weather` (open with that card expanded), `playPause`, `next`, `previous`, `volumeUp`, `volumeDown` (the active player's own volume); `overview` and `player` are kept as aliases of `open` |
 | `network` | `toggle`, `open`, `close` |
 | `bluetooth` | `toggle`, `open`, `close` |
 | `vpn` | `toggle`, `open`, `close`, `connect`, `disconnect`, `app` |
@@ -252,8 +258,9 @@ The same file binds `SUPER + SHIFT + L` to the lock screen, `PRINT` and
 volume keys call `wpctl` directly (capped at 100%) and the brightness keys call
 `vellum call brightness step`, so both keep working while the shell restarts;
 the shell shows the OSD from the change itself. The play, pause, next and
-previous keys go to the shell's active player, so `playerctl` is not needed.
-All of them work on the lock screen.
+previous keys go to the shell's active player, so `playerctl` is not needed;
+`CTRL` with the volume keys steps that player's own volume. All of them work on
+the lock screen.
 
 ### Lock screen
 

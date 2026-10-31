@@ -78,6 +78,7 @@ arch_repo_packages=(
   wl-clipboard
   xdg-desktop-portal-gtk
   xdg-desktop-portal-hyprland
+  xdg-terminal-exec
   xdg-user-dirs
   xdg-utils
   xorg-xrandr
@@ -180,6 +181,7 @@ fedora_packages=(
   wireplumber
   wl-clipboard
   xdg-desktop-portal-gtk
+  xdg-terminal-exec
   xdg-user-dirs
   xdg-utils
   xrandr

@@ -93,51 +93,73 @@ Item {
 
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        width: 54
+        width: 48
         horizontalAlignment: Text.AlignRight
         text: slider.formatted(slider.value)
-        color: slider.foreground
+        color: slider.activeFocus || dragArea.pressed ? slider.accent : slider.foreground
         font.family: "monospace"
         font.pixelSize: 11
+        font.features: { "tnum": 1 }
     }
 
+    // Kerek, keret nelkuli sin; a kitoltes akcentes, a fogantyu egy kis kor,
+    // ami hoverre es huzas kozben kicsit megno.
     Rectangle {
         id: track
 
         anchors.left: parent.left
         anchors.right: readout.left
-        anchors.rightMargin: 12
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
         height: 4
-        radius: 0
-        color: slider.surface
-        border.color: slider.muted
-        border.width: 1
+        radius: 2
+        color: Qt.rgba(1, 1, 1, 0.1)
 
         Rectangle {
-            width: parent.width * slider.ratio
+            width: Math.max(height, parent.width * slider.ratio)
             height: parent.height
+            radius: parent.radius
             color: slider.accent
         }
 
         Rectangle {
-            width: 10
-            height: 18
+            id: handle
+
+            width: 14
+            height: 14
+            radius: 7
             color: slider.accent
+            border.color: slider.surface
+            border.width: 2
             anchors.verticalCenter: parent.verticalCenter
             x: Math.max(0, Math.min(parent.width - width, parent.width * slider.ratio - width / 2))
+            scale: dragArea.pressed ? 1.3 : (dragArea.containsMouse || slider.activeFocus ? 1.15 : 1)
+
+            Behavior on scale {
+                SpringAnimation {
+                    spring: 8
+                    damping: 0.55
+                    epsilon: 0.0005
+                }
+
+            }
+
         }
 
         FocusRing {
             theme: slider.theme
             active: slider.activeFocus
-            anchors.margins: -6
+            anchors.margins: -8
+            cornerRadius: 8
         }
 
         MouseArea {
+            id: dragArea
+
             anchors.fill: parent
             anchors.topMargin: -12
             anchors.bottomMargin: -12
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onPressed: (mouse) => slider.moved(slider.valueAt(mouse.x))
             onPositionChanged: (mouse) => {

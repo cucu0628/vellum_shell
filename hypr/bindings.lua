@@ -40,6 +40,11 @@ hl.bind("XF86AudioPlay", hl.dsp.exec_cmd(shell .. " media playPause"), { locked 
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd(shell .. " media playPause"), { locked = true, description = "Play or pause" })
 hl.bind("XF86AudioNext", hl.dsp.exec_cmd(shell .. " media next"), { locked = true, description = "Next track" })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd(shell .. " media previous"), { locked = true, description = "Previous track" })
+-- Ctrl + volume keys step the active player's own (MPRIS) volume.
+hl.bind("CTRL + XF86AudioRaiseVolume", hl.dsp.exec_cmd(shell .. " media volumeUp"),
+    { locked = true, repeating = true, description = "Music volume up" })
+hl.bind("CTRL + XF86AudioLowerVolume", hl.dsp.exec_cmd(shell .. " media volumeDown"),
+    { locked = true, repeating = true, description = "Music volume down" })
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(vellum .. [[ call brightness step '{"delta":5}']]),
     { locked = true, repeating = true, description = "Brightness up" })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd(vellum .. [[ call brightness step '{"delta":-5}']]),
