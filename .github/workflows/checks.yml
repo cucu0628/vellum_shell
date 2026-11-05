@@ -39,16 +39,23 @@ jobs:
           VELLUM_CHECK_STRICT: "1"
         run: ./scripts/check rust
 
+  # A qmllint a Quickshell moduljainak tipusleirasabol dolgozik (qmldir,
+  # *.qmltypes). Ha a Quickshell hianyzik, a tipusok feloldatlanok, es a keret meg
+  # a kategoria-ellenorzes [import] es [required] zajon bukik el. Ubuntura nincs
+  # csomagja, ezert Fedoran fut, ugyanabbol a COPR-bol, amit az install.sh is
+  # hasznal: igy a CI ugyanazt az eredmenyt adja, mint a fejlesztoi gep.
   qml:
     runs-on: ubuntu-latest
+    container: fedora:44
     steps:
       - uses: actions/checkout@v4
 
-      - name: Qt eszkozok
+      - name: Qt eszkozok es Quickshell
         run: |
-          sudo apt-get update
-          sudo apt-get install -y qt6-declarative-dev-tools qml6-module-qttest \
-            qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtqml-workerscript
+          dnf install -y --setopt=install_weak_deps=False dnf5-plugins
+          dnf -y copr enable lionheartp/Hyprland
+          dnf install -y --setopt=install_weak_deps=False \
+            qt6-qtdeclarative-devel qt6-qtbase-gui quickshell
 
       # Ugyanaz a qmllint-hivas, keret es kategoria-ellenorzes, mint helyben.
       - name: QML kapuk

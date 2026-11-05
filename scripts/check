@@ -82,8 +82,10 @@ qt6_tool() {
   for candidate in "/usr/lib/qt6/bin/$name" "/usr/lib64/qt6/bin/$name" \
     "$name-qt6" "${name}6" "$name"; do
     command -v "$candidate" >/dev/null 2>&1 || continue
+    # A 6.5 elotti qmllint nem irja a figyelmeztetesek vegere a kategoriat
+    # (`[unqualified]`), amire a keret es a tipusellenorzes epul.
     if [[ $name == qmllint ]] \
-      && ! "$candidate" --version 2>&1 | grep -Eq 'qmllint 6\.'; then
+      && ! "$candidate" --version 2>&1 | grep -Eq 'qmllint 6\.([5-9]|[1-9][0-9])\.'; then
       continue
     fi
     printf '%s\n' "$candidate"
@@ -168,7 +170,7 @@ if wants qml; then
     printf 'figyelmeztetes: %s/%s, hiba: %s\n' \
       "$warning_count" "$warning_budget" "$error_count"
   else
-    skipped+=("qmllint (nincs Qt6 qmllint)")
+    skipped+=("qmllint (nincs Qt 6.5+ qmllint)")
   fi
 fi
 
