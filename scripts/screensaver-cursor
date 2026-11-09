@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# A kepernyovedo alatt elrejti az egermutatot (Hyprland cursor:invisible).
+#
+#   screensaver-cursor hide lua|legacy   elrejt, es megjegyzi az eredeti erteket
+#   screensaver-cursor show lua|legacy   visszaallitja, ha volt mit
+#
+# A layer-shell felulet a sajat (ures) kurzorat csak akkor kapja meg, ha az
+# eger rajta mozdul; egy allo eger alatt a compositor kurzora latszana. Az
+# eredeti ertek a futasi konyvtarba kerul, igy egy osszeomlas utan a shell
+# kovetkezo indulasa (show) is visszaallitja.
+set -euo pipefail
+
+action=${1:-}
+parser=${2:-lua}
+state="${XDG_RUNTIME_DIR:-/tmp}/vellum-screensaver-cursor"
+
+command -v hyprctl >/dev/null 2>&1 || exit 0
+
+# Gyors egymasutani inditas es leallitas ne keveredjen ossze.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"$state.lock"
+  flock 9
+fi
+
+set_invisible() {
+  if [[ $parser == lua ]]; then
+    hyprctl eval "hl.config({ cursor = { invisible = $1 } })" >/dev/null 2>&1 || true
+  else
+    hyprctl keyword cursor:invisible "$1" >/dev/null 2>&1 || true
+  fi
+}
+
+case $action in
+  hide)
+    if [[ ! -e $state ]]; then
+      previous=false
+      if hyprctl getoption cursor:invisible -j 2>/dev/null | grep -Eq '"(bool|int)": *(true|1)'; then
+        previous=true
+      fi
+      printf '%s\n' "$previous" >"$state"
+    fi
+    set_invisible true
+    ;;
+  show)
+    [[ -e $state ]] || exit 0
+    previous=$(<"$state")
+    [[ $previous == true ]] || previous=false
+    set_invisible "$previous"
+    rm -f "$state"
+    ;;
+  *)
+    echo "usage: screensaver-cursor hide|show [lua|legacy]" >&2
+    exit 2
+    ;;
+esac

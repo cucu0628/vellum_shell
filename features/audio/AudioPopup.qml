@@ -1,7 +1,6 @@
 import "." as AudioUi
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Wayland
 import "../../ui" as SharedUi
@@ -31,11 +30,13 @@ PanelWindow {
     readonly property var inputDevices: audioNodes.filter((node) => {
         return !node.isStream && !node.isSink;
     })
+    // Streamnel a Quickshell `isSink`-je azt jelenti, hogy a stream egy
+    // kimenetbe (sinkbe) jatszik: a lejatszo alkalmazas `isSink`, a felvevo nem.
     readonly property var playbackStreams: audioNodes.filter((node) => {
-        return node.isStream && !node.isSink;
+        return node.isStream && node.isSink;
     })
     readonly property var recordingStreams: audioNodes.filter((node) => {
-        return node.isStream && node.isSink;
+        return node.isStream && !node.isSink;
     })
     readonly property var currentOutputDevices: currentDevices(outputDevices, true)
     readonly property var currentInputDevices: currentDevices(inputDevices, false)
@@ -156,10 +157,9 @@ PanelWindow {
         inputPickerOpen = false;
     }
 
-    function launchAdvanced() {
-        launcher.command = ["pavucontrol"];
-        launcher.running = true;
-    }
+    // A Settings Hang oldala: profilok, alkalmazasonkenti kimenet. Az ablakot a
+    // shell nyitja (PopupCoordinator), ez a popup csak jelez.
+    signal advancedRequested()
 
     onOpenedChanged: {
         if (!opened) {
@@ -175,10 +175,6 @@ PanelWindow {
 
     PwObjectTracker {
         objects: audioWindow.audioNodes
-    }
-
-    Process {
-        id: launcher
     }
 
     anchors {
@@ -249,8 +245,8 @@ PanelWindow {
                             anchors.bottomMargin: 6
                             theme: audioWindow.theme
                             label: "Advanced"
-                            accessibleName: qsTr("Open advanced audio settings")
-                            onClicked: launchAdvanced()
+                            accessibleName: qsTr("Open sound settings")
+                            onClicked: audioWindow.advancedRequested()
                         }
 
                     }

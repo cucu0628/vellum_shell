@@ -6,11 +6,13 @@
 //!
 //! Semmi mas -- a hub, a protokoll es a QML kliens valtozatlan marad.
 
+pub mod audio;
 pub mod brightness;
 pub mod calendar;
 pub mod clipboard;
 pub mod health;
 pub mod hypr;
+pub mod netsecrets;
 pub mod network;
 pub mod privacy;
 pub mod removable;
@@ -29,11 +31,13 @@ pub fn registry() -> Vec<Arc<dyn Module>> {
         Arc::new(clipboard::Clipboard::new()),
         Arc::new(theme::Theme::new()),
         Arc::new(network::Network::new()),
+        Arc::new(netsecrets::NetSecrets::new()),
         Arc::new(hypr::Hypr::new()),
         Arc::new(removable::Removable::new()),
         Arc::new(privacy::Privacy::new()),
         Arc::new(session::Session::new()),
         Arc::new(brightness::Brightness::new()),
+        Arc::new(audio::Audio::new()),
         Arc::new(sysstats::SysStats::new()),
         Arc::new(vpn::Vpn::new()),
         Arc::new(weather::Weather::new()),

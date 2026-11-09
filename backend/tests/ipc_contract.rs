@@ -13,6 +13,7 @@ use vellum_shell_backend::modules;
 /// Ha ez a lista valtozik, a QML oldalt (`core/Backend.qml` hivoi) es a README
 /// IPC szakaszat is at kell nezni, majd ezt a listat frissiteni.
 const CONTRACT: &[(&str, &[&str])] = &[
+    ("audio", &["devices()", "moveStream(stream,target)", "setProfile(device,index)"]),
     ("brightness", &["set(percent)", "step(delta)"]),
     (
         "calendar",
@@ -42,6 +43,7 @@ const CONTRACT: &[(&str, &[&str])] = &[
             "stored()",
         ],
     ),
+    ("netsecrets", &["cancel(id)", "reply(id,secrets)"]),
     ("network", &["connect(ssid)", "disconnect(device)", "scan()", "setWifiEnabled(enabled)"]),
     ("privacy", &[]),
     ("removable", &["mount(path)", "powerOff(path)", "unmount(path)"]),

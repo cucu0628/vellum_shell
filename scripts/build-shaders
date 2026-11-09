@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# A .frag forrasokbol a Qt altal betoltheto .qsb fajlok. A kesz .qsb a repoban
+# van, igy futtatashoz nem kell a Qt Shader Tools; csak a shader szerkesztese utan.
+set -euo pipefail
+
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+
+qsb=""
+for candidate in qsb-qt6 qsb6 /usr/lib/qt6/bin/qsb /usr/lib64/qt6/bin/qsb qsb; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    qsb=$candidate
+    break
+  fi
+done
+if [[ -z $qsb ]]; then
+  echo "build-shaders: qsb not found (install the Qt 6 Shader Tools)" >&2
+  exit 1
+fi
+
+for source in "$root"/features/*/shaders/*.frag; do
+  "$qsb" --glsl "300 es,330" --hlsl 50 --msl 12 --qt6 -o "$source.qsb" "$source"
+  echo "built ${source#"$root"/}.qsb"
+done

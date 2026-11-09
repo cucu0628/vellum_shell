@@ -51,12 +51,12 @@ arch_repo_packages=(
   kconfig
   kitty
   libnotify
+  libpulse
   libqalculate
   network-manager-applet
   networkmanager
   noto-fonts-emoji
   pam
-  pavucontrol
   pipewire
   pipewire-pulse
   playerctl
@@ -160,9 +160,10 @@ fedora_packages=(
   libqalculate
   libxkbcommon-devel
   pam
-  pavucontrol
   pipewire
   pipewire-pulseaudio
+  pipewire-utils
+  pulseaudio-utils
   pkgconf-pkg-config
   playerctl
   polkit

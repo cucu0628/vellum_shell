@@ -129,6 +129,107 @@ Flickable {
                 }
 
             }
+
+            SharedUi.SettingRow {
+                theme: page.theme
+                label: "Screensaver after inactivity"
+                description: "Plays an ASCII animation until the next input. It does not lock the session."
+
+                SharedUi.SettingSelect {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    theme: page.theme
+                    model: [{
+                        "label": "Never",
+                        "value": "0"
+                    }, {
+                        "label": "1 minute",
+                        "value": "1"
+                    }, {
+                        "label": "2 minutes",
+                        "value": "2"
+                    }, {
+                        "label": "5 minutes",
+                        "value": "5"
+                    }, {
+                        "label": "10 minutes",
+                        "value": "10"
+                    }, {
+                        "label": "15 minutes",
+                        "value": "15"
+                    }, {
+                        "label": "30 minutes",
+                        "value": "30"
+                    }]
+                    value: page.systemController.screensaverIdleMinutes
+                    onActivated: (value) => page.systemController.setScreensaverIdleMinutes(value)
+                }
+
+            }
+
+            SharedUi.SettingRow {
+                theme: page.theme
+                label: "Screensaver theme"
+                description: "Automatic follows the calendar, from Christmas in December to summer in July."
+
+                // Az ertekek a features/screensaver/ScreensaverThemes.js nevei.
+                SharedUi.SettingSelect {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width
+                    theme: page.theme
+                    model: [{
+                        "label": "Shapes",
+                        "value": "shapes"
+                    }, {
+                        "label": "Automatic by season",
+                        "value": "auto"
+                    }, {
+                        "label": "Christmas",
+                        "value": "christmas"
+                    }, {
+                        "label": "New Year's Eve",
+                        "value": "newyear"
+                    }, {
+                        "label": "Winter",
+                        "value": "winter"
+                    }, {
+                        "label": "Valentine's Day",
+                        "value": "valentine"
+                    }, {
+                        "label": "Easter",
+                        "value": "easter"
+                    }, {
+                        "label": "Summer",
+                        "value": "summer"
+                    }, {
+                        "label": "Autumn",
+                        "value": "autumn"
+                    }, {
+                        "label": "Orbit across monitors",
+                        "value": "orbit"
+                    }]
+                    value: page.systemController.screensaverTheme
+                    onActivated: (value) => page.systemController.setScreensaverTheme(value)
+                }
+
+            }
+
+            SharedUi.SettingRow {
+                theme: page.theme
+                label: "Preview screensaver"
+                description: "Any key press or mouse movement ends it."
+
+                SharedUi.ActionButton {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    theme: page.theme
+                    label: "Start"
+                    onClicked: page.systemController.previewScreensaver()
+                }
+
+            }
         }
 
         SettingsSection {

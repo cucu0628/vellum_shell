@@ -89,8 +89,11 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: body.height + (section.flat ? 0 : 8)
-        visible: section.hasBody
+        // Nem `visible: false`-szal rejtjuk: egy lathatatlan kartyaban a kesobb
+        // megjeleno sorok is lathatatlannak szamitanak, a Column 0 magas marad,
+        // es a szakasz soha nem nyilna ki (pl. egy aszinkron betoltott lista).
+        height: section.hasBody ? body.height + (section.flat ? 0 : 8) : 0
+        opacity: section.hasBody ? 1 : 0
         radius: 12
         color: section.flat ? "transparent" : section.surface
 

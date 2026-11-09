@@ -147,3 +147,15 @@ pub async fn device_details(
 
     (interface, ip)
 }
+
+/// A titokkero (secret agent) regisztracioja. A `netsecrets` modul hasznalja.
+#[zbus::proxy(
+    interface = "org.freedesktop.NetworkManager.AgentManager",
+    default_service = "org.freedesktop.NetworkManager",
+    default_path = "/org/freedesktop/NetworkManager/AgentManager"
+)]
+pub trait AgentManager {
+    fn register_with_capabilities(&self, identifier: &str, capabilities: u32) -> zbus::Result<()>;
+
+    fn unregister(&self) -> zbus::Result<()>;
+}

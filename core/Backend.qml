@@ -33,7 +33,7 @@ Item {
     // szandekosan nincs koztuk -- az konfiguracio, ami a daemon kiesese utan is
     // ervenyes marad, es a torlese az egesz shellt alapertelmezett szinekre
     // ejtene.
-    readonly property var volatileTopics: ["network", "vpn", "removable", "privacy", "sysstats", "weather", "hypr", "calendar", "session", "brightness"]
+    readonly property var volatileTopics: ["network", "netsecrets", "vpn", "removable", "privacy", "sysstats", "weather", "hypr", "calendar", "session", "brightness"]
 
     // A Socket sajat magat regisztralja ide. Nem a Loader.item-et hasznaljuk,
     // mert az meg null, amikor a frissen letrehozott Socket mar csatlakozott.
@@ -52,6 +52,7 @@ Item {
         property var clipboard
         property var health
         property var hypr
+        property var netsecrets
         property var network
         property var privacy
         property var removable
@@ -61,7 +62,7 @@ Item {
         property var vpn
         property var weather
     }
-    readonly property var topicNames: ["brightness", "calendar", "clipboard", "health", "hypr", "network", "privacy", "removable", "session", "sysstats", "theme", "vpn", "weather"]
+    readonly property var topicNames: ["brightness", "calendar", "clipboard", "health", "hypr", "netsecrets", "network", "privacy", "removable", "session", "sysstats", "theme", "vpn", "weather"]
 
     signal topicUpdated(string topic, var data)
 

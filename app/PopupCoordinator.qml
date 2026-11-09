@@ -178,6 +178,14 @@ QtObject {
         setSettingsOpen(!settings.opened)
     }
 
+    // Egy adott oldalon nyit (pl. az Audio popup "Advanced" gombja a Hang
+    // oldalt). A fedoretegek bezarulnak, mert a settings ablak alattuk lenne.
+    function openSettingsPage(page) {
+        closeOverlays("")
+        settings.showPage(page)
+        setSettingsOpen(true)
+    }
+
     // -- egyszeru fedoretegek ------------------------------------------------
 
     function setLauncherOpen(open, nextScreen) { setOverlayOpen("launcher", open, nextScreen) }

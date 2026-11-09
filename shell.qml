@@ -21,6 +21,7 @@ import "features/osd" as OsdFeature
 import "features/polkit" as PolkitFeature
 import "features/privacy" as PrivacyFeature
 import "features/removable" as RemovableFeature
+import "features/screensaver" as ScreensaverFeature
 import "features/screenshot" as ScreenshotFeature
 import "features/tray" as TrayFeature
 
@@ -288,6 +289,14 @@ ShellRoot {
         id: settingsApp
 
         property bool opened: false
+        // A kovetkezo nyitaskor (vagy azonnal, ha mar nyitva van) ez az oldal
+        // latszik; ures = ahol a felhasznalo legutobb hagyta.
+        property string requestedPage: ""
+
+        function showPage(page) {
+            requestedPage = page
+            if (settingsLoader.item) settingsLoader.item.activePage = page
+        }
 
         width: 0
         height: 0
@@ -306,6 +315,7 @@ ShellRoot {
                     terminal: terminalController
                     shellDir: shellRoot.shellDir
                     visible: settingsApp.opened
+                    Component.onCompleted: if (settingsApp.requestedPage !== "") activePage = settingsApp.requestedPage
                     onClosed: settingsApp.opened = false
                     onCloseRequested: settingsApp.opened = false
                 }
@@ -369,6 +379,7 @@ ShellRoot {
                 theme: shellRoot.shellTheme
                 barHeight: shellRoot.barHeight
                 screen: audioPopup.screen
+                onAdvancedRequested: popupCoordinator.openSettingsPage("sound")
             }
         }
     }
@@ -455,6 +466,15 @@ ShellRoot {
         backend: shellRoot.shellBackend
     }
 
+    ScreensaverFeature.ScreensaverController {
+        id: screensaver
+        shellDir: shellRoot.shellDir
+        theme: shellRoot.shellTheme
+        screens: shellRoot.uniqueScreens
+        focusedScreenProvider: function() { return shellRoot.focusedScreen() }
+        blocked: lockRoot.sessionActive
+    }
+
     NotificationFeature.NotificationsHost {
         id: notifications
         theme: theme
@@ -464,6 +484,30 @@ ShellRoot {
     OsdFeature.VolumeOsd {
         id: volumeOsd
         theme: theme
+    }
+
+    // A NetworkManager jelszokerese. Az ablak csak egy fuggo kerdes idejere
+    // epul fel; az agent a backend topicra iratkozik, es csak addig el.
+    ConnectivityFeature.NetworkSecretAgent {
+        id: networkSecretAgent
+        backend: shellRoot.shellBackend
+    }
+
+    Item {
+        width: 0
+        height: 0
+        visible: false
+
+        Loader {
+            active: networkSecretAgent.request !== null
+            sourceComponent: Component {
+                ConnectivityFeature.NetworkSecretDialog {
+                    agent: networkSecretAgent
+                    theme: shellRoot.shellTheme
+                    screenProvider: function() { return shellRoot.focusedScreen() }
+                }
+            }
+        }
     }
 
     PolkitFeature.PolkitDialog {
@@ -496,6 +540,7 @@ ShellRoot {
         lockProvider: lockRoot
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }
         screenshotCaptureProvider: function(mode) { screenshotController.capture(mode) }
+        screensaverProvider: screensaver
         activePlayer: shellRoot.activePlayer
         mediaController: mprisController
         audioController: audioSummaryController
