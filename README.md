@@ -281,7 +281,8 @@ on every monitor after 1–30 minutes without input (off by default). Any key
 press, click or mouse movement ends it; that first input does not reach the
 application underneath. The mouse pointer is hidden while it runs
 (`scripts/screensaver-cursor` toggles Hyprland's `cursor:invisible` and restores
-the previous value afterwards, even after a shell crash).
+the previous value afterwards; a small watcher started through Hyprland also
+restores it if the shell dies while the screensaver runs).
 
 | Christmas | New Year's Eve |
 | --- | --- |

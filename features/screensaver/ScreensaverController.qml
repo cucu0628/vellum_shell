@@ -62,8 +62,10 @@ Item {
     height: 0
     visible: false
 
-    // Az allo eger alatt a compositor kurzora latszana: a felulet csak
-    // mozdulatra kapja meg a sajat ures kurzorat. Ezert a Hyprlandben rejtjuk el.
+    // Az allo eger alatt a compositor kurzora latszana: a felulet csak akkor
+    // kapja meg a sajat ures kurzorat, ha az eger belep. Ezert a Hyprland rejti
+    // el; a script megjegyzi es visszaallitja az eredeti erteket, es a shell
+    // leallasa utan is visszaallit (lasd scripts/screensaver-cursor).
     function setCursorHidden(hidden) {
         Quickshell.execDetached([shellDir + "/scripts/screensaver-cursor",
             hidden ? "hide" : "show", Hyprland.usingLua ? "lua" : "legacy"])
