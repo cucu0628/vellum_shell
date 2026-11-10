@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- @head -->
+    <title>{{PAGE_TITLE}} · Vellum Shell guide</title>
+    <meta name="description" content="{{PAGE_DESCRIPTION}}">
+    <link rel="canonical" href="https://{{DOMAIN}}{{PAGE_URL}}">
+    <meta property="og:title" content="{{PAGE_TITLE}} · Vellum Shell">
+    <meta property="og:description" content="{{PAGE_DESCRIPTION}}">
+    <meta property="og:url" content="https://{{DOMAIN}}{{PAGE_URL}}">
+</head>
+<body class="page-guide">
+    <!-- @header -->
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <!-- @nav -->
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">{{PAGE_GROUP}}</p>
+                <h1>{{PAGE_TITLE}}</h1>
+                <p class="guide-description">{{PAGE_DESCRIPTION}}</p>
+            </header>
+            <article class="prose">
+                <!-- @content -->
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <!-- @pager -->
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="{{PAGE_SOURCE}}">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <!-- @toc -->
+        </aside>
+    </div>
+
+    <!-- @footer -->
+</body>
+</html>

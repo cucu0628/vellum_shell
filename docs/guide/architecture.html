@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>How it works · Vellum Shell guide</title>
+    <meta name="description" content="The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/architecture.html">
+    <meta property="og:title" content="How it works · Vellum Shell">
+    <meta property="og:description" content="The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/architecture.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html" aria-current="page" class="on">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Reference</p>
+                <h1>How it works</h1>
+                <p class="guide-description">The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.</p>
+            </header>
+            <article class="prose">
+                <h2 id="two-processes">Two processes<a class="anchor" href="#two-processes" title="Link to this section">#</a></h2>
+<p>Vellum is two cooperating programs:</p>
+<ul>
+<li><strong>The shell</strong> is QML running in Quickshell. It draws every surface and talks directly to the services Quickshell already exposes as event-driven C++ objects: PipeWire, UPower, Bluetooth, MPRIS, notifications, the system tray and PAM.</li>
+<li><strong>The backend</strong> is a Rust daemon, <code>vellum daemon</code>, started as a systemd user service at login. It owns system state and theming, instead of shell scripts and per-tick <code>Process</code> calls.</li>
+</ul>
+<p>They speak newline-delimited JSON over <code>$XDG_RUNTIME_DIR/vellum-shell.sock</code>.</p>
+<h2 id="the-shells-layers">The shell's layers<a class="anchor" href="#the-shells-layers" title="Link to this section">#</a></h2>
+<pre><code class="language-text">shell.qml      composition: creates services and features, wires their signals
+  ├── app/      popup coordination and the public IPC surface
+  ├── core/     platform state: Hyprland, PipeWire, MPRIS, the backend client
+  └── features/ one directory per user-facing feature
+        └── ui/ reusable, feature-independent visual components
+</code></pre>
+<p>The dependency direction is strict: a lower layer never imports a higher one.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Owns</th>
+<th>Never</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>shell.qml</code></td>
+<td>Creating core services and feature roots, wiring signals to the coordinators</td>
+<td>Long delegates, data parsing or polling</td>
+</tr>
+<tr>
+<td><code>app/</code></td>
+<td>Rules across features: popup exclusion, monitor choice, the IPC targets</td>
+<td>Platform polling or drawing</td>
+</tr>
+<tr>
+<td><code>core/</code></td>
+<td>Hyprland, PipeWire, MPRIS and backend state behind small property APIs. <code>core/Backend.qml</code> is the only file that talks to the socket</td>
+<td>Knowing how popups look</td>
+</tr>
+<tr>
+<td><code>features/</code></td>
+<td>A popup, its controller, its store and delegates, together</td>
+<td>Referring to another feature's internals</td>
+</tr>
+<tr>
+<td><code>ui/</code></td>
+<td>Visual primitives fed by properties and signals</td>
+<td>Importing <code>core/</code> or <code>features/</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="one-popup-at-a-time">One popup at a time<a class="anchor" href="#one-popup-at-a-time" title="Link to this section">#</a></h3>
+<p>Every overlay opens through <code>app/PopupCoordinator.qml</code>, which picks the focused monitor and closes whatever else is open. Popups are loaded on demand (<code>app/LazyPopup.qml</code>), so their object tree only exists while they are shown.</p>
+<h2 id="the-backend">The backend<a class="anchor" href="#the-backend" title="Link to this section">#</a></h2>
+<h3 id="lazy-topics">Lazy topics<a class="anchor" href="#lazy-topics" title="Link to this section">#</a></h3>
+<p>The daemon is organised in modules, one file per capability under <code>backend/src/modules/</code>. Each module publishes a <strong>topic</strong> (live state) and <strong>methods</strong> (actions). Topics are lazy: a module's loop only runs while something is subscribed, so an idle daemon costs no CPU and about 7 MB of memory.</p>
+<p>The one exception is <code>clipboard</code>: history has to be recorded even while the shell is not looking, so that module runs from start-up.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Source</th>
+<th>Replaces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>theme</code></td>
+<td><code>themes/*/theme.conf</code>, native Material You</td>
+<td>9 chained bash scripts, <code>matugen</code>, <code>jq</code></td>
+</tr>
+<tr>
+<td><code>clipboard</code></td>
+<td>Wayland <code>wlr-data-control</code>, history on disk</td>
+<td><code>cliphist</code>, two <code>wl-paste --watch</code> loops, ImageMagick thumbnails</td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td>NetworkManager D-Bus; bounded <code>nmcli</code> calls for Wi-Fi actions</td>
+<td>QML-side <code>nmcli</code> and <code>ip -4 -j</code> polling</td>
+</tr>
+<tr>
+<td><code>netsecrets</code></td>
+<td>NetworkManager secret agent, registered only while subscribed</td>
+<td><code>nm-applet</code></td>
+</tr>
+<tr>
+<td><code>vpn</code></td>
+<td>NetworkManager D-Bus, <code>protonvpn</code> for details</td>
+<td><code>protonvpn status</code> on every tick</td>
+</tr>
+<tr>
+<td><code>removable</code></td>
+<td>udisks2 D-Bus</td>
+<td><code>lsblk --json</code> every 2.5 s, <code>udisksctl</code></td>
+</tr>
+<tr>
+<td><code>privacy</code></td>
+<td><code>/proc</code> scan for <code>/dev/video*</code> handles</td>
+<td>A resident <code>camera-usage</code> bash loop</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>logind <code>PrepareForSleep</code> with a delay inhibitor, <code>Lock</code> signal, <code>LockedHint</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>brightness</code></td>
+<td><code>/sys/class/backlight</code> notifications; set through logind</td>
+<td><code>brightnessctl</code></td>
+</tr>
+<tr>
+<td><code>sysstats</code></td>
+<td><code>/proc</code>, <code>statvfs</code></td>
+<td><code>df -P /</code></td>
+</tr>
+<tr>
+<td><code>weather</code></td>
+<td>Open-Meteo</td>
+<td>Three <code>curl</code> calls per panel open</td>
+</tr>
+<tr>
+<td><code>calendar</code></td>
+<td>Google Calendar API, OAuth sign-in through the browser</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>hypr</code></td>
+<td><code>hyprctl</code>, <code>/sys/class/drm</code> EDID</td>
+<td>Hand-edited Hyprland config files</td>
+</tr>
+<tr>
+<td><code>audio</code> (calls only)</td>
+<td><code>pw-dump</code>, <code>wpctl set-profile</code>, <code>pactl move-sink-input</code></td>
+<td><code>pavucontrol</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="the-contract">The contract<a class="anchor" href="#the-contract" title="Link to this section">#</a></h3>
+<p><code>vellum describe</code> prints every topic, method and parameter. Clients discover what exists instead of hard-coding it, and the Settings app is built on that. The socket path, the protocol version (<code>v: 1</code>) and the topic and method names are a compatibility contract; <code>backend/tests/ipc_contract.rs</code> records the surface and fails on purpose when it changes.</p>
+<p>A call that the daemon accepts but never answers fails with a <code>timeout</code> error after 60 seconds.</p>
+<h3 id="theme-transactions">Theme transactions<a class="anchor" href="#theme-transactions" title="Link to this section">#</a></h3>
+<p>A theme switch renders every output from the templates in <code>backend/templates/</code> and writes all of them or none, so applications are never left half-recoloured. The generators' output is checked by golden tests, and a missing template falls back to the copy compiled into the binary.</p>
+<h3 id="display-transactions">Display transactions<a class="anchor" href="#display-transactions" title="Link to this section">#</a></h3>
+<p>Monitor changes are <code>previewMonitors</code> → <code>confirmMonitors</code> or <code>revertMonitors</code>. The 12-second auto-revert timer lives in the daemon, so it fires even if the Settings window or the whole shell goes away. See <a href="/guide/settings.html#display">Settings</a>.</p>
+<h2 id="graceful-degradation">Graceful degradation<a class="anchor" href="#graceful-degradation" title="Link to this section">#</a></h2>
+<p>The shell keeps working when the daemon is down. <code>core/Backend.qml</code> falls back to built-in defaults and reconnects with backoff, so nothing blocks or crashes. Until the daemon answers, the palette is read from <code>current-theme</code> and the matching <code>theme.conf</code>, so the shell still starts in your theme.</p>
+<p>The same rule applies to optional tools: a missing <code>qalc</code>, <code>cava</code> or <code>snip</code> turns off one feature, not the shell. The System page of Settings shows what is available.</p>
+<h2 id="repository-layout">Repository layout<a class="anchor" href="#repository-layout" title="Link to this section">#</a></h2>
+<pre><code class="language-text">vellum_shell/
+├── shell.qml              Main entry point and composition
+├── LockShell.qml          Standalone lock-screen compatibility entry point
+├── GreeterShell.qml       greetd login screen entry point
+├── app/                   Popup lifecycle, coordination and public IPC
+├── core/                  Platform and shared state controllers
+├── features/              Self-contained shell features and surfaces
+├── ui/                    Reusable feature-independent QML components
+├── backend/               Rust backend: theme engine and state daemon
+│   ├── src/modules/       One file per capability
+│   ├── templates/         Theme output templates, editable without rebuilding
+│   └── tests/             Golden output, IPC contract and theme transaction tests
+├── nvim/                  LazyVim specs: the colorscheme and the key hints
+├── systemd/               User service that starts the backend at login
+├── scripts/               Installers and interactive helpers
+├── greeter/               Hyprland config for the greetd login screen
+├── themes/                Declarative colour palettes
+└── assets/                Static visual assets
+</code></pre>
+<p>The repository's <code>layout.md</code> documents every file, in Hungarian.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/ipc.html"><small>Previous</small><span>IPC and keybindings</span></a><a class="pager-next" href="/guide/development.html"><small>Next</small><span>Development</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/architecture.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#two-processes">Two processes</a></li><li><a href="#the-shells-layers">The shell's layers</a><ol class="toc-sub"><li><a href="#one-popup-at-a-time">One popup at a time</a></li></ol></li><li><a href="#the-backend">The backend</a><ol class="toc-sub"><li><a href="#lazy-topics">Lazy topics</a></li><li><a href="#the-contract">The contract</a></li><li><a href="#theme-transactions">Theme transactions</a></li><li><a href="#display-transactions">Display transactions</a></li></ol></li><li><a href="#graceful-degradation">Graceful degradation</a></li><li><a href="#repository-layout">Repository layout</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

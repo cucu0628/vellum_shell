@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>IPC and keybindings · Vellum Shell guide</title>
+    <meta name="description" content="Every shell surface you can open or control from a keybinding or a script, and the backend&#x27;s command-line client.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/ipc.html">
+    <meta property="og:title" content="IPC and keybindings · Vellum Shell">
+    <meta property="og:description" content="Every shell surface you can open or control from a keybinding or a script, and the backend&#x27;s command-line client.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/ipc.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html" aria-current="page" class="on">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Reference</p>
+                <h1>IPC and keybindings</h1>
+                <p class="guide-description">Every shell surface you can open or control from a keybinding or a script, and the backend&#x27;s command-line client.</p>
+            </header>
+            <article class="prose">
+                <h2 id="calling-the-shell">Calling the shell<a class="anchor" href="#calling-the-shell" title="Link to this section">#</a></h2>
+<p>Every major surface is exposed through Quickshell IPC, which makes it easy to bind shell actions in Hyprland or call them from scripts:</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET METHOD
+</code></pre>
+<p>For example, <code>… call launcher toggle</code> or <code>… call notifications dnd</code>.</p>
+<h2 id="targets">Targets<a class="anchor" href="#targets" title="Link to this section">#</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>launcher</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>clipboard</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>settings</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>menu</code>, <code>power</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>; aliases of <code>settings</code>, kept for compatibility</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>theme</code>, <code>wallpaper</code>, <code>close</code>: the <a href="/guide/appearance.html">Appearance Studio</a></td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td><code>toggle</code>, <code>dnd</code>, <code>close</code>, <code>clear</code>, <code>grouping</code>, <code>expand</code>, <code>collapse</code></td>
+</tr>
+<tr>
+<td><code>audio</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>volumeUp</code>, <code>volumeDown</code> (5% steps), <code>mute</code>, <code>micMute</code></td>
+</tr>
+<tr>
+<td><code>brightness</code></td>
+<td><code>up</code>, <code>down</code>: 5% steps on the built-in display; nothing without a backlight</td>
+</tr>
+<tr>
+<td><code>media</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>calendar</code>, <code>weather</code> (open with that card expanded), <code>playPause</code>, <code>next</code>, <code>previous</code>, <code>volumeUp</code>, <code>volumeDown</code> (the active player's own volume); <code>overview</code> and <code>player</code> are aliases of <code>open</code></td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>bluetooth</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>vpn</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>connect</code>, <code>disconnect</code>, <code>app</code></td>
+</tr>
+<tr>
+<td><code>removable</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>lock</code></td>
+<td><code>lock</code>, <code>suspend</code> (locks first and waits for the compositor's confirmation)</td>
+</tr>
+<tr>
+<td><code>screenshot</code></td>
+<td><code>capture</code>, <code>window</code>, <code>workspace</code>, <code>region</code></td>
+</tr>
+<tr>
+<td><code>screensaver</code></td>
+<td><code>start</code>, <code>stop</code>, <code>toggle</code></td>
+</tr>
+<tr>
+<td><code>about</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>: a floating kitty window running Fastfetch</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every overlay opens on the focused monitor and closes the others, because they all go through one popup coordinator. <code>about</code> is the one exception: it is a real window, so opening it closes only the overlays that would cover it.</p>
+<h2 id="keybindings">Keybindings<a class="anchor" href="#keybindings" title="Link to this section">#</a></h2>
+<p>The setup installs <code>~/.config/hypr/bindings.lua</code> with the native Hyprland Lua API:</p>
+<pre><code class="language-lua">local shell = [[quickshell ipc --path &quot;$HOME/.config/quickshell/vellum_shell/shell.qml&quot; call]]
+
+hl.bind(&quot;SUPER + SPACE&quot;, hl.dsp.exec_cmd(shell .. &quot; launcher toggle&quot;), { description = &quot;Vellum launcher&quot; })
+hl.bind(&quot;SUPER + V&quot;, hl.dsp.exec_cmd(shell .. &quot; clipboard toggle&quot;), { description = &quot;Vellum clipboard&quot; })
+hl.bind(&quot;SUPER + N&quot;, hl.dsp.exec_cmd(shell .. &quot; notifications toggle&quot;), { description = &quot;Vellum notifications&quot; })
+hl.bind(&quot;SUPER + P&quot;, hl.dsp.exec_cmd(shell .. &quot; settings toggle&quot;), { description = &quot;Vellum settings&quot; })
+hl.bind(&quot;SUPER + SHIFT + L&quot;, hl.dsp.exec_cmd(shell .. &quot; lock lock&quot;), { description = &quot;Vellum lock screen&quot; })
+hl.bind(&quot;PRINT&quot;, hl.dsp.exec_cmd(shell .. &quot; screenshot capture&quot;), { description = &quot;Vellum screenshot&quot; })
+hl.bind(&quot;SHIFT + PRINT&quot;, hl.dsp.exec_cmd(shell .. &quot; screenshot region&quot;), { description = &quot;Vellum region screenshot&quot; })
+</code></pre>
+<p>The same file binds the media, volume and brightness keys with <code>locked = true</code>, so they work on the lock screen too. Volume goes straight to <code>wpctl</code> (capped at 100%) and brightness through <code>vellum call brightness step</code>, so both keep working while the shell restarts. The shell shows the OSD from the change itself.</p>
+<h3 id="adding-your-own">Adding your own<a class="anchor" href="#adding-your-own" title="Link to this section">#</a></h3>
+<p>Add bindings in the same style, for example the theme picker and the weather card:</p>
+<pre><code class="language-lua">hl.bind(&quot;SUPER + T&quot;, hl.dsp.exec_cmd(shell .. &quot; style theme&quot;), { description = &quot;Vellum themes&quot; })
+hl.bind(&quot;SUPER + W&quot;, hl.dsp.exec_cmd(shell .. &quot; media weather&quot;), { description = &quot;Vellum weather&quot; })
+</code></pre>
+<p>The <code>description</code> shows up on the <strong>Keybindings</strong> page of Settings.</p>
+<h2 id="the-vellum-command">The <code>vellum</code> command<a class="anchor" href="#the-vellum-command" title="Link to this section">#</a></h2>
+<p>The backend binary is also its own client. It talks to the running daemon over <code>$XDG_RUNTIME_DIR/vellum-shell.sock</code>:</p>
+<pre><code class="language-bash">vellum ping                    # which binary and git revision is running
+vellum describe                # every topic and method the daemon offers
+vellum theme apply rose-pine   # works with or without the daemon running
+vellum watch network vpn       # live state on stdout
+vellum call clipboard copy '{&quot;id&quot;:12}'          # put a history entry back on the clipboard
+vellum call brightness step '{&quot;delta&quot;:5}'       # what the brightness keys run
+</code></pre>
+<p><code>describe</code> is the contract: clients discover what exists instead of hard-coding it, which is what the Settings app is built on. The protocol is described in <a href="/guide/architecture.html#the-backend">How it works</a>.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/screensaver.html"><small>Previous</small><span>Screensaver</span></a><a class="pager-next" href="/guide/architecture.html"><small>Next</small><span>How it works</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/ipc.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#calling-the-shell">Calling the shell</a></li><li><a href="#targets">Targets</a></li><li><a href="#keybindings">Keybindings</a><ol class="toc-sub"><li><a href="#adding-your-own">Adding your own</a></li></ol></li><li><a href="#the-vellum-command">The vellum command</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

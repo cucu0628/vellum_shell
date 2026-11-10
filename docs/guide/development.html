@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Development · Vellum Shell guide</title>
+    <meta name="description" content="Running the checks, what the tests cover, and the rules that keep the shell consistent.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/development.html">
+    <meta property="og:title" content="Development · Vellum Shell">
+    <meta property="og:description" content="Running the checks, what the tests cover, and the rules that keep the shell consistent.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/development.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html" aria-current="page" class="on">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Reference</p>
+                <h1>Development</h1>
+                <p class="guide-description">Running the checks, what the tests cover, and the rules that keep the shell consistent.</p>
+            </header>
+            <article class="prose">
+                <h2 id="one-command-for-every-check">One command for every check<a class="anchor" href="#one-command-for-every-check" title="Link to this section">#</a></h2>
+<p><code>scripts/check</code> runs Rust formatting, Clippy, the test suites, <code>qmllint</code> and ShellCheck, skipping whatever is not installed:</p>
+<pre><code class="language-bash">./scripts/check
+</code></pre>
+<p>The same gates run in CI (<code>.github/workflows/checks.yml</code>). <code>scripts/check rust</code>, <code>scripts/check qml</code> and <code>scripts/check shell</code> run a single group, which is how CI calls them, with <code>VELLUM_CHECK_STRICT=1</code> so a missing tool fails the job instead of being skipped.</p>
+<p>To run a single piece:</p>
+<pre><code class="language-bash">cargo fmt --manifest-path backend/Cargo.toml --check
+cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path backend/Cargo.toml
+qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+shellcheck setup.sh install.sh scripts/*
+python3 -B -m unittest discover -s tests -p 'test_*.py'
+node tests/notifications.js
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+  /usr/lib/qt6/bin/qmltestrunner -import tests/qml/stubs -input tests/qml
+</code></pre>
+<p>On Fedora the Qt tools live in <code>/usr/lib64/qt6/bin/</code>, or on <code>PATH</code> as <code>qmllint-qt6</code> and <code>qmltestrunner-qt6</code>; <code>scripts/check</code> finds either layout.</p>
+<p><code>backend/rustfmt.toml</code> pins the two settings the tree was written against (<code>max_width = 100</code>, <code>use_small_heuristics = "Max"</code>), so the format check runs on stable Rust.</p>
+<h2 id="what-the-tests-cover">What the tests cover<a class="anchor" href="#what-the-tests-cover" title="Link to this section">#</a></h2>
+<ul>
+<li><strong>Rust</strong>: golden output of every theme generator, the <code>vellum describe</code> IPC contract, and theme transactions (all outputs or none).</li>
+<li><strong>Security regressions</strong>: isolated Unix sockets, mocked monitor metadata, and offscreen Qt components. They never register a notification server, run installers or touch the active desktop.</li>
+<li><strong>Python</strong>: shell and Desktop Entry escaping.</li>
+<li><strong>Node</strong>: the notification controller functions.</li>
+<li><strong>QML</strong>: untrusted notification and clipboard text stays literal, following <a href="https://doc.qt.io/qt-6/qml-qtquick-text.html#details">Qt's guidance for untrusted text</a>. Quickshell's own QML modules are compiled into the <code>quickshell</code> binary, so <code>tests/qml/stubs</code> stands in for the few types the tested components use.</li>
+</ul>
+<p><code>qmllint</code> warns on a clean tree because it does not know the Quickshell types. The gate records the known categories and a warning budget, and rejects errors, new categories and a rising count, so new diagnostics cannot hide in that background noise.</p>
+<div class="admonition warning">
+<p class="admonition-title">No nested-session tests yet</p>
+<p>The shell has no automated integration test in a nested Wayland session. Changes to the lock screen, authentication, display management, package installation or power actions need a manual test on a non-critical session before you rely on them.</p>
+</div>
+<h2 id="working-rules">Working rules<a class="anchor" href="#working-rules" title="Link to this section">#</a></h2>
+<p>The repository's <code>AGENTS.md</code> is the full contributor guide. The parts that matter most:</p>
+<ul>
+<li><strong>Keep the dependency direction.</strong> <code>features</code> may use <code>core</code> and <code>ui</code>; <code>ui</code> imports nothing from the shell. Shared state belongs in <code>core/</code>, not in visual components.</li>
+<li><strong>Popups go through the coordinator</strong> (<code>app/PopupCoordinator.qml</code>), and public calls through <code>app/ShellIpc.qml</code>.</li>
+<li><strong>Prefer events over polling.</strong> Use a Quickshell service or a backend topic instead of a recurring <code>Process</code>.</li>
+<li><strong>The IPC is a contract.</strong> Changing a topic, a method or a required parameter means updating the recorded contract test, the QML callers and the documentation together.</li>
+<li><strong>Degrade gracefully.</strong> The shell must start when the daemon or an optional command is missing.</li>
+<li><strong>Don't hand-edit generated files</strong> such as <code>current-theme</code>, <code>gtk-theme.css</code>, <code>kitty-theme.conf</code> or <code>zen-theme.css</code>. Change the palette, the template or the generator.</li>
+</ul>
+<h3 id="ui-style">UI style<a class="anchor" href="#ui-style" title="Link to this section">#</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Four type tiers</td>
+<td>Display 18–26 px (serif); section headings 13–17 px; body and controls 11–13 px; metadata 9–10 px</td>
+</tr>
+<tr>
+<td>Fonts</td>
+<td>Serif for display, sans-serif for labels and prose, monospace only for fixed-width values and key hints</td>
+</tr>
+<tr>
+<td>Colour roles</td>
+<td><code>foreground</code> for content, <code>muted</code> for supporting text, <code>accent</code> for active, selected and actionable states; one dominant accent per panel</td>
+</tr>
+<tr>
+<td>Spacing</td>
+<td>A 4 px rhythm: 4, 8, 12, 16, 24</td>
+</tr>
+<tr>
+<td>Targets</td>
+<td>Compact controls at least 28 px high; settings and list rows at least 44 px</td>
+</tr>
+<tr>
+<td>Untrusted text</td>
+<td>User, clipboard and notification content is always <code>Text.PlainText</code>, with explicit wrapping or elision</td>
+</tr>
+</tbody>
+</table></div>
+<p>When a pattern appears in two features, refine the shared component in <code>ui/</code> instead of styling each copy separately.</p>
+<h2 id="this-website">This website<a class="anchor" href="#this-website" title="Link to this section">#</a></h2>
+<p>The site lives on the <code>gh-pages</code> branch, separate from the shell's history. Its build reads the palettes and the screensaver previews from <code>main</code>, so a new theme appears in the switcher after the next build. The screenshots and videos were recorded from a real shell in a sandboxed, headless compositor. Edit any guide page through the link at its bottom.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/architecture.html"><small>Previous</small><span>How it works</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/development.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#one-command-for-every-check">One command for every check</a></li><li><a href="#what-the-tests-cover">What the tests cover</a></li><li><a href="#working-rules">Working rules</a><ol class="toc-sub"><li><a href="#ui-style">UI style</a></li></ol></li><li><a href="#this-website">This website</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

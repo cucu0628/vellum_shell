@@ -12,6 +12,8 @@
     var data = window.VELLUM_THEMES || { defaultTheme: '', themes: [] };
     var themes = data.themes;
     var root = document.documentElement;
+    // Scroll reveals hide content only when the script that shows it again runs.
+    root.classList.add('js');
     var applied = null;
     var committed = null;
 

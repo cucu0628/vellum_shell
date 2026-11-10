@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Installation · Vellum Shell guide</title>
+    <meta name="description" content="What Vellum needs, how the setup script installs it, the optional parts, and how to remove it cleanly.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/installation.html">
+    <meta property="og:title" content="Installation · Vellum Shell">
+    <meta property="og:description" content="What Vellum needs, how the setup script installs it, the optional parts, and how to remove it cleanly.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/installation.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html" aria-current="page" class="on">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Get started</p>
+                <h1>Installation</h1>
+                <p class="guide-description">What Vellum needs, how the setup script installs it, the optional parts, and how to remove it cleanly.</p>
+            </header>
+            <article class="prose">
+                <h2 id="requirements">Requirements<a class="anchor" href="#requirements" title="Link to this section">#</a></h2>
+<h3 id="core">Core<a class="anchor" href="#core" title="Link to this section">#</a></h3>
+<ul>
+<li>A Wayland session running <strong>Hyprland 0.55 or newer</strong>. Vellum uses its native Lua configuration API (<code>hl.config(...)</code>, <code>hl.bind(...)</code>, <code>hl.dsp.*</code>).</li>
+<li><strong>Quickshell</strong> with Hyprland, PipeWire, MPRIS, notifications, system tray, PAM, Polkit, UPower and Wayland support. Fedora 44 and newer ship it directly.</li>
+<li><strong>PipeWire</strong>, <strong>NetworkManager</strong> and <strong>udisks2</strong>.</li>
+<li><strong>Rust</strong> (<code>cargo</code>) to build the backend. The shell starts without it, but with no theming and no system state.</li>
+<li>A Nerd Font for the shell icons, preferably <code>Symbols Nerd Font Mono</code>.</li>
+<li><code>bash</code>, <code>hyprctl</code> and <code>jq</code>. The backend uses <code>nmcli</code> for Wi-Fi scanning and connection changes; <code>jq</code> is used by the screenshot and lock-screen helper scripts.</li>
+</ul>
+<p>The backend reads NetworkManager and udisks2 over D-Bus, so <code>ip</code>, <code>lsblk</code>, <code>udisksctl</code>, <code>curl</code> and <code>matugen</code> are not needed.</p>
+<h3 id="optional-per-feature">Optional, per feature<a class="anchor" href="#optional-per-feature" title="Link to this section">#</a></h3>
+<p>Some features keep working without their tool; others need it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launcher calculator</td>
+<td><code>qalc</code></td>
+</tr>
+<tr>
+<td>Media position control</td>
+<td><code>gdbus</code></td>
+</tr>
+<tr>
+<td>Sound card profiles in Settings</td>
+<td><code>pw-dump</code>, <code>wpctl</code></td>
+</tr>
+<tr>
+<td>Moving an application to another output</td>
+<td><code>pactl</code> (<code>libpulse</code> on Arch, <code>pulseaudio-utils</code> on Fedora)</td>
+</tr>
+<tr>
+<td>VPN plugin password prompts (OpenVPN, OpenConnect)</td>
+<td><code>nm-applet</code> (not started by default)</td>
+</tr>
+<tr>
+<td>Audio visualisation</td>
+<td><code>cava</code></td>
+</tr>
+<tr>
+<td>Battery status</td>
+<td>UPower daemon</td>
+</tr>
+<tr>
+<td>AI usage panel</td>
+<td><code>codex</code> and/or <code>claude</code> CLI with an active subscription login</td>
+</tr>
+<tr>
+<td>Weather</td>
+<td>Internet access to Open-Meteo (the backend makes the request)</td>
+</tr>
+<tr>
+<td>Google Calendar</td>
+<td>A browser for sign-in and a one-time Desktop OAuth client</td>
+</tr>
+<tr>
+<td>Screenshot capture</td>
+<td><code>grim</code>, <code>slurp</code>, <code>magick</code>, <code>hyprctl</code>, <code>jq</code>; <code>wayfreeze</code> or <code>hyprpicker</code> freeze the screen during selection if present</td>
+</tr>
+<tr>
+<td>Screenshot extras</td>
+<td><code>snip</code> (editor), <code>wl-copy</code>, <code>notify-send</code>, <code>xdg-user-dir</code></td>
+</tr>
+<tr>
+<td>Interactive utility scripts</td>
+<td><code>fzf</code>, Kitty</td>
+</tr>
+<tr>
+<td>Package management</td>
+<td><code>pacman</code> plus <code>paru</code>/<code>yay</code> on Arch; <code>dnf</code> and its COPR plugin on Fedora</td>
+</tr>
+<tr>
+<td>Power profiles</td>
+<td><code>powerprofilesctl</code> or a compatible PPD D-Bus service</td>
+</tr>
+<tr>
+<td>Default applications</td>
+<td><code>xdg-mime</code> from <code>xdg-utils</code>; <code>xdg-terminal-exec</code> so GLib apps honour the default terminal</td>
+</tr>
+<tr>
+<td>User services page</td>
+<td>A reachable systemd user manager</td>
+</tr>
+<tr>
+<td>Bluetooth settings</td>
+<td><code>blueman-manager</code>, Blueberry or KDE System Settings</td>
+</tr>
+<tr>
+<td>Removable devices</td>
+<td><code>util-linux</code>, <code>udisks2</code>, <code>xdg-utils</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="install">Install<a class="anchor" href="#install" title="Link to this section">#</a></h2>
+<p>Clone the repository to the path the shell expects:</p>
+<pre><code class="language-bash">git clone https://github.com/cucu0628/vellum_shell.git \
+  &quot;$HOME/.config/quickshell/vellum_shell&quot;
+cd &quot;$HOME/.config/quickshell/vellum_shell&quot;
+</code></pre>
+<p>See what the setup would do first. It checks every prerequisite up front and prints its plan without changing anything:</p>
+<pre><code class="language-bash">./setup.sh --dry-run
+</code></pre>
+<p>Then run it:</p>
+<pre><code class="language-bash">./setup.sh
+</code></pre>
+<p>The setup installs the packages, creates the state directories, sets up PAM and the external themes, enables the required services, builds and installs the backend, and installs the Hyprland Lua modules under <code>~/.config/hypr/</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Your own Hyprland files are kept</p>
+<p>If you already have your own <code>~/.config/hypr/bindings.lua</code> or <code>autostart.lua</code>, the setup keeps them and skips Vellum's versions. The shell will then come up without its key bindings or without starting automatically. The preflight reports this, and the notice is repeated at the end of the run.</p>
+</div>
+<p>The same preflight runs before a real install, so a missing Rust toolchain or an unusable Hyprland config stops the setup before it has touched the system.</p>
+<h3 id="options">Options<a class="anchor" href="#options" title="Link to this section">#</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What it adds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--dry-run</code></td>
+<td>Prints the plan and the preflight result, changes nothing</td>
+</tr>
+<tr>
+<td><code>--with-greeter</code></td>
+<td>Installs the Vellum login screen and makes greetd the display manager. See <a href="/guide/lock-screen.html#login-screen-greetd">Lock and login screen</a></td>
+</tr>
+<tr>
+<td><code>--with-zen</code></td>
+<td>Adds the generated Vellum chrome theme to an existing Zen Browser profile. Opt-in because it changes <code>user.js</code></td>
+</tr>
+<tr>
+<td><code>--skip-packages</code></td>
+<td>Skips package installation, for Fedora Atomic once the packages are layered</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="fedora-notes">Fedora notes<a class="anchor" href="#fedora-notes" title="Link to this section">#</a></h3>
+<p>Both <code>setup.sh</code> and the package-only <code>install.sh</code> detect Arch/CachyOS and Fedora automatically. On Fedora they use DNF and enable the <code>lionheartp/Hyprland</code> COPR recommended by Hyprland upstream.</p>
+<ul>
+<li>An existing PPD-compatible power-profile service is kept; otherwise Fedora's default <code>tuned-ppd</code> is installed.</li>
+<li>DNF weak dependencies are disabled, so the Hyprland package cannot pull in another panel or launcher such as nwg-panel or Wofi.</li>
+<li>Only missing RPMs are passed to DNF, which avoids an unrelated desktop or KDE upgrade during setup.</li>
+</ul>
+<h2 id="wallpapers">Wallpapers<a class="anchor" href="#wallpapers" title="Link to this section">#</a></h2>
+<p>The setup keeps a valid existing wallpaper selection. If there is none, put an image in the wallpaper directory and the shell picks the first one:</p>
+<pre><code class="language-bash">mkdir -p ~/Pictures/wallpapers
+cp your-wallpaper.png ~/Pictures/wallpapers/
+</code></pre>
+<p>Choose between them later in the <a href="/guide/appearance.html">Appearance Studio</a>.</p>
+<h2 id="starting-and-restarting">Starting and restarting<a class="anchor" href="#starting-and-restarting" title="Link to this section">#</a></h2>
+<p>The setup installs <code>~/.config/hypr/autostart.lua</code>. It starts the shell immediately in a running Hyprland session and automatically on later logins.</p>
+<p>Restart a running instance with:</p>
+<pre><code class="language-bash">~/.config/quickshell/vellum_shell/scripts/theme-refresh
+</code></pre>
+<p><code>nm-applet</code> is no longer started: the shell is NetworkManager's secret agent and asks for Wi-Fi, 802.1X and PPPoE passwords in its own dialog. VPN plugins with their own password dialog (OpenVPN, OpenConnect) are left to <code>nm-applet</code>; uncomment its line in <code>autostart.lua</code> if you use one.</p>
+<h3 id="the-backend-on-its-own">The backend on its own<a class="anchor" href="#the-backend-on-its-own" title="Link to this section">#</a></h3>
+<p>The setup builds the backend for you. To rebuild and reinstall only the daemon, for example after pulling changes:</p>
+<pre><code class="language-bash">scripts/backend-install   # build, install and enable the user service
+vellum ping               # which binary and git revision is running
+</code></pre>
+<h2 id="removing-it-again">Removing it again<a class="anchor" href="#removing-it-again" title="Link to this section">#</a></h2>
+<p><code>scripts/uninstall</code> reverses what the setup installed: the systemd user service and the <code>vellum</code> binary, the generated Hyprland modules, the <code>require</code> lines it appended, the include and import lines it added to <code>kitty.conf</code>, <code>gtk.css</code> and <code>btop.conf</code>, the qt6ct palette and portal environment, and the generated Neovim colorscheme with its LazyVim spec.</p>
+<pre><code class="language-bash">scripts/uninstall --dry-run     # show what would be removed
+scripts/uninstall               # remove it
+scripts/uninstall --with-greeter --purge-state
+</code></pre>
+<p>The script is also the ownership manifest: anything not listed there was yours before the install and is left alone, including the repository, your wallpapers and your screenshots. Config files you modified yourself, such as your own <code>bindings.lua</code> or a <code>colors.lua</code> that is not Vellum's, are reported and kept.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/"><small>Previous</small><span>Introduction</span></a><a class="pager-next" href="/guide/using.html"><small>Next</small><span>Using the shell</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/installation.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#requirements">Requirements</a><ol class="toc-sub"><li><a href="#core">Core</a></li><li><a href="#optional-per-feature">Optional, per feature</a></li></ol></li><li><a href="#install">Install</a><ol class="toc-sub"><li><a href="#options">Options</a></li><li><a href="#fedora-notes">Fedora notes</a></li></ol></li><li><a href="#wallpapers">Wallpapers</a></li><li><a href="#starting-and-restarting">Starting and restarting</a><ol class="toc-sub"><li><a href="#the-backend-on-its-own">The backend on its own</a></li></ol></li><li><a href="#removing-it-again">Removing it again</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

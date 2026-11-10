@@ -3,263 +3,270 @@
 <head>
     <!-- @head -->
     <title>Vellum Shell</title>
-    <meta name="description" content="An ink-inspired desktop shell for Quickshell and Hyprland: top bar, launcher, notifications, media dashboard, lock screen and one palette across every application.">
+    <meta name="description" content="An ink-inspired desktop shell for Hyprland, built on Quickshell and a small Rust daemon: bar, launcher, notifications, dashboard, lock screen, settings, and one palette across every application.">
     <link rel="canonical" href="https://{{DOMAIN}}/">
     <meta property="og:title" content="Vellum Shell">
-    <meta property="og:description" content="An ink-inspired desktop shell for Quickshell and Hyprland.">
+    <meta property="og:description" content="Your desktop, written in ink. A complete Hyprland shell with one palette across every app.">
     <meta property="og:url" content="https://{{DOMAIN}}/">
+    <link rel="preload" as="image" href="/media/video/hero-themes.jpg">
 </head>
 <body class="page-home">
     <!-- @header -->
 
     <main id="main">
+        <!-- Hero ------------------------------------------------------------ -->
         <section class="hero">
+            <div class="hero-glow" aria-hidden="true"></div>
             <div class="hero-copy">
-                <p class="eyebrow">Quickshell · Hyprland</p>
-                <h1>Vellum Shell</h1>
-                <p class="lead">An ink-inspired desktop shell: a multi-monitor top bar, launcher, notification centre, media dashboard, system controls and a Wayland lock screen, all coloured by one palette.</p>
-                <div class="cta">
-                    <a class="btn btn-primary" href="#install">Install</a>
-                    <a class="btn" href="docs.html">Read the documentation</a>
+                <p class="eyebrow reveal">Quickshell · Hyprland · Rust</p>
+                <h1 class="display reveal">Your desktop,<br><em>written in ink.</em></h1>
+                <p class="lead reveal">Vellum is a complete shell for Hyprland: bar, launcher, notifications, media dashboard, lock screen and a real settings app. One palette reaches every application you open.</p>
+                <div class="cta reveal">
+                    <a class="btn btn-primary" href="#install">Install Vellum</a>
+                    <a class="btn btn-ghost" href="/guide/">Read the guide <span aria-hidden="true">→</span></a>
                 </div>
-                <p class="hero-meta">Arch Linux, CachyOS and Fedora · Hyprland 0.55 or newer</p>
             </div>
 
-            <figure class="mock-frame">
-                <div class="mock-scaler">
-                    <div class="mock" role="img" aria-label="A live mock-up of the Vellum top bar and media dashboard, drawn in the selected theme">
-                        <div class="mock-wallpaper" aria-hidden="true">
-                            <svg viewBox="0 0 1200 675" preserveAspectRatio="xMidYMax slice">
-                                <path class="ink-far" d="M0 470 C120 420 190 380 300 400 C380 414 430 360 520 352 C610 344 660 400 760 392 C860 384 930 330 1030 340 C1100 347 1160 380 1200 372 V675 H0Z"/>
-                                <path class="ink-mid" d="M0 540 C90 500 170 470 260 488 C350 506 400 452 500 458 C610 465 650 520 760 510 C860 501 930 470 1030 480 C1110 488 1160 520 1200 512 V675 H0Z"/>
-                                <path class="ink-near" d="M0 610 C140 580 240 560 380 585 C500 606 560 570 700 580 C840 590 900 620 1040 600 C1110 590 1160 596 1200 600 V675 H0Z"/>
-                                <circle class="ink-sun" cx="930" cy="250" r="64"/>
-                            </svg>
-                        </div>
+            <figure class="stage reveal">
+                <div class="stage-frame">
+                    <video class="stage-video" autoplay muted loop playsinline preload="auto" poster="/media/video/hero-themes.jpg" aria-label="The Vellum media dashboard while the theme switches through ten palettes">
+                        <source src="/media/video/hero-themes.webm" type="video/webm">
+                        <source src="/media/video/hero-themes.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <figcaption class="stage-caption" aria-live="off">
+                    <span class="stage-dot" aria-hidden="true"></span>
+                    <span class="stage-theme">Japanese Ink</span>
+                    <span class="stage-sep" aria-hidden="true">·</span>
+                    <span class="stage-painting">Church, Twilight in the Wilderness</span>
+                </figcaption>
+            </figure>
+        </section>
 
-                        <div class="mock-bar">
-                            <div class="mock-bar-left">
-                                <svg class="mock-logo" viewBox="0 0 16 16"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
-                                <span>1</span><span>2</span><span class="on">3</span><span>4</span><span>5</span>
-                            </div>
-                            <div class="mock-bar-center">
-                                <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-                                <span class="mock-sep"></span>
-                                <span class="mock-clock">Monday 17:45</span>
-                            </div>
-                            <div class="mock-bar-right">
-                                <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>
-                                <svg viewBox="0 0 24 24"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>
-                                <svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>
-                                <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                            </div>
-                        </div>
+        <!-- Theme marquee ---------------------------------------------------- -->
+        <section class="marquee" aria-label="Vellum in ten themes">
+            <div class="marquee-track" data-marquee></div>
+        </section>
 
-                        <div class="mock-dash">
-                            <div class="mock-player">
-                                <div class="mock-art"></div>
-                                <div class="mock-track">
-                                    <p class="mock-title">Sumi on Vellum</p>
-                                    <p class="mock-artist">The Folded Paper Ensemble</p>
-                                    <div class="mock-progress"><i></i></div>
-                                </div>
-                                <div class="mock-controls">
-                                    <svg viewBox="0 0 24 24"><path d="M19 20 9 12l10-8v16z"/><path d="M5 19V5"/></svg>
-                                    <span class="mock-play"><svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></span>
-                                    <svg viewBox="0 0 24 24"><path d="m5 4 10 8-10 8V4z"/><path d="M19 5v14"/></svg>
-                                </div>
-                                <div class="mock-cava" aria-hidden="true"></div>
-                            </div>
+        <!-- Numbers ---------------------------------------------------------- -->
+        <section class="stats section">
+            <div class="stat reveal"><span class="stat-value" data-count="{{THEME_COUNT}}">{{THEME_COUNT}}</span><span class="stat-label">built-in palettes, plus one drawn from your wallpaper</span></div>
+            <div class="stat reveal"><span class="stat-value" data-count="9">9</span><span class="stat-label">applications recoloured in a single theme switch</span></div>
+            <div class="stat reveal"><span class="stat-value"><span data-count="7">7</span><small>MB</small></span><span class="stat-label">for an idle backend daemon, with no CPU use</span></div>
+            <div class="stat reveal"><span class="stat-value" data-count="0">0</span><span class="stat-label">polling loops: every state change is an event</span></div>
+        </section>
 
-                            <div class="mock-cards">
-                                <div class="mock-card mock-calendar">
-                                    <p class="mock-label">Calendar</p>
-                                    <div class="mock-cal-head"><span>‹</span><span class="mock-month">October 2026</span><span>›</span></div>
-                                    <div class="mock-cal-grid"></div>
-                                </div>
-                                <div class="mock-card mock-weather">
-                                    <p class="mock-label">Weather</p>
-                                    <div class="mock-weather-now">
-                                        <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-                                        <span class="mock-temp">15°</span>
-                                        <span class="mock-cond">Partly cloudy<br><small>6° / 16°</small></span>
-                                    </div>
-                                    <div class="mock-forecast">
-                                        <span><b>Tue</b>16°<small>7°</small></span>
-                                        <span><b>Wed</b>20°<small>6°</small></span>
-                                        <span><b>Thu</b>14°<small>7°</small></span>
-                                        <span><b>Fri</b>16°<small>4°</small></span>
-                                    </div>
-                                </div>
-                                <div class="mock-card mock-system">
-                                    <p class="mock-label">System <span>Up 20m</span></p>
-                                    <p class="mock-row"><span>CPU</span><span>4%</span></p>
-                                    <svg class="mock-spark" viewBox="0 0 160 40" preserveAspectRatio="none"><path d="M0 34 L10 30 L18 33 L26 24 L34 29 L42 22 L52 31 L60 27 L70 30 L78 18 L88 28 L96 25 L106 31 L114 21 L124 27 L134 24 L144 30 L152 26 L160 28"/></svg>
-                                    <p class="mock-row"><span>RAM</span><span>4.2 / 31.0 GiB</span></p>
-                                    <div class="mock-meter"><i style="width: 14%"></i></div>
-                                    <p class="mock-row"><span>Disk</span><span class="accent">236 / 281 GiB</span></p>
-                                    <div class="mock-meter"><i class="accent" style="width: 84%"></i></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mock-toast" aria-hidden="true">
-                            <span class="mock-toast-icon"></span>
-                            <div>
-                                <p class="mock-toast-title">Appearance</p>
-                                <p class="mock-toast-body">Theme applied: <span class="mock-toast-theme">Japanese Ink</span></p>
-                            </div>
-                        </div>
+        <!-- Tour ------------------------------------------------------------- -->
+        <div id="tour" class="tour">
+            <section class="showcase">
+                <div class="showcase-media reveal">
+                    <div class="frame">
+                        <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/studio-themes.jpg" aria-label="The Appearance Studio: theme cards in a skewed carousel, each one previewed live on the whole shell">
+                            <source data-src="/media/video/studio-themes.webm" type="video/webm">
+                            <source data-src="/media/video/studio-themes.mp4" type="video/mp4">
+                        </video>
                     </div>
                 </div>
-                <figcaption>Drawn live in the site theme. Pick another one in the top bar and the whole page follows, as the shell does.</figcaption>
-            </figure>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Appearance Studio</p>
+                    <h2>Browse a theme and the whole desktop tries it on.</h2>
+                    <p>Each card is a small desktop drawn in that palette. Moving through the carousel recolours the running shell in place; <kbd>Enter</kbd> writes the theme out to every application, <kbd>Esc</kbd> puts the old one back.</p>
+                    <ul class="checks">
+                        <li>GTK 3 and 4, Qt 6, kitty, btop, Neovim, Hyprland borders, Zen Browser, Fastfetch and the login screen</li>
+                        <li>A dynamic palette derived from the wallpaper, natively in the backend</li>
+                        <li>Wallpapers in the same carousel, filtered by name</li>
+                    </ul>
+                    <a class="more" href="/guide/appearance.html">Themes and wallpapers <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="showcase showcase-flip">
+                <div class="showcase-media reveal">
+                    <div class="frame">
+                        <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/launcher.jpg" aria-label="The launcher finding an emoji, screenshot and lock actions, and applications as letters are typed">
+                            <source data-src="/media/video/launcher.webm" type="video/webm">
+                            <source data-src="/media/video/launcher.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Launcher</p>
+                    <h2>One field for apps, actions, emoji and maths.</h2>
+                    <p>No prefixes to remember. Applications are ranked by how often and how recently you open them, shell actions such as lock, screenshot or appearance sit next to them, and anything that looks like an expression is calculated.</p>
+                    <ul class="checks">
+                        <li><code>&gt;</code> switches to your projects under <code>~/Projects</code></li>
+                        <li>Terminal apps open in your default terminal, not without a TTY</li>
+                        <li>Guided package, AUR/COPR, web app and terminal app installers</li>
+                    </ul>
+                    <a class="more" href="/guide/using.html#launcher">Using the launcher <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="showcase">
+                <div class="showcase-media reveal">
+                    <div class="frame frame-still">
+                        <img src="/media/shots/dashboard.jpg" width="1200" height="750" loading="lazy" decoding="async" alt="The media dashboard: album-art player, calendar, weather for Budapest and live CPU, memory and disk statistics">
+                    </div>
+                </div>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Media dashboard</p>
+                    <h2>The clock opens everything you glance at.</h2>
+                    <p>An album-art player for any MPRIS app sits above a calendar with your Google Calendar events, Open-Meteo weather and a live system graph. The media keys follow the active player; <kbd>Ctrl</kbd> with the volume keys steps the player's own volume.</p>
+                    <a class="more" href="/guide/using.html#media-dashboard">The dashboard <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="showcase showcase-flip">
+                <div class="showcase-media reveal">
+                    <div class="frame frame-still frame-stack">
+                        <img src="/media/shots/notifications.jpg" width="1200" height="750" loading="lazy" decoding="async" alt="The notification centre with notifications grouped by Mail, Appearance, Downloads and Calendar">
+                        <img class="frame-inset" src="/media/shots/toast.jpg" width="960" height="400" loading="lazy" decoding="async" alt="A notification toast from Mail">
+                    </div>
+                </div>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Notifications</p>
+                    <h2>Grouped by app, kept across restarts.</h2>
+                    <p>Vellum is the notification server. Toasts carry their actions, the centre groups per application with unread counts, and history and Do Not Disturb survive a shell restart.</p>
+                    <a class="more" href="/guide/using.html#notifications">Notifications <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="showcase">
+                <div class="showcase-media reveal">
+                    <div class="frame frame-still">
+                        <img src="/media/shots/clipboard.jpg" width="1200" height="750" loading="lazy" decoding="async" alt="Clipboard history with text entries and an image preview">
+                    </div>
+                </div>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Clipboard</p>
+                    <h2>History that remembers images, and forgets secrets.</h2>
+                    <p>The backend records the clipboard over Wayland even while no panel is open. Text and images, with previews and pinning. Anything a password manager marks as secret never touches the disk.</p>
+                    <a class="more" href="/guide/using.html#clipboard">Clipboard history <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+
+            <section class="showcase showcase-flip">
+                <div class="showcase-media reveal">
+                    <div class="frame">
+                        <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/lock.jpg" aria-label="Locking the screen: the desktop blurs into a large serif clock with a password field">
+                            <source data-src="/media/video/lock.webm" type="video/webm">
+                            <source data-src="/media/video/lock.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+                <div class="showcase-copy reveal">
+                    <p class="eyebrow">Lock and login</p>
+                    <h2>The lock screen is the same ink as the desktop.</h2>
+                    <p>Locking blurs your wallpaper behind a large serif clock instead of cutting to black. It covers every monitor, locks before the machine sleeps, and survives a shell crash. The same QML runs as a greetd login screen.</p>
+                    <a class="more" href="/guide/lock-screen.html">Lock and login screen <span aria-hidden="true">→</span></a>
+                </div>
+            </section>
+        </div>
+
+        <!-- Everywhere: compare slider -------------------------------------- -->
+        <section class="section section-center everywhere">
+            <div class="section-head reveal">
+                <p class="eyebrow">One palette, everywhere</p>
+                <h2>Switch the theme. Your terminal and editor follow.</h2>
+                <p>Drag across: kitty and Neovim in Catppuccin Mocha and in Japanese Ink. The backend writes every application palette in one transaction, so nothing is left half-switched.</p>
+            </div>
+            <div class="compare reveal" style="--split: 50%">
+                <img src="/media/shots/terminals-ink.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="kitty and Neovim in Japanese Ink">
+                <img class="compare-top" src="/media/shots/terminals-catppuccin.jpg" width="1600" height="900" loading="lazy" decoding="async" alt="kitty and Neovim in Catppuccin Mocha">
+                <span class="compare-handle" aria-hidden="true"></span>
+                <span class="compare-tag compare-tag-left">Catppuccin Mocha</span>
+                <span class="compare-tag compare-tag-right">Japanese Ink</span>
+                <input class="compare-range" type="range" min="0" max="100" value="50" aria-label="Compare Catppuccin Mocha and Japanese Ink">
+            </div>
         </section>
 
-        <section id="features" class="section">
-            <div class="section-head">
-                <p class="eyebrow">Features</p>
-                <h2>A whole desktop surface, not a bar</h2>
-                <p>Every overlay opens on the focused monitor and closes the others. Popups are loaded on demand, so nothing costs memory until it is used.</p>
+        <!-- Settings tabs ----------------------------------------------------- -->
+        <section class="section settings-tour">
+            <div class="section-head reveal">
+                <p class="eyebrow">Settings</p>
+                <h2>A real settings app, in a real window.</h2>
+                <p>Displays with a 12-second auto-revert, tiling and decoration, input, sound, the bar layout, default apps and services. It never edits your own Hyprland files: overrides live in their own generated modules.</p>
             </div>
-
-            <div class="feature-grid">
-                <article class="feature">
-                    <h3>Launcher</h3>
-                    <p>One field searches applications, shell actions and emoji, ranks results by frecency and evaluates anything that looks like maths. <code>&gt;</code> switches to projects.</p>
-                </article>
-                <article class="feature">
-                    <h3>Notification centre</h3>
-                    <p>Toasts, actions and history grouped per application with unread counts. History and Do Not Disturb survive a shell restart.</p>
-                </article>
-                <article class="feature">
-                    <h3>Media dashboard</h3>
-                    <p>An album-art player above a calendar with Google Calendar events, Open-Meteo weather and live CPU, memory and disk.</p>
-                </article>
-                <article class="feature">
-                    <h3>Appearance Studio</h3>
-                    <p>Wallpapers and themes in a skewed carousel. Themes preview live on the running shell and are written out only when you press Enter.</p>
-                </article>
-                <article class="feature">
-                    <h3>Lock and login screen</h3>
-                    <p>A multi-monitor <code>WlSessionLock</code> with PAM that locks before suspend. The same QML runs as a greetd greeter.</p>
-                </article>
-                <article class="feature">
-                    <h3>Settings application</h3>
-                    <p>A real window for displays with a 12-second auto-revert, tiling, input, sound, default apps, services, keybindings and a drag-and-drop bar editor.</p>
-                </article>
-                <article class="feature">
-                    <h3>Clipboard history</h3>
-                    <p>Text and image entries recorded by the daemon, with pinning and previews. Anything a password manager marks as secret is never stored.</p>
-                </article>
-                <article class="feature">
-                    <h3>System controls</h3>
-                    <p>PipeWire mixer, NetworkManager with its own password dialog, Bluetooth, VPN, removable drives, Polkit agent and volume OSD.</p>
-                </article>
-                <article class="feature">
-                    <h3>Rust backend</h3>
-                    <p>One daemon speaking newline-delimited JSON over a Unix socket. Topics are lazy, so an idle daemon uses about 7 MB and no CPU.</p>
-                </article>
+            <div class="tabs reveal" role="tablist" aria-label="Settings pages">
+                <button role="tab" aria-selected="true" data-shot="display">Display</button>
+                <button role="tab" aria-selected="false" data-shot="windows">Windows</button>
+                <button role="tab" aria-selected="false" data-shot="input">Input</button>
+                <button role="tab" aria-selected="false" data-shot="topbar">Top bar</button>
+                <button role="tab" aria-selected="false" data-shot="defaultapps">Default apps</button>
+                <button role="tab" aria-selected="false" data-shot="system">System</button>
             </div>
-
-            <figure class="screenshot">
-                <img src="assets/Overview.png" width="1920" height="1080" loading="lazy" decoding="async" alt="Vellum Shell on a 1920 by 1080 desktop: the top bar and the media dashboard with calendar, weather and system cards over a wallpaper">
-                <figcaption>The media dashboard on a real desktop, in Varnished Horizon.</figcaption>
-            </figure>
+            <div class="tab-stage reveal" role="tabpanel">
+                <img src="/media/shots/settings-display.jpg" width="1200" height="800" loading="lazy" decoding="async" alt="Vellum Settings: Display page">
+            </div>
+            <p class="tab-caption"><a class="more" href="/guide/settings.html">Every settings page <span aria-hidden="true">→</span></a></p>
         </section>
 
-        <section id="themes" class="section section-themes">
-            <div class="section-head">
+        <!-- Theme gallery ---------------------------------------------------- -->
+        <section id="themes" class="section gallery">
+            <div class="section-head reveal">
                 <p class="eyebrow">Themes</p>
-                <h2>One palette, everywhere</h2>
-                <p>A theme is a short <code>theme.conf</code>. Switching it recolours the shell and, in one transaction, GTK, Qt, kitty, btop, Neovim, Hyprland borders, Zen Browser, Fastfetch and the login screen.</p>
+                <h2>Pick a palette. This page wears it too.</h2>
+                <p>Every palette is a short <code>theme.conf</code> in the repository. Choose one to see the shell in it, and the site switches with you, just like the Appearance Studio previews on your desktop.</p>
             </div>
-
-            <div class="carousel" tabindex="0" role="listbox" aria-label="Themes" aria-describedby="carousel-hint">
-                <div class="carousel-track"></div>
+            <div class="gallery-grid reveal">
+                <figure class="gallery-stage">
+                    <img class="gallery-image" src="/media/themes/japanese-ink.jpg" width="1600" height="900" alt="Vellum in the selected theme">
+                    <figcaption><span class="gallery-name">Japanese Ink</span><span class="gallery-painting"></span></figcaption>
+                </figure>
+                <div class="gallery-list" role="listbox" aria-label="Themes"></div>
             </div>
-
-            <div class="carousel-caption" aria-live="polite">
-                <h3 class="carousel-name">Japanese Ink</h3>
-                <p class="carousel-status">Active theme</p>
-                <div class="carousel-swatches"></div>
-            </div>
-            <p class="carousel-hint" id="carousel-hint"><kbd>←</kbd> <kbd>→</kbd> browse and preview · <kbd>Enter</kbd> or click keeps it · <kbd>Esc</kbd> restores</p>
-
-            <ul class="targets" aria-label="Generated application themes">
-                <li>GTK 3 and 4</li><li>Qt 6</li><li>kitty</li><li>btop</li><li>Neovim</li><li>Hyprland</li><li>Zen Browser</li><li>Fastfetch</li><li>Login screen</li>
-            </ul>
         </section>
 
+        <!-- Screensaver ------------------------------------------------------ -->
         <section id="screensaver" class="section">
-            <div class="section-head">
+            <div class="section-head reveal">
                 <p class="eyebrow">Screensaver</p>
-                <h2>ASCII scenes, drawn by shaders</h2>
-                <p>After a chosen idle time every monitor gets an ASCII scene, picked by hand or by season. It costs nothing until it starts and steps aside for the lock screen.</p>
+                <h2>ASCII scenes, drawn by fragment shaders.</h2>
+                <p>After an idle time of your choice every monitor gets a scene, picked by hand or by season. It costs nothing until it starts and steps aside for the lock screen.</p>
             </div>
-
             <div class="saver-grid">
-                <figure class="saver">
-                    <img src="assets/screensaver/shapes.gif" loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII">
-                    <figcaption>Shapes <span>in the active theme's colours</span></figcaption>
-                </figure>
-                <figure class="saver">
-                    <img src="assets/screensaver/christmas.gif" loading="lazy" decoding="async" alt="Christmas: a turning ASCII fir tree in falling snow">
-                    <figcaption>Christmas <span>1 – 26 December</span></figcaption>
-                </figure>
-                <figure class="saver">
-                    <img src="assets/screensaver/newyear.gif" loading="lazy" decoding="async" alt="New Year's Eve: ASCII fireworks over a city skyline">
-                    <figcaption>New Year's Eve <span>27 December – 6 January</span></figcaption>
-                </figure>
-                <figure class="saver">
-                    <img src="assets/screensaver/summer.gif" loading="lazy" decoding="async" alt="Summer: an ASCII sunset over the sea">
-                    <figcaption>Summer <span>June – August</span></figcaption>
-                </figure>
-                <figure class="saver">
-                    <img src="assets/screensaver/autumn.gif" loading="lazy" decoding="async" alt="Autumn: a glowing carved pumpkin and falling leaves">
-                    <figcaption>Autumn <span>September – November</span></figcaption>
-                </figure>
-                <figure class="saver saver-wide">
-                    <img src="assets/screensaver/orbit.gif" loading="lazy" decoding="async" alt="Orbit: one scene spanning two monitors, with a comet crossing from one screen to the other">
-                    <figcaption>Orbit across monitors <span>one picture over every screen</span></figcaption>
-                </figure>
+                <figure class="saver reveal"><img src="/assets/screensaver/shapes.gif" loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII"><figcaption>Shapes <span>in your theme's colours</span></figcaption></figure>
+                <figure class="saver reveal"><img src="/assets/screensaver/christmas.gif" loading="lazy" decoding="async" alt="Christmas: a turning ASCII fir tree in falling snow"><figcaption>Christmas <span>1 – 26 December</span></figcaption></figure>
+                <figure class="saver reveal"><img src="/assets/screensaver/newyear.gif" loading="lazy" decoding="async" alt="New Year's Eve: ASCII fireworks over a city skyline"><figcaption>New Year's Eve <span>27 Dec – 6 Jan</span></figcaption></figure>
+                <figure class="saver reveal"><img src="/assets/screensaver/summer.gif" loading="lazy" decoding="async" alt="Summer: an ASCII sunset over the sea"><figcaption>Summer <span>June – August</span></figcaption></figure>
+                <figure class="saver reveal"><img src="/assets/screensaver/autumn.gif" loading="lazy" decoding="async" alt="Autumn: a glowing carved pumpkin and falling leaves"><figcaption>Autumn <span>September – November</span></figcaption></figure>
+                <figure class="saver saver-wide reveal"><img src="/assets/screensaver/orbit.gif" loading="lazy" decoding="async" alt="Orbit: one scene spanning two monitors, with a comet crossing from one screen to the other"><figcaption>Orbit across monitors <span>one picture over every screen</span></figcaption></figure>
             </div>
-            <p class="section-note">Previews play about three times faster than real time.</p>
+            <p class="section-note">The previews play about three times faster than real time. <a href="/guide/screensaver.html">All nine scenes and the seasonal calendar</a>.</p>
         </section>
 
-        <section id="install" class="section section-install">
-            <div class="section-head">
+        <!-- Install ---------------------------------------------------------- -->
+        <section id="install" class="section install">
+            <div class="install-copy reveal">
                 <p class="eyebrow">Install</p>
-                <h2>From clone to desktop</h2>
-                <p>The setup checks every prerequisite first and stops before touching the system if something is missing. <code>--dry-run</code> prints the plan without changing anything.</p>
+                <h2>From clone to desktop in one script.</h2>
+                <p>Arch Linux, CachyOS and Fedora with Hyprland 0.55 or newer. The setup checks every prerequisite first and stops before touching the system if something is missing; <code>--dry-run</code> prints the plan without changing anything.</p>
+                <a class="btn btn-primary" href="/guide/installation.html">Installation guide</a>
             </div>
-
-            <div class="install-grid">
-                <div class="code-card">
-                    <p class="code-label">Shell</p>
-<pre><code>git clone https://github.com/cucu0628/vellum_shell.git \
-  "$HOME/.config/quickshell/vellum_shell"
-cd "$HOME/.config/quickshell/vellum_shell"
-
-./setup.sh --dry-run   # show the plan
-./setup.sh             # install it
-./setup.sh --with-greeter   # optional: greetd login screen</code></pre>
-                </div>
-                <div class="code-card">
-                    <p class="code-label">Hyprland bindings</p>
-<pre><code>local shell = [[quickshell ipc --path "$HOME/.config/quickshell/vellum_shell/shell.qml" call]]
-hl.bind("SUPER + SPACE", hl.dsp.exec_cmd(shell .. " launcher toggle"))
-hl.bind("SUPER + V", hl.dsp.exec_cmd(shell .. " clipboard toggle"))
-hl.bind("SUPER + N", hl.dsp.exec_cmd(shell .. " notifications toggle"))
-hl.bind("SUPER + P", hl.dsp.exec_cmd(shell .. " settings toggle"))</code></pre>
-                </div>
+            <div class="terminal reveal" aria-label="Installation commands">
+                <div class="terminal-bar"><i></i><i></i><i></i><span>~</span></div>
+<pre><code><span class="t-prompt">$</span> git clone https://github.com/cucu0628/vellum_shell.git \
+    ~/.config/quickshell/vellum_shell
+<span class="t-prompt">$</span> cd ~/.config/quickshell/vellum_shell
+<span class="t-prompt">$</span> ./setup.sh --dry-run    <span class="t-comment"># see the plan first</span>
+<span class="t-prompt">$</span> ./setup.sh              <span class="t-comment"># install it</span>
+<span class="t-prompt">$</span> ./setup.sh --with-greeter   <span class="t-comment"># optional login screen</span></code></pre>
             </div>
+        </section>
 
-            <div class="install-links">
-                <a class="link-card" href="docs.html#requirements"><span>Requirements</span><small>Core packages and optional commands per feature</small></a>
-                <a class="link-card" href="docs.html#ipc-reference"><span>IPC reference</span><small>Every target and method you can bind</small></a>
-                <a class="link-card" href="docs.html#removing-it-again"><span>Uninstall</span><small>What the setup owns and how to remove it</small></a>
+        <!-- Guide cards ------------------------------------------------------ -->
+        <section class="section guide-cards">
+            <div class="section-head reveal">
+                <p class="eyebrow">Guide</p>
+                <h2>Everything else is written down.</h2>
+            </div>
+            <div class="card-grid">
+                <a class="card reveal" href="/guide/installation.html"><span class="card-kicker">Get started</span><span class="card-title">Installation</span><span class="card-text">Requirements, the setup script, optional parts and removing it again.</span></a>
+                <a class="card reveal" href="/guide/using.html"><span class="card-kicker">Daily use</span><span class="card-title">Using the shell</span><span class="card-text">Bar, launcher, dashboard, notifications, clipboard and screenshots.</span></a>
+                <a class="card reveal" href="/guide/appearance.html"><span class="card-kicker">Look and feel</span><span class="card-title">Themes and wallpapers</span><span class="card-text">The studio, writing your own theme.conf, and what gets generated.</span></a>
+                <a class="card reveal" href="/guide/settings.html"><span class="card-kicker">Configure</span><span class="card-title">Settings</span><span class="card-text">Displays, bar layout, default apps, state files, weather and calendar.</span></a>
+                <a class="card reveal" href="/guide/ipc.html"><span class="card-kicker">Reference</span><span class="card-title">IPC and keybindings</span><span class="card-text">Every target and method you can bind, and the backend CLI.</span></a>
+                <a class="card reveal" href="/guide/architecture.html"><span class="card-kicker">Under the hood</span><span class="card-title">How it works</span><span class="card-text">QML layers, the Rust daemon, lazy topics and graceful degradation.</span></a>
             </div>
         </section>
     </main>

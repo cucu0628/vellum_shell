@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Settings · Vellum Shell guide</title>
+    <meta name="description" content="The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/settings.html">
+    <meta property="og:title" content="Settings · Vellum Shell">
+    <meta property="og:description" content="The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/settings.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html" aria-current="page" class="on">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Using Vellum</p>
+                <h1>Settings</h1>
+                <p class="guide-description">The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.</p>
+            </header>
+            <article class="prose">
+                <h2 id="the-settings-application">The Settings application<a class="anchor" href="#the-settings-application" title="Link to this section">#</a></h2>
+<p>Open it with <kbd>Super</kbd> + <kbd>P</kbd>, the <em>settings</em> launcher action, or <code>settings toggle</code> over IPC. It is a real, resizable window with a searchable sidebar.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><kbd>Ctrl</kbd> + <kbd>Tab</kbd>, <kbd>Ctrl</kbd> + <kbd>PgDown</kbd></td>
+<td>Next page</td>
+</tr>
+<tr>
+<td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Tab</kbd>, <kbd>Ctrl</kbd> + <kbd>PgUp</kbd></td>
+<td>Previous page</td>
+</tr>
+<tr>
+<td><kbd>Ctrl</kbd> + <kbd>F</kbd></td>
+<td>Search settings</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="desktop">Desktop<a class="anchor" href="#desktop" title="Link to this section">#</a></h3>
+<h4 id="display">Display<a class="anchor" href="#display" title="Link to this section">#</a></h4>
+<p><img loading="lazy" decoding="async" alt="Settings, Display page" src="/media/shots/settings-display.jpg" /></p>
+<p>Arrange your displays by dragging them, and set each one's mode, refresh rate, scale, rotation and variable refresh rate.</p>
+<p>Display changes are a transaction owned by the daemon, because a bad mode or position can leave a screen you can no longer click on:</p>
+<ol>
+<li><strong>Preview</strong>: the layout is validated, applied live, and a 12-second auto-revert is armed.</li>
+<li><strong>Confirm</strong> within that time to keep it, or <strong>revert</strong> at once.</li>
+</ol>
+<p>Nothing is saved until you confirm. The timer runs in the daemon, so closing the window or even losing the shell still restores the previous layout. A layout is rejected before it reaches the compositor if it names unknown outputs, uses an unsupported resolution, has an out-of-range scale, transform or VRR value, overlaps displays, or turns off the last active output.</p>
+<h4 id="windows">Windows<a class="anchor" href="#windows" title="Link to this section">#</a></h4>
+<p><img loading="lazy" decoding="async" alt="Settings, Windows page" src="/media/shots/settings-windows.jpg" /></p>
+<p><strong>Tiling and geometry</strong>: inner and outer gaps, border width, the dwindle or master layout, and resizing on borders. <strong>Visual treatment</strong>: corner rounding, active and inactive opacity, and shadows. <strong>Compositor effects</strong>: blur strength and passes, and animations.</p>
+<h4 id="input">Input<a class="anchor" href="#input" title="Link to this section">#</a></h4>
+<p><strong>Keyboard</strong>: layout, variant, repeat rate and delay. <strong>Pointer</strong>: sensitivity and focus-follows-mouse behaviour. <strong>Touchpad</strong>: tap to click and natural scrolling.</p>
+<h4 id="sound">Sound<a class="anchor" href="#sound" title="Link to this section">#</a></h4>
+<p>Default output and input with volume and mute, which application plays on which device, and sound card profiles: HDMI or analog, stereo or surround, Bluetooth codecs. Profiles need <code>pw-dump</code> and <code>wpctl</code>; moving applications needs <code>pactl</code>.</p>
+<h3 id="shell">Shell<a class="anchor" href="#shell" title="Link to this section">#</a></h3>
+<h4 id="top-bar">Top bar<a class="anchor" href="#top-bar" title="Link to this section">#</a></h4>
+<p><img loading="lazy" decoding="async" alt="Settings, Top bar page" src="/media/shots/settings-topbar.jpg" /></p>
+<p>Drag modules between the <strong>Left</strong>, <strong>Center</strong> and <strong>Right</strong> zones, reorder them, or drop them on <strong>Hidden</strong>. The layout is shared by every monitor and applied live. It is stored in <code>bar-layout.json</code> in the Vellum directory; deleting the file restores the built-in order on the next start.</p>
+<p><strong>Media players</strong> lists players to keep out of the bar and the dashboard.</p>
+<h4 id="calendar">Calendar<a class="anchor" href="#calendar" title="Link to this section">#</a></h4>
+<p>Connects Google Calendar. See <a href="#google-calendar">Google Calendar</a> below.</p>
+<h4 id="keybindings">Keybindings<a class="anchor" href="#keybindings" title="Link to this section">#</a></h4>
+<p>Every shortcut Hyprland currently has bound, searchable, with the descriptions from your configuration.</p>
+<h3 id="system">System<a class="anchor" href="#system" title="Link to this section">#</a></h3>
+<h4 id="default-apps">Default apps<a class="anchor" href="#default-apps" title="Link to this section">#</a></h4>
+<p><img loading="lazy" decoding="async" alt="Settings, Default apps page" src="/media/shots/settings-defaultapps.jpg" /></p>
+<p>The application that opens each kind of file and link (web, mail, calendar, music, video, images and more) through <code>xdg-mime</code>, and the default terminal.</p>
+<p>The terminal is stored as the first line of <code>~/.config/xdg-terminals.list</code>, the list <code>xdg-terminal-exec</code> reads. GLib launchers such as <code>xdg-open</code> and file managers only honour it through <code>xdg-terminal-exec</code>; without it they fall back to their own order. Vellum's floating helpers (btop, installers, About) stay on Kitty.</p>
+<h4 id="autostart">Autostart<a class="anchor" href="#autostart" title="Link to this section">#</a></h4>
+<p>XDG autostart entries, each with an on/off switch, and your systemd user services.</p>
+<h4 id="system_1">System<a class="anchor" href="#system_1" title="Link to this section">#</a></h4>
+<p><img loading="lazy" decoding="async" alt="Settings, System page" src="/media/shots/settings-system.jpg" /></p>
+<ul>
+<li><strong>Shell services</strong>: weather location, power profile, the <a href="/guide/lock-screen.html#choosing-the-input-monitor">lock screen's input display</a>, lock after inactivity, <a href="/guide/screensaver.html">screensaver</a> after inactivity, screensaver theme and a preview.</li>
+<li><strong>System diagnostics</strong>: a snapshot of the session and the Vellum backend, including failed user services and the state of every backend module, with a report you can copy.</li>
+<li><strong>External tools</strong>: open the NetworkManager connection editor or the Hyprland configuration folder.</li>
+<li><strong>Maintenance</strong>: <strong>Reset Hyprland settings</strong> drops every override the Settings app made.</li>
+</ul>
+<h2 id="how-hyprland-settings-are-stored">How Hyprland settings are stored<a class="anchor" href="#how-hyprland-settings-are-stored" title="Link to this section">#</a></h2>
+<p>The Settings app never edits your own Hyprland files. Its changes are stored in <code>~/.config/hypr/vellum-settings.json</code>, rendered into two generated modules, and applied live with <code>hyprctl eval</code> through the native Lua API:</p>
+<pre><code class="language-text">~/.config/hypr/vellum_display.lua   hl.monitor() per configured display
+~/.config/hypr/vellum_tuning.lua    hl.config() for gaps, decoration, input
+</code></pre>
+<p>The setup appends both to the <code>require</code> list in <code>hyprland.lua</code>, after your own modules, so their values win. Deleting the JSON store, or <strong>Reset Hyprland settings</strong> on the System page, drops every override and falls back to your configuration.</p>
+<h2 id="state-files">State files<a class="anchor" href="#state-files" title="Link to this section">#</a></h2>
+<p>Small state files live in the Vellum directory, <code>~/.config/quickshell/vellum_shell/</code>:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>current-theme</code></td>
+<td>Active theme slug</td>
+</tr>
+<tr>
+<td><code>current-wallpaper</code></td>
+<td>Absolute path to the active wallpaper</td>
+</tr>
+<tr>
+<td><code>current-weather-location</code></td>
+<td>Location passed to Open-Meteo geocoding</td>
+</tr>
+<tr>
+<td><code>lockscreen-monitor</code></td>
+<td>Preferred monitor for the password field</td>
+</tr>
+<tr>
+<td><code>lock-idle-minutes</code></td>
+<td>Minutes of inactivity before the screen locks; <code>0</code> or missing means never</td>
+</tr>
+<tr>
+<td><code>screensaver-idle-minutes</code></td>
+<td>Minutes of inactivity before the screensaver starts; <code>0</code> or missing means never</td>
+</tr>
+<tr>
+<td><code>screensaver-theme</code></td>
+<td>Screensaver scene: <code>shapes</code> (default), <code>auto</code>, or a scene name</td>
+</tr>
+<tr>
+<td><code>bar-layout.json</code></td>
+<td>Top bar module zones and order</td>
+</tr>
+</tbody>
+</table></div>
+<p>Elsewhere:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$XDG_STATE_HOME/vellum-shell/clipboard/</code></td>
+<td>Clipboard history</td>
+</tr>
+<tr>
+<td><code>$XDG_RUNTIME_DIR</code></td>
+<td>Notification history and Do Not Disturb, until you log out</td>
+</tr>
+<tr>
+<td><code>~/.config/hypr/vellum-settings.json</code></td>
+<td>Hyprland overrides made in Settings</td>
+</tr>
+<tr>
+<td><code>/var/lib/vellum-greeter/</code></td>
+<td>What the login screen needs, see <a href="/guide/lock-screen.html#login-screen-greetd">Lock and login screen</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="weather">Weather<a class="anchor" href="#weather" title="Link to this section">#</a></h2>
+<p>The weather card uses Open-Meteo through the backend. The location is chosen in this order:</p>
+<ol>
+<li>the <code>WEATHER_LOCATION</code> environment variable;</li>
+<li><code>current-weather-location</code>, which the System page writes;</li>
+<li><code>Budapest</code>.</li>
+</ol>
+<p>Set <code>WEATHER_COORDS=latitude,longitude</code> to skip geocoding entirely.</p>
+<h2 id="google-calendar">Google Calendar<a class="anchor" href="#google-calendar" title="Link to this section">#</a></h2>
+<p><strong>Settings → Calendar → Sign in with Google</strong> opens the browser. After you approve read-only access, your events show up as dots in the calendar card, and the expanded calendar lists the selected day's events. The Calendar page also chooses which of your calendars are shown.</p>
+<h3 id="one-time-setup">One-time setup<a class="anchor" href="#one-time-setup" title="Link to this section">#</a></h3>
+<p>Google requires every desktop application to have its own OAuth client, so the first sign-in needs a short setup in <a href="https://console.cloud.google.com/auth/clients">Google Cloud Console</a>:</p>
+<ol>
+<li>Create a project and enable the <strong>Google Calendar API</strong>.</li>
+<li>In <strong>Google Auth Platform</strong>, fill in <em>Branding</em>, then publish the app under <em>Audience</em> (<strong>In production</strong>). In <em>Testing</em> status Google expires the sign-in after seven days. An unverified personal app shows a warning on the consent screen; continue through <em>Advanced</em>.</li>
+<li>Under <em>Clients</em>, create a <strong>Desktop app</strong> client and paste its ID and secret on the Calendar page.</li>
+</ol>
+<p>The client can also come from <code>VELLUM_GOOGLE_CLIENT_ID</code> and <code>VELLUM_GOOGLE_CLIENT_SECRET</code>, in the daemon's environment or at build time. The downloaded <code>client_secret_*.json</code> file is accepted as <code>google-oauth.json</code> too.</p>
+<h3 id="what-is-stored-and-where">What is stored, and where<a class="anchor" href="#what-is-stored-and-where" title="Link to this section">#</a></h3>
+<p>The daemon signs in with the loopback-redirect and PKCE flow and requests only <code>calendar.readonly</code>. The refresh token is kept encrypted in the system keyring through the Secret Service API (GNOME Keyring or KWallet); signing in fails with a clear message when no keyring is running. The plain files hold nothing that grants access, and are created with <code>0600</code> permissions:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$XDG_CONFIG_HOME/vellum-shell/google-oauth.json</code></td>
+<td>The OAuth client ID and secret, which identify the app but grant no access</td>
+</tr>
+<tr>
+<td><code>$XDG_STATE_HOME/vellum-shell/calendar/google.json</code></td>
+<td>The account email and which calendars are shown</td>
+</tr>
+</tbody>
+</table></div>
+<p>Access tokens and events are kept only in memory. Events sync every ten minutes while the panel or the settings page is open, covering two months back and a year ahead. <strong>Sign out</strong> revokes the token at Google and removes it from the keyring.</p>
+<div class="admonition tip">
+<p class="admonition-title">Locked keyring</p>
+<p>A background sync never opens a password dialog. When the keyring is locked, the Calendar page shows <strong>Unlock</strong>, which asks for the keyring password once. Give the keyring the same password as your login and <code>pam_gnome_keyring</code> unlocks it when you sign in.</p>
+</div>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/appearance.html"><small>Previous</small><span>Themes and wallpapers</span></a><a class="pager-next" href="/guide/lock-screen.html"><small>Next</small><span>Lock and login screen</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/settings.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#the-settings-application">The Settings application</a><ol class="toc-sub"><li><a href="#desktop">Desktop</a></li><li><a href="#shell">Shell</a></li><li><a href="#system">System</a></li></ol></li><li><a href="#how-hyprland-settings-are-stored">How Hyprland settings are stored</a></li><li><a href="#state-files">State files</a></li><li><a href="#weather">Weather</a></li><li><a href="#google-calendar">Google Calendar</a><ol class="toc-sub"><li><a href="#one-time-setup">One-time setup</a></li><li><a href="#what-is-stored-and-where">What is stored, and where</a></li></ol></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

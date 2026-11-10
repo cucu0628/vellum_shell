@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Screensaver · Vellum Shell guide</title>
+    <meta name="description" content="ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/screensaver.html">
+    <meta property="og:title" content="Screensaver · Vellum Shell">
+    <meta property="og:description" content="ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/screensaver.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html" aria-current="page" class="on">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Using Vellum</p>
+                <h1>Screensaver</h1>
+                <p class="guide-description">ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.</p>
+            </header>
+            <article class="prose">
+                <p><strong>Settings → System → Screensaver after inactivity</strong> starts an ASCII animation on every monitor after 1 to 30 minutes without input. It is off by default.</p>
+<p><img loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII" src="/assets/screensaver/shapes.gif" /></p>
+<ul>
+<li>Any key press, click or mouse movement ends it, and that first input does not reach the application underneath.</li>
+<li>The mouse pointer is hidden while it runs. <code>scripts/screensaver-cursor</code> toggles Hyprland's <code>cursor:invisible</code> and restores the previous value afterwards; a small watcher started through Hyprland also restores it if the shell dies while the screensaver runs.</li>
+<li>It does not lock the session, and it gives way to the lock screen if that engages.</li>
+<li>Idle inhibitors and a focused fullscreen window keep it from starting.</li>
+</ul>
+<p>Start it by hand to see a scene:</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call screensaver start
+</code></pre>
+<h2 id="scenes">Scenes<a class="anchor" href="#scenes" title="Link to this section">#</a></h2>
+<p><strong>Screensaver theme</strong>, on the same settings page, picks the scene:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Scene</th>
+<th>What it draws</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shapes (default)</td>
+<td>A 3D form morphing between droplets, a knot, a lattice and a gem, in the active theme's colours</td>
+</tr>
+<tr>
+<td>Christmas</td>
+<td>A turning fir tree with baubles and a star, snowfall and snowdrifts</td>
+</tr>
+<tr>
+<td>New Year's Eve</td>
+<td>Fireworks over a city skyline with lit windows</td>
+</tr>
+<tr>
+<td>Winter</td>
+<td>A six-armed ice crystal in falling snow</td>
+</tr>
+<tr>
+<td>Valentine's Day</td>
+<td>A beating 3D heart with rising <code>&lt;3</code></td>
+</tr>
+<tr>
+<td>Easter</td>
+<td>A painted egg with zig-zag bands, falling petals and grass</td>
+</tr>
+<tr>
+<td>Summer</td>
+<td>Sunset over the sea: waves, the sun's glitter path, gulls and clouds</td>
+</tr>
+<tr>
+<td>Autumn</td>
+<td>A carved, glowing pumpkin, falling leaves and two bats</td>
+</tr>
+<tr>
+<td>Orbit across monitors</td>
+<td>One picture over all monitors: a ringed planet on the centre of the combined desktop, an orbiting moon, a comet crossing every screen and a drifting starfield</td>
+</tr>
+</tbody>
+</table></div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Christmas</th>
+<th>New Year's Eve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img loading="lazy" decoding="async" alt="Christmas" src="/assets/screensaver/christmas.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="New Year's Eve" src="/assets/screensaver/newyear.gif" /></td>
+</tr>
+<tr>
+<td><strong>Summer</strong></td>
+<td><strong>Autumn</strong></td>
+</tr>
+<tr>
+<td><img loading="lazy" decoding="async" alt="Summer" src="/assets/screensaver/summer.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="Autumn" src="/assets/screensaver/autumn.gif" /></td>
+</tr>
+</tbody>
+</table></div>
+<p>Every scene except Orbit draws each monitor on its own. Orbit lays its scene over the rectangle that encloses all monitors, so the picture continues across the boundary:</p>
+<p><img loading="lazy" decoding="async" alt="Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other" src="/assets/screensaver/orbit.gif" /></p>
+<p>The previews play about three times faster than real time.</p>
+<h2 id="automatic-by-season">Automatic by season<a class="anchor" href="#automatic-by-season" title="Link to this section">#</a></h2>
+<p><strong>Automatic by season</strong> chooses a scene when the screensaver starts. It never picks Orbit.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Dates</th>
+<th>Scene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 Jan – 6 Jan</td>
+<td>New Year's Eve</td>
+</tr>
+<tr>
+<td>7 Jan – 6 Feb</td>
+<td>Winter</td>
+</tr>
+<tr>
+<td>7 Feb – 15 Feb</td>
+<td>Valentine's Day</td>
+</tr>
+<tr>
+<td>16 Feb – 19 Mar</td>
+<td>Winter</td>
+</tr>
+<tr>
+<td>20 Mar – 31 May</td>
+<td>Easter</td>
+</tr>
+<tr>
+<td>1 Jun – 31 Aug</td>
+<td>Summer</td>
+</tr>
+<tr>
+<td>1 Sep – 30 Nov</td>
+<td>Autumn</td>
+</tr>
+<tr>
+<td>1 Dec – 26 Dec</td>
+<td>Christmas</td>
+</tr>
+<tr>
+<td>27 Dec – 31 Dec</td>
+<td>New Year's Eve</td>
+</tr>
+</tbody>
+</table></div>
+<p>The seasonal scenes use their own colours. <code>features/screensaver/ScreensaverThemes.js</code> holds their palettes and this calendar.</p>
+<h2 id="how-it-is-drawn">How it is drawn<a class="anchor" href="#how-it-is-drawn" title="Link to this section">#</a></h2>
+<p>The screensaver needs no terminal and no idle daemon: <code>features/screensaver/</code> is a Quickshell overlay rendered by two fragment shaders, so it costs nothing until it starts.</p>
+<p>Each scene is one <code>shaders/&lt;theme&gt;.frag</code>, which includes the shared <code>shaders/common.glsl</code>. The compiled <code>.qsb</code> files are checked in. After editing a <code>.frag</code> or <code>common.glsl</code>:</p>
+<pre><code class="language-bash">scripts/build-shaders     # needs the Qt 6 Shader Tools
+scripts/theme-refresh     # restart the shell
+</code></pre>
+<p>A live reload keeps using the shaders Qt has already cached in the running process, so the restart is needed.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/lock-screen.html"><small>Previous</small><span>Lock and login screen</span></a><a class="pager-next" href="/guide/ipc.html"><small>Next</small><span>IPC and keybindings</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/screensaver.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#scenes">Scenes</a></li><li><a href="#automatic-by-season">Automatic by season</a></li><li><a href="#how-it-is-drawn">How it is drawn</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -18,6 +18,20 @@
         document.addEventListener('vellum:theme', function (event) { handler(event.detail); });
     }
 
+    // The wallpaper each theme was recorded with (all public-domain paintings).
+    var PAINTINGS = {
+        'japanese-ink': 'Frederic Edwin Church, Twilight in the Wilderness (1860)',
+        'tokyo-night': 'Johan Christian Dahl, View of Dresden by Moonlight (1839)',
+        'kanagawa-wave': 'Ivan Aivazovsky, Sunset at Sea',
+        'rose-pine': 'Frederic Edwin Church, Aurora Borealis (1865)',
+        'catppuccin-mocha': 'Arnold Böcklin, Isle of the Dead',
+        'gruvbox-material': 'Thomas Cole, The Course of Empire: Desolation (1836)',
+        'monochrome': 'Caspar David Friedrich, The Abbey in the Oakwood (1810)',
+        'sakura-blossom': 'Albert Bierstadt, Among the Sierra Nevada, California (1868)',
+        'varnished-horizon': 'Thomas Cole, The Course of Empire: The Savage State (1834)',
+        'dynamic-matugen': 'John Atkinson Grimshaw, Shipping on the Clyde'
+    };
+
     // -- Theme menu in the top bar -------------------------------------------
 
     function initThemeMenu() {
@@ -47,7 +61,6 @@
         });
 
         function options() { return $$('.theme-option', popover); }
-
         function open() {
             popover.hidden = false;
             button.setAttribute('aria-expanded', 'true');
@@ -61,19 +74,14 @@
             if (refocus) button.focus();
         }
 
-        button.addEventListener('click', function () {
-            if (popover.hidden) open(); else close(false);
-        });
-        document.addEventListener('click', function (event) {
-            if (!event.target.closest('.theme-menu')) close(false);
-        });
+        button.addEventListener('click', function () { if (popover.hidden) open(); else close(false); });
+        document.addEventListener('click', function (event) { if (!event.target.closest('.theme-menu')) close(false); });
         popover.addEventListener('keydown', function (event) {
             var list = options();
             var index = list.indexOf(document.activeElement);
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 event.preventDefault();
-                var step = event.key === 'ArrowDown' ? 1 : -1;
-                list[(index + step + list.length) % list.length].focus();
+                list[(index + (event.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length].focus();
             } else if (event.key === 'Home' || event.key === 'End') {
                 event.preventDefault();
                 list[event.key === 'Home' ? 0 : list.length - 1].focus();
@@ -102,291 +110,288 @@
         sync();
     }
 
-    // -- Theme carousel: the Appearance Studio, in a browser -----------------
+    // -- Reveal on scroll ------------------------------------------------------
 
-    // [indent, [[colour, share of the line], ...]], the same made-up code as ThemeCard.qml.
-    var CODE_ROWS = [
-        [0, [['magenta', 0.16], ['blue', 0.3], ['fg', 0.07]]],
-        [1, [['yellow', 0.18], ['fg', 0.05], ['green', 0.4]]],
-        [1, [['muted', 0.56]]],
-        [1, [['cyan', 0.16], ['red', 0.12], ['fg', 0.22]]],
-        [2, [['blue', 0.22], ['green', 0.3]]],
-        [1, [['magenta', 0.2], ['red', 0.1]]],
-        [0, [['fg', 0.07]]]
-    ];
-
-    function themeCard(theme, index) {
-        var c = theme.colors;
-        var card = el('div', 'tcard' + (theme.dynamic ? ' tcard-dynamic' : ''));
-        card.setAttribute('role', 'option');
-        card.setAttribute('aria-label', theme.name);
-        card.id = 'tcard-' + theme.id;
-        card.dataset.index = index;
-        var vars = {
-            bg: c.bg, surface: c.surface, fg: c.fg, muted: c.muted, accent: c.accent,
-            red: c.red, yellow: c.yellow, green: c.green, cyan: c.cyan, blue: c.blue, magenta: c.magenta
-        };
-        Object.keys(vars).forEach(function (key) { card.style.setProperty('--c-' + key, vars[key]); });
-
-        var order = 0;
-        var code = CODE_ROWS.map(function (row) {
-            var segments = row[1].map(function (segment) {
-                var html = '<i class="tc-seg tc-' + segment[0] + '" style="--w:' + (segment[1] * 100).toFixed(1) +
-                    '%;--o:' + order + '"></i>';
-                order += 1;
-                return html;
-            }).join('');
-            return '<div class="tc-line" style="--indent:' + row[0] + '">' + segments + '</div>';
-        }).join('');
-
-        card.innerHTML =
-            '<div class="tc-frame">' +
-                '<div class="tc-backdrop"></div>' +
-                '<div class="tc-bar"></div>' +
-                '<div class="tc-bands"><i></i><i></i><i></i><i></i></div>' +
-                '<div class="tc-upright">' +
-                    '<div class="tc-ws"><i></i><i class="on"></i><i></i><i></i><i></i></div>' +
-                    '<i class="tc-clock"></i>' +
-                    '<div class="tc-term">' +
-                        '<div class="tc-title"><i class="tc-red"></i><i class="tc-yellow"></i><i class="tc-green"></i><b></b></div>' +
-                        '<div class="tc-code">' + code + '<div class="tc-prompt"><i></i><b class="tc-cursor"></b></div></div>' +
-                    '</div>' +
-                    '<div class="tc-spec"><span class="tc-aa">Aa</span><i class="tc-btn"></i><i class="tc-switch"></i></div>' +
-                    '<div class="tc-ansi"><i class="tc-red"></i><i class="tc-yellow"></i><i class="tc-green"></i>' +
-                        '<i class="tc-cyan"></i><i class="tc-blue"></i><i class="tc-magenta"></i></div>' +
-                '</div>' +
-            '</div>';
-        return card;
+    function initReveal() {
+        var items = $$('.reveal');
+        if (!items.length) return;
+        if (reduceMotion || !window.IntersectionObserver) {
+            items.forEach(function (item) { item.classList.add('in'); });
+            return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                var siblings = $$('.reveal', entry.target.parentNode);
+                var delay = Math.max(0, siblings.indexOf(entry.target)) * 70;
+                entry.target.style.transitionDelay = Math.min(delay, 350) + 'ms';
+                entry.target.classList.add('in');
+                observer.unobserve(entry.target);
+            });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+        items.forEach(function (item) { observer.observe(item); });
     }
 
-    function initCarousel() {
-        var carousel = $('.carousel');
-        if (!carousel || !V.themes.length) return;
-        var track = $('.carousel-track', carousel);
-        var nameNode = $('.carousel-name');
-        var statusNode = $('.carousel-status');
-        var swatchNode = $('.carousel-swatches');
+    // -- Hero: tilt that flattens on scroll, caption that follows the video ----
 
-        var themes = V.themes;
-        var cards = themes.map(function (theme, index) {
-            var card = themeCard(theme, index);
-            track.appendChild(card);
-            return card;
+    function initHero() {
+        var frame = $('.stage-frame');
+        if (!frame) return;
+
+        if (!reduceMotion) {
+            var ticking = false;
+            var update = function () {
+                ticking = false;
+                var rect = frame.getBoundingClientRect();
+                var progress = Math.min(1, Math.max(0, 1 - (rect.top - window.innerHeight * 0.18) / (window.innerHeight * 0.7)));
+                frame.style.setProperty('--tilt', (16 * (1 - progress)).toFixed(2) + 'deg');
+                frame.style.setProperty('--zoom', (0.94 + 0.06 * progress).toFixed(3));
+            };
+            window.addEventListener('scroll', function () {
+                if (!ticking) { ticking = true; requestAnimationFrame(update); }
+            }, { passive: true });
+            window.addEventListener('resize', update);
+            update();
+        }
+
+        // The recording switched theme every 2.2 seconds, starting at 1.5 s.
+        var timeline = [
+            [0, 'japanese-ink'], [1.5, 'tokyo-night'], [3.7, 'rose-pine'], [5.9, 'kanagawa-wave'],
+            [8.1, 'catppuccin-mocha'], [10.3, 'gruvbox-material'], [12.5, 'sakura-blossom'],
+            [14.7, 'monochrome'], [16.9, 'varnished-horizon'], [19.1, 'japanese-ink']
+        ];
+        var video = $('.stage-video');
+        var nameNode = $('.stage-theme');
+        var paintingNode = $('.stage-painting');
+        var caption = $('.stage-caption');
+        var shown = null;
+        function sync() {
+            var time = video.currentTime;
+            var id = timeline[0][1];
+            for (var i = 0; i < timeline.length; i++) if (time >= timeline[i][0]) id = timeline[i][1];
+            if (id !== shown) {
+                shown = id;
+                var theme = V.byId(id);
+                nameNode.textContent = theme ? theme.name : id;
+                paintingNode.textContent = PAINTINGS[id] || '';
+                if (theme) caption.style.setProperty('--stage-accent', theme.colors.accent);
+            }
+            if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(sync);
+        }
+        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(sync);
+        else video.addEventListener('timeupdate', sync);
+        sync();
+        if (reduceMotion) video.pause();
+    }
+
+    // -- Marquee of real screenshots ------------------------------------------
+
+    function initMarquee() {
+        var track = $('[data-marquee]');
+        if (!track) return;
+        var list = V.themes.slice();
+        // Twice the same row, so the loop is seamless at -50%.
+        list.concat(list).forEach(function (theme, index) {
+            var figure = el('figure');
+            if (index >= list.length) figure.setAttribute('aria-hidden', 'true');
+            var img = el('img');
+            img.src = '/media/themes/' + theme.id + '-sm.jpg';
+            img.width = 720;
+            img.height = 405;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.alt = index < list.length ? 'Vellum in ' + theme.name : '';
+            figure.appendChild(img);
+            figure.appendChild(el('figcaption', '', theme.name));
+            track.appendChild(figure);
         });
+    }
 
-        function indexOf(id) {
-            for (var i = 0; i < themes.length; i++) if (themes[i].id === id) return i;
-            return 0;
+    // -- Videos below the fold load and play only while visible ---------------
+
+    function initLazyVideos() {
+        var videos = $$('video[data-lazy-video]');
+        if (!videos.length) return;
+        function load(video) {
+            if (video.dataset.loaded) return;
+            video.dataset.loaded = '1';
+            $$('source', video).forEach(function (source) { source.src = source.dataset.src; });
+            video.load();
         }
-
-        var current = indexOf(V.applied && V.applied.id);
-        var fit = 1;
-
-        function measure() {
-            var width = carousel.clientWidth;
-            fit = width < 520 ? 0.7 : width < 760 ? 0.85 : 1;
-            layout();
+        if (!window.IntersectionObserver) {
+            videos.forEach(function (video) { load(video); if (!reduceMotion) video.play(); });
+            return;
         }
-
-        function layout() {
-            var slot = 214 * fit;
-            cards.forEach(function (card, i) {
-                var d = i - current;
-                var falloff = 1 / (1 + d * d);
-                var scale = (0.75 + (1.08 - 0.75) * falloff) * fit;
-                card.style.transform = 'translate(-50%, -50%) translateX(' + (d * slot).toFixed(1) + 'px) scale(' + scale.toFixed(3) + ')';
-                card.style.opacity = (0.12 + 0.88 * falloff).toFixed(3);
-                card.style.zIndex = String(20 - Math.abs(d));
-                card.classList.toggle('is-current', i === current);
-                card.setAttribute('aria-selected', i === current ? 'true' : 'false');
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                var video = entry.target;
+                if (entry.isIntersecting) {
+                    load(video);
+                    if (!reduceMotion) {
+                        var playing = video.play();
+                        if (playing && playing.catch) playing.catch(function () {});
+                    }
+                } else if (!video.paused) {
+                    video.pause();
+                }
             });
-            carousel.setAttribute('aria-activedescendant', cards[current].id);
-            caption();
-        }
+        }, { rootMargin: '200px 0px', threshold: 0.25 });
+        videos.forEach(function (video) { observer.observe(video); });
+    }
 
-        function caption() {
-            var theme = themes[current];
-            var kept = V.committed && V.committed.id === theme.id;
-            nameNode.textContent = theme.name;
-            statusNode.textContent = theme.dynamic
-                ? (kept ? 'Active · derived from the wallpaper in the shell, shown here with a sample'
-                        : 'Previewing · derived from the wallpaper in the shell, shown here with a sample')
-                : (kept ? 'Active theme' : 'Previewing · press Enter or click the card to keep it');
-            swatchNode.textContent = '';
-            [['Background', 'bg'], ['Surface', 'surface'], ['Accent', 'accent'], ['Muted', 'muted'], ['Foreground', 'fg']]
-                .forEach(function (pair) {
-                    var item = el('span', 'swatch');
-                    var chip = el('i');
-                    chip.style.background = theme.colors[pair[1]];
-                    item.appendChild(chip);
-                    item.appendChild(el('span', 'swatch-name', pair[0]));
-                    item.appendChild(el('code', 'swatch-hex', theme.colors[pair[1]]));
-                    swatchNode.appendChild(item);
-                });
-        }
+    // -- Stats count up --------------------------------------------------------
 
-        function go(index) {
-            var next = (index + themes.length) % themes.length;
-            if (next === current) return;
-            current = next;
-            layout();
-            V.apply(themes[current].id);
-        }
+    function initStats() {
+        var values = $$('[data-count]');
+        if (!values.length || reduceMotion || !window.IntersectionObserver) return;
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                observer.unobserve(entry.target);
+                var node = entry.target;
+                var target = parseInt(node.dataset.count, 10);
+                if (!target) return;
+                var start = performance.now();
+                var step = function (now) {
+                    var t = Math.min(1, (now - start) / 1200);
+                    node.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
+                    if (t < 1) requestAnimationFrame(step);
+                };
+                node.textContent = '0';
+                requestAnimationFrame(step);
+            });
+        }, { threshold: 0.6 });
+        values.forEach(function (node) { observer.observe(node); });
+    }
 
-        function keep() {
-            var card = cards[current];
-            V.commit(themes[current].id);
-            if (reduceMotion) return;
-            carousel.classList.add('is-confirming');
-            card.classList.add('confirming');
+    // -- Before/after slider ---------------------------------------------------
+
+    function initCompare() {
+        $$('.compare').forEach(function (compare) {
+            var range = $('.compare-range', compare);
+            var set = function () { compare.style.setProperty('--split', range.value + '%'); };
+            range.addEventListener('input', set);
+            set();
+        });
+    }
+
+    // -- Settings tabs ---------------------------------------------------------
+
+    function initTabs() {
+        var tabs = $$('.tabs [role="tab"]');
+        var img = $('.tab-stage img');
+        if (!tabs.length || !img) return;
+        tabs.forEach(function (tab, index) {
+            tab.addEventListener('click', function () { select(index); });
+            tab.addEventListener('keydown', function (event) {
+                if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+                event.preventDefault();
+                var next = (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                select(next);
+                tabs[next].focus();
+            });
+            tab.tabIndex = index === 0 ? 0 : -1;
+            // Warm the cache so switching is instant.
+            var preload = new Image();
+            preload.src = '/media/shots/settings-' + tab.dataset.shot + '.jpg';
+        });
+        function select(index) {
+            tabs.forEach(function (tab, i) {
+                tab.setAttribute('aria-selected', i === index ? 'true' : 'false');
+                tab.tabIndex = i === index ? 0 : -1;
+            });
+            img.classList.add('swap');
             setTimeout(function () {
-                carousel.classList.remove('is-confirming');
-                card.classList.remove('confirming');
-            }, 460);
+                img.src = '/media/shots/settings-' + tabs[index].dataset.shot + '.jpg';
+                img.alt = 'Vellum Settings: ' + tabs[index].textContent + ' page';
+                img.classList.remove('swap');
+            }, 180);
         }
+    }
 
-        function restore() {
-            var committed = V.committed;
-            if (!committed) return;
-            current = indexOf(committed.id);
-            layout();
-            V.restore();
+    // -- Theme gallery: real screenshots, and the site follows ---------------
+
+    function initGallery() {
+        var list = $('.gallery-list');
+        if (!list) return;
+        var image = $('.gallery-image');
+        var name = $('.gallery-name');
+        var painting = $('.gallery-painting');
+
+        V.themes.forEach(function (theme) {
+            var item = el('button', 'gallery-item');
+            item.type = 'button';
+            item.setAttribute('role', 'option');
+            item.dataset.id = theme.id;
+            var thumb = el('img');
+            thumb.src = '/media/themes/' + theme.id + '-sm.jpg';
+            thumb.alt = '';
+            thumb.loading = 'lazy';
+            item.appendChild(thumb);
+            var label = el('span', '', theme.name);
+            var swatches = el('small');
+            ['accent', 'fg', 'muted', 'surface'].forEach(function (key) {
+                var swatch = el('i');
+                swatch.style.background = theme.colors[key];
+                swatches.appendChild(swatch);
+            });
+            label.appendChild(swatches);
+            item.appendChild(label);
+            item.addEventListener('click', function () { V.commit(theme.id); });
+            list.appendChild(item);
+        });
+
+        var shown = null;
+        function show(id) {
+            if (id === shown) return;
+            shown = id;
+            var theme = V.byId(id);
+            if (!theme) return;
+            image.classList.add('swap');
+            var next = new Image();
+            next.onload = function () {
+                image.src = next.src;
+                image.alt = 'Vellum in ' + theme.name + ', over ' + (PAINTINGS[id] || 'a painting');
+                image.classList.remove('swap');
+            };
+            next.src = '/media/themes/' + id + '.jpg';
+            name.textContent = theme.name;
+            painting.textContent = theme.dynamic
+                ? 'Palette derived from ' + (PAINTINGS[id] || 'the wallpaper')
+                : (PAINTINGS[id] || '');
+            $$('.gallery-item', list).forEach(function (item) {
+                item.setAttribute('aria-selected', item.dataset.id === id ? 'true' : 'false');
+            });
         }
+        onTheme(function (detail) { show(detail.id); });
+        show(V.applied ? V.applied.id : V.themes[0].id);
+    }
 
-        var swiped = false;
-        cards.forEach(function (card, index) {
-            card.addEventListener('click', function () {
-                if (swiped) return;
-                if (index === current) keep(); else go(index);
-                carousel.focus({ preventScroll: true });
+    // -- Cards follow the pointer --------------------------------------------
+
+    function initCards() {
+        $$('.card').forEach(function (card) {
+            card.addEventListener('pointermove', function (event) {
+                var rect = card.getBoundingClientRect();
+                card.style.setProperty('--mx', (event.clientX - rect.left) + 'px');
+                card.style.setProperty('--my', (event.clientY - rect.top) + 'px');
             });
         });
-
-        carousel.addEventListener('keydown', function (event) {
-            switch (event.key) {
-            case 'ArrowLeft': case 'h': go(current - 1); break;
-            case 'ArrowRight': case 'l': go(current + 1); break;
-            case 'Home': go(0); break;
-            case 'End': go(themes.length - 1); break;
-            case 'Enter': case ' ': keep(); break;
-            case 'Escape': restore(); break;
-            default: return;
-            }
-            event.preventDefault();
-        });
-
-        // Only horizontal wheel movement steps: vertical scrolling keeps scrolling the page.
-        var wheel = 0;
-        carousel.addEventListener('wheel', function (event) {
-            if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-            event.preventDefault();
-            wheel += event.deltaX;
-            while (wheel >= 80) { wheel -= 80; go(current + 1); }
-            while (wheel <= -80) { wheel += 80; go(current - 1); }
-        }, { passive: false });
-
-        var startX = null;
-        carousel.addEventListener('pointerdown', function (event) {
-            startX = event.clientX;
-            swiped = false;
-        });
-        carousel.addEventListener('pointerup', function (event) {
-            if (startX === null) return;
-            var dx = event.clientX - startX;
-            startX = null;
-            if (Math.abs(dx) > 40) {
-                swiped = true;
-                go(current + (dx < 0 ? 1 : -1));
-                setTimeout(function () { swiped = false; }, 0);
-            }
-        });
-
-        // A theme chosen in the top-bar menu moves the carousel to it.
-        onTheme(function (detail) {
-            if (detail.committed && detail.committed === detail.id) {
-                var index = indexOf(detail.id);
-                if (index !== current) { current = index; layout(); } else caption();
-            }
-        });
-
-        if (window.ResizeObserver) new ResizeObserver(measure).observe(carousel);
-        measure();
     }
 
-    // -- Live mock-up of the bar and dashboard -------------------------------
-
-    function initMock() {
-        var mock = $('.mock');
-        if (!mock) return;
-        var scaler = $('.mock-scaler');
-
-        function fit() {
-            mock.style.transform = 'scale(' + (scaler.clientWidth / 1200).toFixed(4) + ')';
-        }
-        if (window.ResizeObserver) new ResizeObserver(fit).observe(scaler);
-        fit();
-
-        var clock = $('.mock-clock', mock);
-        function tick() {
-            var now = new Date();
-            var day = now.toLocaleDateString('en-GB', { weekday: 'long' });
-            var time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            clock.textContent = day + ' ' + time;
-        }
-        tick();
-        setInterval(tick, 15000);
-
-        var today = new Date();
-        $('.mock-month', mock).textContent = today.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-        var grid = $('.mock-cal-grid', mock);
-        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (name) {
-            grid.appendChild(el('span', 'dow', name));
-        });
-        var first = new Date(today.getFullYear(), today.getMonth(), 1);
-        var days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-        var lead = (first.getDay() + 6) % 7;
-        for (var i = 0; i < lead; i++) grid.appendChild(el('span'));
-        for (var d = 1; d <= days; d++) {
-            var cell = el('span', d === today.getDate() ? 'today' : '', String(d));
-            if (d === 3 || d === 12 || d === 24) cell.classList.add('event');
-            grid.appendChild(cell);
-        }
-
-        var cava = $('.mock-cava', mock);
-        for (var b = 0; b < 28; b++) {
-            var bar = el('i');
-            bar.style.setProperty('--h', (0.25 + Math.abs(Math.sin(b * 1.7)) * 0.75).toFixed(2));
-            bar.style.animationDelay = (-(b * 137) % 900) + 'ms';
-            cava.appendChild(bar);
-        }
-
-        var toast = $('.mock-toast', mock);
-        var toastName = $('.mock-toast-theme', mock);
-        function showToast(detail) {
-            var theme = V.byId(detail.id);
-            if (!theme) return;
-            toastName.textContent = theme.name;
-            toast.classList.remove('show');
-            void toast.offsetWidth;
-            toast.classList.add('show');
-        }
-        if (V.applied) toastName.textContent = V.applied.name;
-        onTheme(showToast);
-    }
-
-    // -- Navigation state ----------------------------------------------------
+    // -- Navigation state ------------------------------------------------------
 
     function initNav() {
         var links = $$('.topnav a');
         function mark(section) {
             links.forEach(function (link) {
-                link.classList.toggle('on', link.dataset.section === section);
-                if (link.dataset.section === section) link.setAttribute('aria-current', 'page');
-                else link.removeAttribute('aria-current');
+                var on = link.dataset.section === section;
+                link.classList.toggle('on', on);
+                if (on) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
             });
         }
-        if (document.body.classList.contains('page-docs')) { mark('docs'); return; }
-        var sections = $$('main section[id]');
+        if (document.body.classList.contains('page-guide')) { mark('guide'); return; }
+        var sections = ['tour', 'themes', 'install'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
         if (!sections.length || !window.IntersectionObserver) return;
         var visible = {};
         var observer = new IntersectionObserver(function (entries) {
@@ -401,21 +406,23 @@
         sections.forEach(function (section) { observer.observe(section); });
     }
 
-    function initDocs() {
-        var prose = $('.prose');
-        if (!prose) return;
-        var details = $('.toc-details');
-        var narrow = window.matchMedia('(max-width: 959px)');
-        if (narrow.matches) details.open = false;
-        $$('.docs-toc a').forEach(function (link) {
-            link.addEventListener('click', function () { if (narrow.matches) details.open = false; });
-        });
+    // -- Guide pages -----------------------------------------------------------
 
-        var tocNav = $('.docs-toc nav');
-        var headings = $$('h2[id], h3[id]', prose);
-        if (!window.IntersectionObserver) return;
+    function initGuide() {
+        var nav = $('.guide-nav');
+        var toggle = $('.guide-nav-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', function () {
+                var open = nav.classList.toggle('open');
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            });
+        }
+
+        var prose = $('.prose');
+        var toc = $('.guide-toc');
+        if (!prose || !toc || !window.IntersectionObserver) return;
         var linkFor = {};
-        $$('.docs-toc a').forEach(function (link) { linkFor[link.getAttribute('href').slice(1)] = link; });
+        $$('a', toc).forEach(function (link) { linkFor[link.getAttribute('href').slice(1)] = link; });
         var active = null;
         var observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
@@ -425,17 +432,13 @@
                 if (active) active.classList.remove('active');
                 active = link;
                 active.classList.add('active');
-                if (!narrow.matches && tocNav) {
-                    var top = link.offsetTop - tocNav.clientHeight / 3;
-                    tocNav.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
-                }
             });
         }, { rootMargin: '-72px 0px -70% 0px' });
-        headings.forEach(function (heading) { observer.observe(heading); });
+        $$('h2[id], h3[id]', prose).forEach(function (heading) { observer.observe(heading); });
     }
 
     function initCopy() {
-        $$('.prose pre, .code-card pre').forEach(function (pre) {
+        $$('.prose pre, .terminal pre').forEach(function (pre) {
             var wrap = el('div', 'pre-wrap');
             pre.parentNode.insertBefore(wrap, pre);
             wrap.appendChild(pre);
@@ -444,6 +447,12 @@
             button.setAttribute('aria-label', 'Copy code to clipboard');
             button.addEventListener('click', function () {
                 var text = pre.innerText.replace(/\n$/, '');
+                if (pre.closest('.terminal')) {
+                    // Only the commands: no prompts, no comments.
+                    text = text.split('\n').map(function (line) {
+                        return line.replace(/^\$ /, '').replace(/\s+#.*$/, '');
+                    }).join('\n');
+                }
                 var done = function () {
                     button.textContent = 'Copied';
                     setTimeout(function () { button.textContent = 'Copy'; }, 1400);
@@ -455,9 +464,16 @@
     }
 
     initThemeMenu();
-    initCarousel();
-    initMock();
+    initReveal();
+    initHero();
+    initMarquee();
+    initLazyVideos();
+    initStats();
+    initCompare();
+    initTabs();
+    initGallery();
+    initCards();
     initNav();
-    initDocs();
+    initGuide();
     initCopy();
 })();

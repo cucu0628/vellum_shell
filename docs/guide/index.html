@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Introduction · Vellum Shell guide</title>
+    <meta name="description" content="What Vellum Shell is, what it replaces on a Hyprland desktop, and how the pieces fit together.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/">
+    <meta property="og:title" content="Introduction · Vellum Shell">
+    <meta property="og:description" content="What Vellum Shell is, what it replaces on a Hyprland desktop, and how the pieces fit together.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/" aria-current="page" class="on">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Get started</p>
+                <h1>Introduction</h1>
+                <p class="guide-description">What Vellum Shell is, what it replaces on a Hyprland desktop, and how the pieces fit together.</p>
+            </header>
+            <article class="prose">
+                <p>Vellum Shell is an ink-inspired desktop shell for <a href="https://hypr.land">Hyprland</a>, written in QML on top of <a href="https://quickshell.outfoxxed.me/">Quickshell</a>. A small Rust daemon sits behind it, keeping system state and writing the colour theme of every application you use.</p>
+<p><img loading="lazy" decoding="async" alt="Vellum Shell with the media dashboard open, in the Japanese Ink theme" src="/media/themes/japanese-ink.jpg" /></p>
+<h2 id="what-you-get">What you get<a class="anchor" href="#what-you-get" title="Link to this section">#</a></h2>
+<p>Installing Vellum gives a Hyprland session everything a desktop environment would otherwise provide, drawn in one visual language:</p>
+<ul>
+<li><strong>A top bar on every monitor</strong>: workspaces, clock, media, network, VPN, Bluetooth, audio, notifications, system tray, system monitor and optional battery. Every module can be reordered, moved between zones or hidden.</li>
+<li><strong>A launcher</strong> that searches applications, shell actions and emoji in one field and evaluates maths. See <a href="/guide/using.html#launcher">Using the shell</a>.</li>
+<li><strong>A media dashboard</strong> with an album-art player, calendar with Google Calendar events, weather and system statistics.</li>
+<li><strong>Notifications, clipboard history, a volume OSD, a Polkit agent</strong> and NetworkManager password prompts, all inside the shell.</li>
+<li><strong>The Appearance Studio</strong>, where themes preview live on the running desktop and are written out to GTK, Qt, kitty, btop, Neovim, Hyprland, Zen Browser, Fastfetch and the login screen at once. See <a href="/guide/appearance.html">Themes and wallpapers</a>.</li>
+<li><strong>A real settings application</strong> for displays, windows, input, sound, the bar layout, default apps and services. See <a href="/guide/settings.html">Settings</a>.</li>
+<li><strong>A Wayland lock screen</strong> on every monitor, and the same QML as a <strong>greetd login screen</strong>. See <a href="/guide/lock-screen.html">Lock and login screen</a>.</li>
+<li><strong>An ASCII screensaver</strong> rendered by fragment shaders, with seasonal scenes. See <a href="/guide/screensaver.html">Screensaver</a>.</li>
+</ul>
+<h2 id="how-it-fits-together">How it fits together<a class="anchor" href="#how-it-fits-together" title="Link to this section">#</a></h2>
+<pre><code class="language-text">Hyprland ──── runs ────▶ Quickshell (shell.qml)
+                           │  bar, popups, lock screen, notifications…
+                           │
+                           │  newline-delimited JSON over a Unix socket
+                           ▼
+                         vellum daemon (Rust)
+                           │  NetworkManager, udisks2, logind, Wayland clipboard,
+                           │  weather, calendar, Hyprland monitors
+                           ▼
+                         theme engine ──▶ GTK · Qt · kitty · btop · Neovim · Hyprland · Zen · Fastfetch · greeter
+</code></pre>
+<ul>
+<li><strong>Quickshell</strong> draws everything you see and talks directly to the services it already wraps well: PipeWire, MPRIS, notifications, the system tray, UPower, Bluetooth and PAM.</li>
+<li><strong>The <code>vellum</code> daemon</strong> owns everything else. It is started as a systemd user service, keeps state such as the network or removable drives, and is the only place that writes theme files.</li>
+<li><strong>The shell degrades gracefully.</strong> If the daemon is not running, the shell still starts in your theme with built-in defaults and reconnects when the daemon comes back.</li>
+</ul>
+<p><a href="/guide/architecture.html">How it works</a> goes into the details.</p>
+<h2 id="supported-systems">Supported systems<a class="anchor" href="#supported-systems" title="Link to this section">#</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distributions</td>
+<td>Arch Linux, CachyOS, Fedora Linux (Fedora Atomic needs the packages layered first)</td>
+</tr>
+<tr>
+<td>Compositor</td>
+<td>Hyprland <strong>0.55 or newer</strong>, with its native Lua configuration</td>
+</tr>
+<tr>
+<td>Terminal</td>
+<td>Kitty for the built-in helpers; your own default terminal for apps</td>
+</tr>
+<tr>
+<td>Session</td>
+<td>Wayland only</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="where-to-go-next">Where to go next<a class="anchor" href="#where-to-go-next" title="Link to this section">#</a></h2>
+<ul>
+<li>New here? Start with <a href="/guide/installation.html">Installation</a>.</li>
+<li>Already running it? <a href="/guide/using.html">Using the shell</a> lists what every part does, and <a href="/guide/ipc.html">IPC and keybindings</a> everything you can bind.</li>
+<li>Want to make it yours? Read <a href="/guide/appearance.html">Themes and wallpapers</a> and <a href="/guide/settings.html">Settings</a>.</li>
+</ul>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-next" href="/guide/installation.html"><small>Next</small><span>Installation</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/index.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#what-you-get">What you get</a></li><li><a href="#how-it-fits-together">How it fits together</a></li><li><a href="#supported-systems">Supported systems</a></li><li><a href="#where-to-go-next">Where to go next</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

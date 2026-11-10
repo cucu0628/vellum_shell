@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Using the shell · Vellum Shell guide</title>
+    <meta name="description" content="The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/using.html">
+    <meta property="og:title" content="Using the shell · Vellum Shell">
+    <meta property="og:description" content="The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/using.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html" aria-current="page" class="on">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Using Vellum</p>
+                <h1>Using the shell</h1>
+                <p class="guide-description">The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.</p>
+            </header>
+            <article class="prose">
+                <h2 id="default-keys">Default keys<a class="anchor" href="#default-keys" title="Link to this section">#</a></h2>
+<p>The setup installs these bindings in <code>~/.config/hypr/bindings.lua</code>. They call the shell over IPC, so you can rebind any of them. See <a href="/guide/ipc.html">IPC and keybindings</a>.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><kbd>Super</kbd> + <kbd>Space</kbd></td>
+<td>Launcher</td>
+</tr>
+<tr>
+<td><kbd>Super</kbd> + <kbd>V</kbd></td>
+<td>Clipboard history</td>
+</tr>
+<tr>
+<td><kbd>Super</kbd> + <kbd>N</kbd></td>
+<td>Notification centre</td>
+</tr>
+<tr>
+<td><kbd>Super</kbd> + <kbd>P</kbd></td>
+<td>Settings</td>
+</tr>
+<tr>
+<td><kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd></td>
+<td>Lock screen</td>
+</tr>
+<tr>
+<td><kbd>Print</kbd></td>
+<td>Screenshot (smart selection)</td>
+</tr>
+<tr>
+<td><kbd>Shift</kbd> + <kbd>Print</kbd></td>
+<td>Region screenshot</td>
+</tr>
+<tr>
+<td>Volume keys</td>
+<td>Output volume in 5% steps, capped at 100%</td>
+</tr>
+<tr>
+<td><kbd>Ctrl</kbd> + volume keys</td>
+<td>The active player's own volume</td>
+</tr>
+<tr>
+<td>Media keys</td>
+<td>Play/pause, next and previous on the active player</td>
+</tr>
+<tr>
+<td>Brightness keys</td>
+<td>Built-in display brightness in 5% steps</td>
+</tr>
+</tbody>
+</table></div>
+<p>The volume keys call <code>wpctl</code> directly and the brightness keys call <code>vellum call brightness step</code>, so both keep working while the shell restarts. Media, volume and brightness keys also work on the lock screen. <code>playerctl</code> and <code>brightnessctl</code> are not needed.</p>
+<h2 id="the-bar">The bar<a class="anchor" href="#the-bar" title="Link to this section">#</a></h2>
+<p>Every monitor gets its own bar and wallpaper layer. Clicking a bar item opens its surface on that monitor.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Module</th>
+<th>What it shows and opens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Workspaces</td>
+<td>Hyprland workspaces of that monitor</td>
+</tr>
+<tr>
+<td>Privacy</td>
+<td>Camera and microphone use</td>
+</tr>
+<tr>
+<td>Clock / media</td>
+<td>Date, time and the playing track; opens the <a href="#media-dashboard">media dashboard</a></td>
+</tr>
+<tr>
+<td>System tray</td>
+<td>StatusNotifier items</td>
+</tr>
+<tr>
+<td>Network / VPN</td>
+<td>Connection state; opens the network and VPN popups</td>
+</tr>
+<tr>
+<td>Bluetooth</td>
+<td>Adapter state and devices</td>
+</tr>
+<tr>
+<td>Removable drives</td>
+<td>Mount, unmount, open and safely power off</td>
+</tr>
+<tr>
+<td>Audio</td>
+<td>Volume; opens the mixer</td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>Unread count and Do Not Disturb; opens the <a href="#notifications">notification centre</a></td>
+</tr>
+<tr>
+<td>AI usage</td>
+<td>Codex/Claude subscription usage, if the CLIs are logged in</td>
+</tr>
+<tr>
+<td>System monitor</td>
+<td>CPU, memory and disk</td>
+</tr>
+<tr>
+<td>Battery</td>
+<td>Hidden by default; shown when UPower reports a battery</td>
+</tr>
+</tbody>
+</table></div>
+<p>Rearrange, move or hide modules on the <strong>Top bar</strong> page of <a href="/guide/settings.html#top-bar">Settings</a>.</p>
+<p>Every overlay opens on the focused monitor and closes the others, so two surfaces never stay open on top of each other.</p>
+<h2 id="launcher">Launcher<a class="anchor" href="#launcher" title="Link to this section">#</a></h2>
+<p><img loading="lazy" decoding="async" alt="The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings" src="/media/shots/launcher.jpg" /></p>
+<p>One prefix-free field searches applications, shell actions and emoji at once, and calculates anything that looks like a maths expression (with <code>qalc</code> installed).</p>
+<ul>
+<li><strong>Applications</strong> come from desktop entries and are ranked by frecency: how often and how recently you opened them.</li>
+<li><strong>Shell actions</strong> include settings, appearance, palette, clipboard, audio, notifications, Do Not Disturb, screenshot, terminal, files, browser, refresh shell, about, lock, screensaver, suspend, logout, reboot and shutdown.</li>
+<li><strong>Package workflows</strong>: install a package, a community package (AUR through <code>paru</code>/<code>yay</code> on Arch, a selected COPR on Fedora), a web app or a terminal app, and remove them again. They open a guided terminal.</li>
+<li><strong>Emoji</strong>: type a word such as <code>fire</code> and press <kbd>Enter</kbd> to copy it.</li>
+<li><strong>Projects</strong>: start with <code>&gt;</code> to search directories under <code>~/Projects</code>. <kbd>Tab</kbd> switches between the two modes.</li>
+</ul>
+<p>Desktop entries with <code>Terminal=true</code>, such as Neovim or btop, open in your default terminal instead of being started without a TTY. Choose the terminal on the <strong>Default apps</strong> page of Settings. It is stored as the first line of <code>~/.config/xdg-terminals.list</code>, the list <code>xdg-terminal-exec</code> reads; without one, Kitty is used.</p>
+<h2 id="media-dashboard">Media dashboard<a class="anchor" href="#media-dashboard" title="Link to this section">#</a></h2>
+<p><img loading="lazy" decoding="async" alt="The media dashboard: player, calendar, weather and system statistics" src="/media/shots/dashboard.jpg" /></p>
+<p>Click the clock, or bind <code>media toggle</code>. The dashboard shows:</p>
+<ul>
+<li><strong>An album-art player</strong> for the active MPRIS player, with seeking, shuffle, repeat and the player's own volume. Players you never want to see can be hidden on the <strong>Top bar</strong> settings page.</li>
+<li><strong>A calendar</strong> with dots for your <a href="/guide/settings.html#google-calendar">Google Calendar</a> events. The expanded view lists the selected day's events; clicking one opens it in Google Calendar.</li>
+<li><strong>Weather</strong> from Open-Meteo, with a four-day forecast. The location is set on the <strong>System</strong> settings page.</li>
+<li><strong>System statistics</strong>: a CPU graph, memory and disk use, and uptime.</li>
+</ul>
+<p><code>media calendar</code> and <code>media weather</code> open the dashboard with that card already expanded.</p>
+<h2 id="notifications">Notifications<a class="anchor" href="#notifications" title="Link to this section">#</a></h2>
+<p><img loading="lazy" decoding="async" alt="The notification centre grouped by application" src="/media/shots/notifications.jpg" /></p>
+<p>Vellum is the notification server, so no other daemon such as mako or dunst is needed.</p>
+<ul>
+<li><strong>Toasts</strong> appear in the top-right corner with their actions.</li>
+<li><strong>The centre</strong> groups notifications per application, with collapsible groups, per-group unread counts and per-group clearing.</li>
+<li><strong>Do Not Disturb</strong> silences toasts but keeps history.</li>
+<li><strong>History and Do Not Disturb survive a shell restart.</strong> They are kept in <code>$XDG_RUNTIME_DIR</code>, so they are gone after logging out. Restored entries have no actions.</li>
+</ul>
+<p>User-provided text is always rendered as plain text, never as markup.</p>
+<h2 id="clipboard">Clipboard<a class="anchor" href="#clipboard" title="Link to this section">#</a></h2>
+<p><img loading="lazy" decoding="async" alt="Clipboard history with text and an image entry" src="/media/shots/clipboard.jpg" /></p>
+<p>The backend records the clipboard over Wayland's data-control protocol, even while no panel is open. Open the history with <kbd>Super</kbd> + <kbd>V</kbd>.</p>
+<ul>
+<li>Text and images, with image previews.</li>
+<li><kbd>Enter</kbd> puts an entry back on the clipboard, <kbd>Ctrl</kbd> + <kbd>P</kbd> pins it, <kbd>Del</kbd> removes it.</li>
+<li>The latest 100 entries are kept, plus up to 25 pinned ones. Anything over 5 MB is skipped.</li>
+<li>Content that a password manager marks as secret (<code>x-kde-passwordManagerHint</code>) is never stored.</li>
+</ul>
+<p>History lives in <code>$XDG_STATE_HOME/vellum-shell/clipboard/</code>: <code>index.json</code> describes the entries, <code>blobs/</code> holds the content and <code>thumbs/</code> the previews.</p>
+<h2 id="screenshots">Screenshots<a class="anchor" href="#screenshots" title="Link to this section">#</a></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>IPC call</th>
+<th>Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>screenshot capture</code></td>
+<td>Smart selection: click a window or drag a region</td>
+</tr>
+<tr>
+<td><code>screenshot window</code></td>
+<td>The active window</td>
+</tr>
+<tr>
+<td><code>screenshot workspace</code></td>
+<td>The whole monitor</td>
+</tr>
+<tr>
+<td><code>screenshot region</code></td>
+<td>A dragged region</td>
+</tr>
+</tbody>
+</table></div>
+<p>The selection freezes the screen with <code>wayfreeze</code> or, failing that, <code>hyprpicker</code>, and still works without either. Results are saved to <code>~/Pictures/Screenshots</code> (the <code>xdg-user-dir</code> pictures directory) and copied to the clipboard. With <code>snip</code> installed, clicking the notification opens the shot in the editor.</p>
+<h2 id="system-popups">System popups<a class="anchor" href="#system-popups" title="Link to this section">#</a></h2>
+<ul>
+<li><strong>Audio</strong>: default output and input, per-application volume, and switching devices. The full mixer, with moving applications between outputs and sound card profiles, is the <strong>Sound</strong> page of Settings.</li>
+<li><strong>Network</strong>: the active connection, Wi-Fi networks and VPN. When NetworkManager needs a Wi-Fi, WEP, 802.1X or PPPoE password, the shell asks in its own dialog. Passwords saved for this user only go to the keyring under the same attributes <code>nm-applet</code> uses, so existing ones keep working.</li>
+<li><strong>Bluetooth</strong>: paired devices first, then devices discovered nearby, with pairing and connecting in place. Bluetooth settings open <code>blueman-manager</code>, Blueberry or KDE System Settings.</li>
+<li><strong>Removable drives</strong>: mount, unmount, open in the file manager and power off safely.</li>
+<li><strong>Polkit</strong>: authentication prompts for system actions appear in the shell.</li>
+<li><strong>Volume and brightness OSD</strong>: shown for every change, including the media keys.</li>
+<li><strong>About</strong>: a floating kitty window running Fastfetch with the theme's logo, rather than a QML panel that would re-render the same facts.</li>
+</ul>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/installation.html"><small>Previous</small><span>Installation</span></a><a class="pager-next" href="/guide/appearance.html"><small>Next</small><span>Themes and wallpapers</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/using.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#default-keys">Default keys</a></li><li><a href="#the-bar">The bar</a></li><li><a href="#launcher">Launcher</a></li><li><a href="#media-dashboard">Media dashboard</a></li><li><a href="#notifications">Notifications</a></li><li><a href="#clipboard">Clipboard</a></li><li><a href="#screenshots">Screenshots</a></li><li><a href="#system-popups">System popups</a></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

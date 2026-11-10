@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Themes and wallpapers · Vellum Shell guide</title>
+    <meta name="description" content="The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/appearance.html">
+    <meta property="og:title" content="Themes and wallpapers · Vellum Shell">
+    <meta property="og:description" content="The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/appearance.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html" aria-current="page" class="on">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Using Vellum</p>
+                <h1>Themes and wallpapers</h1>
+                <p class="guide-description">The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.</p>
+            </header>
+            <article class="prose">
+                <h2 id="the-appearance-studio">The Appearance Studio<a class="anchor" href="#the-appearance-studio" title="Link to this section">#</a></h2>
+<figure>
+<video autoplay muted loop playsinline preload="metadata" poster="/media/video/studio-themes.jpg">
+<source src="/media/video/studio-themes.webm" type="video/webm">
+<source src="/media/video/studio-themes.mp4" type="video/mp4">
+</video>
+<figcaption>Browsing themes: each step recolours the running shell, and Esc puts the old palette back.</figcaption>
+</figure>
+
+<p>The Appearance Studio is a full-screen overlay below the bar with two pickers that share one skewed carousel. <strong>Wallpaper</strong> reads images from <code>~/Pictures/wallpapers</code>, <strong>Theme</strong> reads palettes from <code>themes/</code>.</p>
+<p>Open it with:</p>
+<ul>
+<li><code>style theme</code> or <code>style wallpaper</code> over <a href="/guide/ipc.html">IPC</a>, or the <em>appearance</em> and <em>palette</em> launcher actions;</li>
+<li>a double click on the desktop wallpaper, which opens the wallpaper picker on that monitor.</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><kbd>←</kbd> <kbd>→</kbd>, <kbd>H</kbd> <kbd>L</kbd>, mouse wheel</td>
+<td>Move through the carousel; wraps at the ends</td>
+</tr>
+<tr>
+<td><kbd>Home</kbd> / <kbd>End</kbd></td>
+<td>First / last card</td>
+</tr>
+<tr>
+<td><kbd>Tab</kbd></td>
+<td>Switch between wallpapers and themes</td>
+</tr>
+<tr>
+<td><kbd>Ctrl</kbd> + <kbd>F</kbd> or <kbd>/</kbd></td>
+<td>Filter wallpapers by name</td>
+</tr>
+<tr>
+<td><kbd>Enter</kbd> or a click on the centred card</td>
+<td>Apply</td>
+</tr>
+<tr>
+<td><kbd>Esc</kbd> or a click on empty space</td>
+<td>Close</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="preview-first-write-once">Preview first, write once<a class="anchor" href="#preview-first-write-once" title="Link to this section">#</a></h3>
+<p><strong>Browsing wallpapers changes nothing.</strong> <strong>Browsing themes recolours only the running shell</strong>, in process, so the bar above the overlay shows the candidate palette.</p>
+<p><kbd>Enter</kbd> writes the choice out:</p>
+<ul>
+<li>a wallpaper goes to the state file and the login screen's copy;</li>
+<li>a theme goes to the state files and every external application palette at once (see <a href="#what-a-theme-switch-writes">what gets generated</a>).</li>
+</ul>
+<p>Closing the theme picker any other way restores the palette you started with.</p>
+<p>The two pickers commit independently: picking a wallpaper does not change the theme, and picking a theme does not change the wallpaper. The one exception is the dynamic theme: while it is active, a new wallpaper also re-derives the palette.</p>
+<h3 id="the-theme-cards">The theme cards<a class="anchor" href="#the-theme-cards" title="Link to this section">#</a></h3>
+<p>Each theme card is a small desktop drawn in that theme: a bar, a terminal whose sample code uses the theme's terminal colours, a type specimen with an accent button and switch, and the surface colours as paint bands. The centred card types its code in, and the dynamic theme's card shows your current wallpaper. Behind the carousel, the focused theme's accent glows.</p>
+<figure>
+<video autoplay muted loop playsinline preload="metadata" poster="/media/video/studio-wallpapers.jpg">
+<source src="/media/video/studio-wallpapers.webm" type="video/webm">
+<source src="/media/video/studio-wallpapers.mp4" type="video/mp4">
+</video>
+<figcaption>The wallpaper picker uses the same carousel.</figcaption>
+</figure>
+
+<h2 id="included-themes">Included themes<a class="anchor" href="#included-themes" title="Link to this section">#</a></h2>
+<p>Catppuccin Mocha, Dynamic Matugen, Gruvbox Material, Japanese Ink, Kanagawa Wave, Monochrome, Rose Pine, Sakura Blossom, Tokyo Night and Varnished Horizon. The <a href="/#themes">theme gallery</a> on the front page shows each of them on a real desktop.</p>
+<h3 id="the-dynamic-theme">The dynamic theme<a class="anchor" href="#the-dynamic-theme" title="Link to this section">#</a></h3>
+<p><strong>Dynamic / Matugen</strong> is not a fixed palette: the backend derives a Material You palette from the current wallpaper, natively, with no external tool. A wallpaper with no usable hue keeps a neutral palette instead of being given an invented colour.</p>
+<h2 id="writing-your-own-theme">Writing your own theme<a class="anchor" href="#writing-your-own-theme" title="Link to this section">#</a></h2>
+<p>A theme is a directory under <code>themes/</code> with one <code>theme.conf</code>. The directory name is the slug used everywhere else (<code>vellum theme apply my-theme</code>).</p>
+<pre><code class="language-ini">NAME=Japanese Ink
+MODE=dark
+
+ACCENT=#b7372f
+SELECTION=#302520
+MUTED=#958b7a
+
+BACKGROUND=#11130f
+DARK_BACKGROUND=#0b0d0a
+DARKER_BACKGROUND=#070806
+LIGHTER_BACKGROUND=#191b16
+
+FOREGROUND=#e8ddc7
+DARK_FOREGROUND=#6f685c
+LIGHT_FOREGROUND=#cfc3ad
+BRIGHT_FOREGROUND=#fff4dc
+
+RED=#b7372f
+YELLOW=#c6a15b
+ORANGE=#c9693f
+GREEN=#788c5d
+CYAN=#6f9690
+BLUE=#7189a6
+MAGENTA=#9a7185
+BROWN=#8b5e4a
+
+BRIGHT_RED=#df5549
+BRIGHT_YELLOW=#e3bd70
+BRIGHT_GREEN=#98ad73
+BRIGHT_CYAN=#8db8b1
+BRIGHT_BLUE=#91a9c7
+BRIGHT_MAGENTA=#bd8da5
+
+SURFACE=#191b16
+ICON_THEME=Yaru-red-dark
+</code></pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Keys</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BACKGROUND</code>, <code>SURFACE</code>, the <code>*_BACKGROUND</code> shades</td>
+<td>Panels, cards, the bar and window backgrounds</td>
+</tr>
+<tr>
+<td><code>FOREGROUND</code>, <code>MUTED</code>, the <code>*_FOREGROUND</code> shades</td>
+<td>Primary text, supporting text, dimmed and bright text</td>
+</tr>
+<tr>
+<td><code>ACCENT</code>, <code>SELECTION</code></td>
+<td>Active, selected and focused states; text selection</td>
+</tr>
+<tr>
+<td><code>RED</code> … <code>BROWN</code>, <code>BRIGHT_*</code></td>
+<td>The terminal palette, syntax colours in Neovim, and status colours</td>
+</tr>
+<tr>
+<td><code>ICON_THEME</code></td>
+<td>The icon theme set alongside the palette, or <code>auto</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The keys are a compatibility contract: the generators' output is checked by golden tests against fixed reference output, so existing themes keep producing the same files.</p>
+<p>The new theme appears in the Appearance Studio straight away. Apply it from the command line with <code>vellum theme apply my-theme</code>; that works with or without the daemon running.</p>
+<h2 id="what-a-theme-switch-writes">What a theme switch writes<a class="anchor" href="#what-a-theme-switch-writes" title="Link to this section">#</a></h2>
+<p>The backend renders every output from templates in <code>backend/templates/</code>, and writes all of them or none, so a failed switch never leaves applications half-recoloured.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Output</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kitty-theme.conf</code> (in the shell directory)</td>
+<td>Kitty</td>
+</tr>
+<tr>
+<td><code>gtk-theme.css</code> (in the shell directory)</td>
+<td>GTK 3 and GTK 4</td>
+</tr>
+<tr>
+<td><code>~/.config/qt6ct/colors/vellum.conf</code></td>
+<td>Qt 6 applications and the Hyprland screen-sharing picker, through a service-specific portal environment</td>
+</tr>
+<tr>
+<td><code>~/.config/hypr/colors.lua</code></td>
+<td>Hyprland borders and groups</td>
+</tr>
+<tr>
+<td><code>vellum-theme.css</code> in the active Zen Browser profile</td>
+<td>Zen Browser, imported by <code>userChrome.css</code></td>
+</tr>
+<tr>
+<td>A <code>btop</code> theme in your btop configuration</td>
+<td>btop</td>
+</tr>
+<tr>
+<td><code>~/.local/share/nvim/site/colors/vellum.lua</code></td>
+<td>A full Neovim colorscheme</td>
+</tr>
+<tr>
+<td>The Vellum logo and a Fastfetch configuration</td>
+<td>Fastfetch and the <code>about</code> window</td>
+</tr>
+<tr>
+<td><code>theme.json</code> and <code>background.jpg</code> in <code>/var/lib/vellum-greeter/</code></td>
+<td>The <a href="/guide/lock-screen.html#login-screen-greetd">login screen</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>These files are generated, not automatically imported by every application. The setup adds the include and import lines for kitty, GTK and btop; add the relevant line yourself for anything else.</p>
+<p>The templates can be edited without rebuilding. A missing template falls back to the version compiled into the binary, so theming cannot break by editing one.</p>
+<p>A local <code>~/.config/fastfetch/config.template.jsonc</code> overrides the bundled Fastfetch layout.</p>
+<h2 id="neovim-and-lazyvim">Neovim and LazyVim<a class="anchor" href="#neovim-and-lazyvim" title="Link to this section">#</a></h2>
+<p>The colorscheme is generated into <code>~/.local/share/nvim/site/colors/vellum.lua</code>. That directory is on Neovim's runtime path, so <code>:colorscheme vellum</code> works from any configuration, and nothing generated ends up inside your own nvim config repository. The generator only runs when Neovim is installed.</p>
+<p><code>nvim/vellum.lua</code> is the LazyVim side. The setup copies it to <code>~/.config/nvim/lua/plugins/vellum.lua</code> when a LazyVim layout exists, leaving an existing file of that name alone. The spec sets <code>colorscheme = "vellum"</code> and watches the generated file, so a theme switch recolours running Neovim instances without a restart.</p>
+<h3 id="key-hints">Key hints<a class="anchor" href="#key-hints" title="Link to this section">#</a></h3>
+<p><code>nvim/vellum-keys/</code> is a small local plugin that keeps the base keymaps of the current mode visible in a corner of the editor: file manager, new tab, delete, save, buffer and window motions, LSP actions. Unlike which-key, it needs no leading key press; normal, insert, visual and terminal mode each show their own list.</p>
+<ul>
+<li><code>&lt;leader&gt;uk</code> and <code>:VellumKeys on|off|toggle</code> hide it.</li>
+<li>It steps aside on its own in a narrow terminal, on the dashboard, and while a picker or the Lazy UI has focus.</li>
+<li>The key list is data in <code>lua/vellum_keys/keys.lua</code>, or <code>setup({ groups = ... })</code> from your own spec.</li>
+</ul>
+<p><code>nvim/vellum-keys.lua</code> loads it from the repository, so a <code>git pull</code> updates the hints without copying anything into your nvim config.</p>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/using.html"><small>Previous</small><span>Using the shell</span></a><a class="pager-next" href="/guide/settings.html"><small>Next</small><span>Settings</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/appearance.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#the-appearance-studio">The Appearance Studio</a><ol class="toc-sub"><li><a href="#preview-first-write-once">Preview first, write once</a></li><li><a href="#the-theme-cards">The theme cards</a></li></ol></li><li><a href="#included-themes">Included themes</a><ol class="toc-sub"><li><a href="#the-dynamic-theme">The dynamic theme</a></li></ol></li><li><a href="#writing-your-own-theme">Writing your own theme</a></li><li><a href="#what-a-theme-switch-writes">What a theme switch writes</a></li><li><a href="#neovim-and-lazyvim">Neovim and LazyVim</a><ol class="toc-sub"><li><a href="#key-hints">Key hints</a></li></ol></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>

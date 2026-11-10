@@ -6,8 +6,10 @@ shell itself is read from the main branch at build time, so the site cannot
 drift from the code:
 
 - the theme switcher gets the real `themes/*/theme.conf` palettes (themes.js),
-- the documentation is rendered from `README.md` (docs.html),
-- screenshots and screensaver previews are copied from `assets/`.
+- screensaver previews and the logo are copied from `assets/`.
+
+The guide pages are Markdown in `src/guide/`; the screenshots and videos in
+`src/media/` were recorded from a real shell in a sandboxed compositor.
 
 Usage:
 
@@ -37,7 +39,7 @@ SRC = ROOT / "src"
 REPO_URL = "https://github.com/cucu0628/vellum_shell"
 DOMAIN = "vellum.asked.hu"
 DEFAULT_THEME = "japanese-ink"
-MAIN_PATHS = ["README.md", "themes", "assets"]
+MAIN_PATHS = ["themes", "assets"]
 
 # theme.conf key -> colour name used by theme.js (which turns it into a CSS variable).
 THEME_KEYS = {
@@ -64,7 +66,7 @@ THEME_KEYS = {
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 # Templates and build inputs; everything else in src/ is published as is.
-NOT_PUBLISHED = {"docs.template.html", "partials"}
+NOT_PUBLISHED = {"guide", "guide.template.html", "partials"}
 
 
 def git(*args: str) -> bytes:
@@ -72,7 +74,7 @@ def git(*args: str) -> bytes:
 
 
 def checkout_main(ref: str, fetch: bool, into: Path) -> str:
-    """Extract README, themes and assets of `ref` into `into`; return the commit sha."""
+    """Extract the themes and assets of `ref` into `into`; return the commit sha."""
     if fetch:
         remote, _, branch = ref.partition("/")
         if branch:
@@ -133,25 +135,21 @@ def load_themes(main: Path) -> list[dict]:
     return themes
 
 
-def readme_markdown(main: Path) -> str:
-    text = (main / "README.md").read_text(encoding="utf-8")
-    # Title and preview are on the front page; the docs open with the introduction.
-    text = re.sub(r"\A# [^\n]*\n", "", text)
-    text = re.sub(r"^## Preview\n.*?(?=^## )", "", text, flags=re.S | re.M)
-    return text
-
-
-def rewrite_links(body: str) -> str:
-    def href(match: re.Match) -> str:
-        target = match.group(1)
-        if re.match(r"^(https?:|mailto:|#|assets/)", target):
-            return match.group(0)
-        return f'href="{REPO_URL}/blob/main/{target}"'
-
-    body = re.sub(r'href="([^"]+)"', href, body)
-    body = body.replace("<img ", '<img loading="lazy" decoding="async" ')
-    body = body.replace("<table>", '<div class="table-wrap"><table>')
-    return body.replace("</table>", "</table></div>")
+def parse_page(path: Path) -> tuple[dict[str, str], str]:
+    """Split a guide page into its `key: value` front matter and Markdown body."""
+    text = path.read_text(encoding="utf-8")
+    meta: dict[str, str] = {}
+    if text.startswith("---\n"):
+        head, _, text = text[4:].partition("\n---\n")
+        for line in head.splitlines():
+            key, sep, value = line.partition(":")
+            if sep:
+                meta[key.strip()] = value.strip()
+    for key in ("title", "description", "group", "order"):
+        if key not in meta:
+            sys.exit(f"{path.name}: front matter needs '{key}'")
+    meta["slug"] = path.stem
+    return meta, text
 
 
 def toc_html(tokens: list[dict]) -> str:
@@ -163,28 +161,73 @@ def toc_html(tokens: list[dict]) -> str:
         )
         sub = f'<ol class="toc-sub">{children}</ol>' if children else ""
         items.append(f'<li><a href="#{token["id"]}">{token["name"]}</a>{sub}</li>')
-    return f'<ol class="toc-list">{"".join(items)}</ol>'
+    return f'<ol class="toc-list">{"".join(items)}</ol>' if items else ""
 
 
-def render_docs(main: Path) -> tuple[str, str]:
+def page_url(slug: str) -> str:
+    return "/guide/" if slug == "index" else f"/guide/{slug}.html"
+
+
+def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) -> int:
     try:
         import markdown
     except ImportError:
         sys.exit("build.py needs Python-Markdown: python3 -m pip install --user markdown")
 
-    md = markdown.Markdown(
-        extensions=["tables", "fenced_code", "toc", "sane_lists"],
-        extension_configs={
-            "toc": {
-                "toc_depth": "2-3",
-                "permalink": "#",
-                "permalink_class": "anchor",
-                "permalink_title": "Link to this section",
-            }
-        },
-    )
-    body = md.convert(readme_markdown(main))
-    return rewrite_links(body), toc_html(md.toc_tokens)
+    pages = [parse_page(p) for p in sorted((SRC / "guide").glob("*.md"))]
+    pages.sort(key=lambda page: float(page[0]["order"]))
+    template = (SRC / "guide.template.html").read_text(encoding="utf-8")
+
+    groups: dict[str, list[dict]] = {}
+    for meta, _ in pages:
+        groups.setdefault(meta["group"], []).append(meta)
+
+    def nav(current: str) -> str:
+        blocks = []
+        for group, metas in groups.items():
+            links = "".join(
+                f'<li><a href="{page_url(m["slug"])}"'
+                + (' aria-current="page" class="on"' if m["slug"] == current else "")
+                + f'>{html.escape(m.get("nav", m["title"]))}</a></li>'
+                for m in metas
+            )
+            blocks.append(f'<p class="guide-nav-group">{html.escape(group)}</p><ul>{links}</ul>')
+        return "".join(blocks)
+
+    (out / "guide").mkdir(exist_ok=True)
+    for index, (meta, body) in enumerate(pages):
+        md = markdown.Markdown(
+            extensions=["tables", "fenced_code", "toc", "sane_lists", "attr_list", "md_in_html", "admonition"],
+            extension_configs={"toc": {"toc_depth": "2-3", "permalink": "#", "permalink_class": "anchor",
+                                       "permalink_title": "Link to this section"}},
+        )
+        content = md.convert(body)
+        content = content.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
+        content = content.replace("<img ", '<img loading="lazy" decoding="async" ')
+        prev_link = next_link = ""
+        if index > 0:
+            p = pages[index - 1][0]
+            prev_link = f'<a class="pager-prev" href="{page_url(p["slug"])}"><small>Previous</small><span>{html.escape(p["title"])}</span></a>'
+        if index + 1 < len(pages):
+            n = pages[index + 1][0]
+            next_link = f'<a class="pager-next" href="{page_url(n["slug"])}"><small>Next</small><span>{html.escape(n["title"])}</span></a>'
+        page = template
+        for key, value in {
+            "content": content, "toc": toc_html(md.toc_tokens), "nav": nav(meta["slug"]),
+            "pager": prev_link + next_link,
+        }.items():
+            page = page.replace(f"<!-- @{key} -->", value)
+        page_values = dict(values)
+        page_values.update({
+            "PAGE_TITLE": html.escape(meta["title"]),
+            "PAGE_DESCRIPTION": html.escape(meta["description"]),
+            "PAGE_GROUP": html.escape(meta["group"]),
+            "PAGE_URL": page_url(meta["slug"]),
+            "PAGE_SOURCE": f"{REPO_URL}/blob/gh-pages/src/guide/{meta['slug']}.md",
+        })
+        target = out / "guide" / ("index.html" if meta["slug"] == "index" else f"{meta['slug']}.html")
+        target.write_text(fill(page, partials, page_values), encoding="utf-8")
+    return len(pages)
 
 
 def fill(template: str, partials: dict[str, str], values: dict[str, str]) -> str:
@@ -209,7 +252,6 @@ def build(out: Path, ref: str, fetch: bool) -> None:
         themes = load_themes(main)
         if not themes:
             sys.exit("no usable themes under themes/")
-        body, toc = render_docs(main)
 
         if out.exists():
             shutil.rmtree(out)
@@ -244,15 +286,20 @@ def build(out: Path, ref: str, fetch: bool) -> None:
         else:
             shutil.copy2(entry, target)
 
-    docs = (SRC / "docs.template.html").read_text(encoding="utf-8")
-    docs = docs.replace("<!-- @content -->", body).replace("<!-- @toc -->", toc)
-    (out / "docs.html").write_text(fill(docs, partials, values), encoding="utf-8")
+    page_count = render_guide(out, partials, values)
+    # The first version of the site had a single docs.html; keep old links working.
+    (out / "docs.html").write_text(
+        '<!doctype html><meta charset="utf-8"><title>Vellum Shell guide</title>'
+        '<meta http-equiv="refresh" content="0; url=/guide/"><link rel="canonical" href="/guide/">'
+        '<a href="/guide/">Vellum Shell guide</a>\n',
+        encoding="utf-8",
+    )
 
     # Pages keeps the custom domain in CNAME on branch deployments; no Jekyll pass.
     (out / "CNAME").write_text(DOMAIN + "\n", encoding="utf-8")
     (out / ".nojekyll").write_text("", encoding="utf-8")
 
-    print(f"built {out.relative_to(ROOT)}/ from {ref} {sha[:7]} ({len(themes)} themes)")
+    print(f"built {out.relative_to(ROOT)}/ from {ref} {sha[:7]} ({len(themes)} themes, {page_count} guide pages)")
 
 
 def main() -> None:

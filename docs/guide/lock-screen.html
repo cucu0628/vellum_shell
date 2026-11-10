@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0d0a">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/media/themes/japanese-ink.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
+    <link rel="stylesheet" href="/style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="/themes.js"></script>
+    <script src="/theme.js"></script>
+    <script src="/site.js" defer></script>
+    <title>Lock and login screen · Vellum Shell guide</title>
+    <meta name="description" content="The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.">
+    <link rel="canonical" href="https://vellum.asked.hu/guide/lock-screen.html">
+    <meta property="og:title" content="Lock and login screen · Vellum Shell">
+    <meta property="og:description" content="The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.">
+    <meta property="og:url" content="https://vellum.asked.hu/guide/lock-screen.html">
+</head>
+<body class="page-guide">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="/" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="/#tour" data-section="tour">Tour</a>
+                <a href="/#themes" data-section="themes">Themes</a>
+                <a href="/#install" data-section="install">Install</a>
+                <a href="/guide/" data-section="guide">Guide</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="guide-layout">
+        <aside class="guide-nav" aria-label="Guide">
+            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
+            <nav class="guide-nav-body">
+                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html" aria-current="page" class="on">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            </nav>
+        </aside>
+
+        <main id="main" class="guide-main">
+            <header class="guide-head">
+                <p class="eyebrow">Using Vellum</p>
+                <h1>Lock and login screen</h1>
+                <p class="guide-description">The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.</p>
+            </header>
+            <article class="prose">
+                <figure>
+<video autoplay muted loop playsinline preload="metadata" poster="/media/video/lock.jpg">
+<source src="/media/video/lock.webm" type="video/webm">
+<source src="/media/video/lock.mp4" type="video/mp4">
+</video>
+<figcaption>Locking blurs the desktop into the clock instead of cutting to black.</figcaption>
+</figure>
+
+<h2 id="the-lock-screen">The lock screen<a class="anchor" href="#the-lock-screen" title="Link to this section">#</a></h2>
+<p>The lock screen is hosted by the main shell and activated over IPC, by <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>L</kbd>, or by the <em>lock</em> launcher action:</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call lock lock
+</code></pre>
+<p>It creates a secure <code>WlSessionLock</code> surface on every monitor. Locking blurs the current wallpaper behind a themed scrim, so the transition stays continuous in both directions; without a wallpaper the shell palette and the logo watermark stand in. Every monitor sets a large serif clock in the lower-left corner. The input monitor adds the user name and password field beneath it; the others echo the typed characters and name the input monitor.</p>
+<h3 id="choosing-the-input-monitor">Choosing the input monitor<a class="anchor" href="#choosing-the-input-monitor" title="Link to this section">#</a></h3>
+<p>Pick the monitor that takes the password on the <strong>System</strong> page of <a href="/guide/settings.html#system">Settings</a>, or directly:</p>
+<pre><code class="language-bash">~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor list
+~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor set HDMI-A-1
+</code></pre>
+<h3 id="authentication">Authentication<a class="anchor" href="#authentication" title="Link to this section">#</a></h3>
+<p>Authentication uses the dedicated PAM service <code>vellum-shell</code>, which the setup installs as <code>/etc/pam.d/vellum-shell</code>. No external lock-screen package is used.</p>
+<p>When that file is missing, for example after a manual install without <code>sudo</code>, the lock screen falls back to the system <code>login</code> service instead of refusing every password, so a locked session can always be unlocked.</p>
+<h2 id="locking-before-sleep">Locking before sleep<a class="anchor" href="#locking-before-sleep" title="Link to this section">#</a></h2>
+<p>The screen also locks when something else suspends the machine: closing the lid, <code>systemctl suspend</code>, or an idle daemon. While the shell runs, the backend holds a logind delay inhibitor, locks on <code>PrepareForSleep</code>, and lets the suspend continue once the compositor has confirmed the lock surface, or after 4.5 seconds if the shell does not answer. Without the daemon, only <code>lock suspend</code> locks first.</p>
+<h2 id="locking-when-idle">Locking when idle<a class="anchor" href="#locking-when-idle" title="Link to this section">#</a></h2>
+<p><code>loginctl lock-session</code> locks the Vellum lock screen too, and the shell reports its state to logind (<code>LockedHint</code>). An idle daemon such as hypridle can therefore use:</p>
+<pre><code class="language-ini">lock_cmd = loginctl lock-session
+</code></pre>
+<p>Without an idle daemon, <strong>Settings → System → Lock after inactivity</strong> locks the screen after 1 to 30 minutes without input (off by default). Fullscreen video and other idle inhibitors keep it awake.</p>
+<h2 id="if-the-shell-crashes-while-locked">If the shell crashes while locked<a class="anchor" href="#if-the-shell-crashes-while-locked" title="Link to this section">#</a></h2>
+<p><code>scripts/shell-run</code>, which <code>shell-start</code> and <code>theme-refresh</code> use, restarts the shell after a crash, and the new instance locks again straight away. <code>vellum_tuning.lua</code> sets Hyprland's <code>misc.allow_session_lock_restore</code>, so the restarted shell can take the lock back instead of leaving the session on Hyprland's fallback screen. The supervisor gives up after five crashes within a minute.</p>
+<h2 id="login-screen-greetd">Login screen (greetd)<a class="anchor" href="#login-screen-greetd" title="Link to this section">#</a></h2>
+<p>The login screen is the lock screen's own QML running as a greetd greeter: <code>GreeterShell.qml</code> → <code>features/lock/GreeterRoot.qml</code>. It reuses the lock background, clock, password field and ambient view, and adds the greeter-only controls: a user picker, a session picker (Wayland sessions from <code>/usr/share/wayland-sessions</code>), the keyboard layout, and sleep, restart and shut down. No X server is started and SDDM is not involved.</p>
+<p>greetd runs a minimal Hyprland as the greeter user with <code>greeter/hyprland.lua</code>, which starts Quickshell and exits the compositor when the greeter quits. Because it is the same compositor as your desktop, connector names match and the greeter gets the real multi-monitor layout:</p>
+<ul>
+<li>every output gets a surface; the password field is on the <code>lockscreen-monitor</code> output and the others show the ambient view, which mirrors the typed characters;</li>
+<li>only the input output takes the keyboard, so typing always lands there;</li>
+<li>monitor modes, positions, scale, rotation and the keyboard layout are copied from your live session.</li>
+</ul>
+<h3 id="installing-it">Installing it<a class="anchor" href="#installing-it" title="Link to this section">#</a></h3>
+<pre><code class="language-bash"># Preview in your session, no root needed; Esc quits.
+~/.config/quickshell/vellum_shell/scripts/greeter-install --preview
+
+# Install and make greetd the display manager.
+~/.config/quickshell/vellum_shell/scripts/greeter-install --enable
+</code></pre>
+<p>Run it as your user; it asks for <code>sudo</code> itself. It copies the QML to <code>/usr/share/vellum-greeter/</code>, plus the Symbols Nerd Font because the greeter user cannot read <code>~/.local/share/fonts</code>. It creates <code>/var/lib/vellum-greeter/</code> for state and <code>/var/cache/vellum-greeter/</code> for the greeter's own cache and the remembered user and session.</p>
+<p>With <code>--enable</code> it also writes <code>/etc/greetd/config.toml</code> (the previous file is kept as <code>config.toml.before-vellum-*</code>), disables other display managers and enables <code>greetd.service</code>. The switch takes effect at the next boot or logout. Re-run it after changing the greeter QML. <code>./setup.sh --with-greeter</code> does the same as part of the setup.</p>
+<h3 id="what-the-greeter-reads">What the greeter reads<a class="anchor" href="#what-the-greeter-reads" title="Link to this section">#</a></h3>
+<p>The greeter cannot read your home directory, so everything it needs lives in <code>/var/lib/vellum-greeter/</code>. The directory is owned by root and its files are owned by you, so the backend refreshes them without root:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Written by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>theme.json</code>, <code>background.jpg</code></td>
+<td>The theme generator, on every theme or wallpaper change</td>
+</tr>
+<tr>
+<td><code>layout.conf</code></td>
+<td>The backend's <code>hypr</code> module, at start and after every confirmed display change</td>
+</tr>
+<tr>
+<td><code>input-screen</code></td>
+<td><code>scripts/lockscreen-monitor set</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>layout.conf</code> is data, not Lua: the root-owned <code>greeter/hyprland.lua</code> parses it line by line and drops anything that does not match the expected pattern, so a user-writable file cannot run code in the greeter. Outputs that are unplugged when the layout is captured keep their previous line.</p>
+<p>PAM uses greetd's own <code>/etc/pam.d/greetd</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Test on a real boot</p>
+<p>Signing in, the power actions and the multi-monitor layout need a real greetd boot to test. The preview never authenticates or powers anything off.</p>
+</div>
+            </article>
+            <nav class="pager" aria-label="Previous and next page">
+                <a class="pager-prev" href="/guide/settings.html"><small>Previous</small><span>Settings</span></a><a class="pager-next" href="/guide/screensaver.html"><small>Next</small><span>Screensaver</span></a>
+            </nav>
+            <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/lock-screen.md">Edit this page on GitHub</a>.</p>
+        </main>
+
+        <aside class="guide-toc" aria-label="On this page">
+            <p class="guide-toc-title">On this page</p>
+            <ol class="toc-list"><li><a href="#the-lock-screen">The lock screen</a><ol class="toc-sub"><li><a href="#choosing-the-input-monitor">Choosing the input monitor</a></li><li><a href="#authentication">Authentication</a></li></ol></li><li><a href="#locking-before-sleep">Locking before sleep</a></li><li><a href="#locking-when-idle">Locking when idle</a></li><li><a href="#if-the-shell-crashes-while-locked">If the shell crashes while locked</a></li><li><a href="#login-screen-greetd">Login screen (greetd)</a><ol class="toc-sub"><li><a href="#installing-it">Installing it</a></li><li><a href="#what-the-greeter-reads">What the greeter reads</a></li></ol></li></ol>
+        </aside>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="/guide/">Guide</a>
+                <a href="/guide/installation.html">Install</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+            <p class="footer-credits">Every screenshot and video shows the real shell. Wallpapers are public-domain paintings by Frederic Edwin Church, Johan Christian Dahl, Ivan Aivazovsky, Arnold Böcklin, Thomas Cole, Caspar David Friedrich, Albert Bierstadt and John Atkinson Grimshaw; the music track and the notifications are made up.</p>
+        </div>
+    </footer>
+</body>
+</html>
