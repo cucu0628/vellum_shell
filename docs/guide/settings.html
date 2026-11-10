@@ -14,9 +14,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
     <link rel="stylesheet" href="/style.css?v=eb57a506aa">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=07c87653de"></script>
+    <script src="/themes.js?v=7429b59e2e"></script>
     <script src="/theme.js?v=8d349b06de"></script>
-    <script src="/site.js?v=2225ba4b1d" defer></script>
+    <script src="/site.js?v=5f7136bc7f" defer></script>
     <title>Settings · Vellum Shell guide</title>
     <meta name="description" content="The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/settings.html">
@@ -95,7 +95,7 @@
 </table></div>
 <h3 id="desktop">Desktop<a class="anchor" href="#desktop" title="Link to this section">#</a></h3>
 <h4 id="display">Display<a class="anchor" href="#display" title="Link to this section">#</a></h4>
-<p><img loading="lazy" decoding="async" alt="Settings, Display page" src="/media/shots/settings-display.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Settings, Display page" src="/media/shots/settings-display.jpg?v=80e2c65266" /></p>
 <p>Arrange your displays by dragging them, and set each one's mode, refresh rate, scale, rotation and variable refresh rate.</p>
 <p>Display changes are a transaction owned by the daemon, because a bad mode or position can leave a screen you can no longer click on:</p>
 <ol>
@@ -104,7 +104,7 @@
 </ol>
 <p>Nothing is saved until you confirm. The timer runs in the daemon, so closing the window or even losing the shell still restores the previous layout. A layout is rejected before it reaches the compositor if it names unknown outputs, uses an unsupported resolution, has an out-of-range scale, transform or VRR value, overlaps displays, or turns off the last active output.</p>
 <h4 id="windows">Windows<a class="anchor" href="#windows" title="Link to this section">#</a></h4>
-<p><img loading="lazy" decoding="async" alt="Settings, Windows page" src="/media/shots/settings-windows.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Settings, Windows page" src="/media/shots/settings-windows.jpg?v=2758868a41" /></p>
 <p><strong>Tiling and geometry</strong>: inner and outer gaps, border width, the dwindle or master layout, and resizing on borders. <strong>Visual treatment</strong>: corner rounding, active and inactive opacity, and shadows. <strong>Compositor effects</strong>: blur strength and passes, and animations.</p>
 <h4 id="input">Input<a class="anchor" href="#input" title="Link to this section">#</a></h4>
 <p><strong>Keyboard</strong>: layout, variant, repeat rate and delay. <strong>Pointer</strong>: sensitivity and focus-follows-mouse behaviour. <strong>Touchpad</strong>: tap to click and natural scrolling.</p>
@@ -112,7 +112,7 @@
 <p>Default output and input with volume and mute, which application plays on which device, and sound card profiles: HDMI or analog, stereo or surround, Bluetooth codecs. Profiles need <code>pw-dump</code> and <code>wpctl</code>; moving applications needs <code>pactl</code>.</p>
 <h3 id="shell">Shell<a class="anchor" href="#shell" title="Link to this section">#</a></h3>
 <h4 id="top-bar">Top bar<a class="anchor" href="#top-bar" title="Link to this section">#</a></h4>
-<p><img loading="lazy" decoding="async" alt="Settings, Top bar page" src="/media/shots/settings-topbar.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Settings, Top bar page" src="/media/shots/settings-topbar.jpg?v=2b82a56ea9" /></p>
 <p>Drag modules between the <strong>Left</strong>, <strong>Center</strong> and <strong>Right</strong> zones, reorder them, or drop them on <strong>Hidden</strong>. The layout is shared by every monitor and applied live. It is stored in <code>bar-layout.json</code> in the Vellum directory; deleting the file restores the built-in order on the next start.</p>
 <p><strong>Media players</strong> lists players to keep out of the bar and the dashboard.</p>
 <h4 id="calendar">Calendar<a class="anchor" href="#calendar" title="Link to this section">#</a></h4>
@@ -121,13 +121,13 @@
 <p>Every shortcut Hyprland currently has bound, searchable, with the descriptions from your configuration.</p>
 <h3 id="system">System<a class="anchor" href="#system" title="Link to this section">#</a></h3>
 <h4 id="default-apps">Default apps<a class="anchor" href="#default-apps" title="Link to this section">#</a></h4>
-<p><img loading="lazy" decoding="async" alt="Settings, Default apps page" src="/media/shots/settings-defaultapps.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Settings, Default apps page" src="/media/shots/settings-defaultapps.jpg?v=a6464c465d" /></p>
 <p>The application that opens each kind of file and link (web, mail, calendar, music, video, images and more) through <code>xdg-mime</code>, and the default terminal.</p>
 <p>The terminal is stored as the first line of <code>~/.config/xdg-terminals.list</code>, the list <code>xdg-terminal-exec</code> reads. GLib launchers such as <code>xdg-open</code> and file managers only honour it through <code>xdg-terminal-exec</code>; without it they fall back to their own order. Vellum's floating helpers (btop, installers, About) stay on Kitty.</p>
 <h4 id="autostart">Autostart<a class="anchor" href="#autostart" title="Link to this section">#</a></h4>
 <p>XDG autostart entries, each with an on/off switch, and your systemd user services.</p>
 <h4 id="system_1">System<a class="anchor" href="#system_1" title="Link to this section">#</a></h4>
-<p><img loading="lazy" decoding="async" alt="Settings, System page" src="/media/shots/settings-system.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Settings, System page" src="/media/shots/settings-system.jpg?v=a9953c694f" /></p>
 <ul>
 <li><strong>Shell services</strong>: weather location, power profile, the <a href="/guide/lock-screen.html#choosing-the-input-monitor">lock screen's input display</a>, lock after inactivity, <a href="/guide/screensaver.html">screensaver</a> after inactivity, screensaver theme and a preview.</li>
 <li><strong>System diagnostics</strong>: a snapshot of the session and the Vellum backend, including failed user services and the state of every backend module, with a report you can copy.</li>

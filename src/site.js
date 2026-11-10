@@ -14,6 +14,12 @@
         if (text !== undefined) node.textContent = text;
         return node;
     }
+    // Media URLs carry a content hash (themes.js), so a re-recorded file is never
+    // served from a stale browser cache.
+    function media(url) {
+        var versions = window.VELLUM_MEDIA || {};
+        return versions[url] ? url + '?v=' + versions[url] : url;
+    }
     function onTheme(handler) {
         document.addEventListener('vellum:theme', function (event) { handler(event.detail); });
     }
@@ -195,7 +201,7 @@
             var figure = el('figure');
             if (index >= list.length) figure.setAttribute('aria-hidden', 'true');
             var img = el('img');
-            img.src = '/media/themes/' + theme.id + '-sm.jpg';
+            img.src = media('/media/themes/' + theme.id + '-sm.jpg');
             img.width = 720;
             img.height = 405;
             img.loading = 'lazy';
@@ -293,7 +299,7 @@
             tab.tabIndex = index === 0 ? 0 : -1;
             // Warm the cache so switching is instant.
             var preload = new Image();
-            preload.src = '/media/shots/settings-' + tab.dataset.shot + '.jpg';
+            preload.src = media('/media/shots/settings-' + tab.dataset.shot + '.jpg');
         });
         function select(index) {
             tabs.forEach(function (tab, i) {
@@ -302,7 +308,7 @@
             });
             img.classList.add('swap');
             setTimeout(function () {
-                img.src = '/media/shots/settings-' + tabs[index].dataset.shot + '.jpg';
+                img.src = media('/media/shots/settings-' + tabs[index].dataset.shot + '.jpg');
                 img.alt = 'Vellum Settings: ' + tabs[index].textContent + ' page';
                 img.classList.remove('swap');
             }, 180);
@@ -324,7 +330,7 @@
             item.setAttribute('role', 'option');
             item.dataset.id = theme.id;
             var thumb = el('img');
-            thumb.src = '/media/themes/' + theme.id + '-sm.jpg';
+            thumb.src = media('/media/themes/' + theme.id + '-sm.jpg');
             thumb.alt = '';
             thumb.loading = 'lazy';
             item.appendChild(thumb);
@@ -354,7 +360,7 @@
                 image.alt = 'Vellum in ' + theme.name + ', over ' + (PAINTINGS[id] || 'a painting');
                 image.classList.remove('swap');
             };
-            next.src = '/media/themes/' + id + '.jpg';
+            next.src = media('/media/themes/' + id + '.jpg');
             name.textContent = theme.name;
             painting.textContent = theme.dynamic
                 ? 'Palette derived from ' + (PAINTINGS[id] || 'the wallpaper')

@@ -14,9 +14,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
     <link rel="stylesheet" href="/style.css?v=eb57a506aa">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=07c87653de"></script>
+    <script src="/themes.js?v=7429b59e2e"></script>
     <script src="/theme.js?v=8d349b06de"></script>
-    <script src="/site.js?v=2225ba4b1d" defer></script>
+    <script src="/site.js?v=5f7136bc7f" defer></script>
     <title>Screensaver · Vellum Shell guide</title>
     <meta name="description" content="ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/screensaver.html">
@@ -70,7 +70,7 @@
             </header>
             <article class="prose">
                 <p><strong>Settings → System → Screensaver after inactivity</strong> starts an ASCII animation on every monitor after 1 to 30 minutes without input. It is off by default.</p>
-<p><img loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII" src="/assets/screensaver/shapes.gif" /></p>
+<p><img loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII" src="/assets/screensaver/shapes.gif?v=510ab0914c" /></p>
 <ul>
 <li>Any key press, click or mouse movement ends it, and that first input does not reach the application underneath.</li>
 <li>The mouse pointer is hidden while it runs. <code>scripts/screensaver-cursor</code> toggles Hyprland's <code>cursor:invisible</code> and restores the previous value afterwards; a small watcher started through Hyprland also restores it if the shell dies while the screensaver runs.</li>
@@ -137,21 +137,21 @@
 </thead>
 <tbody>
 <tr>
-<td><img loading="lazy" decoding="async" alt="Christmas" src="/assets/screensaver/christmas.gif" /></td>
-<td><img loading="lazy" decoding="async" alt="New Year's Eve" src="/assets/screensaver/newyear.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="Christmas" src="/assets/screensaver/christmas.gif?v=22c2c236b9" /></td>
+<td><img loading="lazy" decoding="async" alt="New Year's Eve" src="/assets/screensaver/newyear.gif?v=fc96824247" /></td>
 </tr>
 <tr>
 <td><strong>Summer</strong></td>
 <td><strong>Autumn</strong></td>
 </tr>
 <tr>
-<td><img loading="lazy" decoding="async" alt="Summer" src="/assets/screensaver/summer.gif" /></td>
-<td><img loading="lazy" decoding="async" alt="Autumn" src="/assets/screensaver/autumn.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="Summer" src="/assets/screensaver/summer.gif?v=a1bbd48275" /></td>
+<td><img loading="lazy" decoding="async" alt="Autumn" src="/assets/screensaver/autumn.gif?v=777dfc5f43" /></td>
 </tr>
 </tbody>
 </table></div>
 <p>Every scene except Orbit draws each monitor on its own. Orbit lays its scene over the rectangle that encloses all monitors, so the picture continues across the boundary:</p>
-<p><img loading="lazy" decoding="async" alt="Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other" src="/assets/screensaver/orbit.gif" /></p>
+<p><img loading="lazy" decoding="async" alt="Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other" src="/assets/screensaver/orbit.gif?v=64521c044d" /></p>
 <p>The previews play about three times faster than real time.</p>
 <h2 id="automatic-by-season">Automatic by season<a class="anchor" href="#automatic-by-season" title="Link to this section">#</a></h2>
 <p><strong>Automatic by season</strong> chooses a scene when the screensaver starts. It never picks Orbit.</p>

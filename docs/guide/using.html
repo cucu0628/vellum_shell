@@ -14,9 +14,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
     <link rel="stylesheet" href="/style.css?v=eb57a506aa">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=07c87653de"></script>
+    <script src="/themes.js?v=7429b59e2e"></script>
     <script src="/theme.js?v=8d349b06de"></script>
-    <script src="/site.js?v=2225ba4b1d" defer></script>
+    <script src="/site.js?v=5f7136bc7f" defer></script>
     <title>Using the shell · Vellum Shell guide</title>
     <meta name="description" content="The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/using.html">
@@ -189,7 +189,7 @@
 <p>Rearrange, move or hide modules on the <strong>Top bar</strong> page of <a href="/guide/settings.html#top-bar">Settings</a>.</p>
 <p>Every overlay opens on the focused monitor and closes the others, so two surfaces never stay open on top of each other.</p>
 <h2 id="launcher">Launcher<a class="anchor" href="#launcher" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings" src="/media/shots/launcher.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings" src="/media/shots/launcher.jpg?v=c91a59ed96" /></p>
 <p>One prefix-free field searches applications, shell actions and emoji at once, and calculates anything that looks like a maths expression (with <code>qalc</code> installed).</p>
 <ul>
 <li><strong>Applications</strong> come from desktop entries and are ranked by frecency: how often and how recently you opened them.</li>
@@ -200,7 +200,7 @@
 </ul>
 <p>Desktop entries with <code>Terminal=true</code>, such as Neovim or btop, open in your default terminal instead of being started without a TTY. Choose the terminal on the <strong>Default apps</strong> page of Settings. It is stored as the first line of <code>~/.config/xdg-terminals.list</code>, the list <code>xdg-terminal-exec</code> reads; without one, Kitty is used.</p>
 <h2 id="media-dashboard">Media dashboard<a class="anchor" href="#media-dashboard" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The media dashboard: player, calendar, weather and system statistics" src="/media/shots/dashboard.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="The media dashboard: player, calendar, weather and system statistics" src="/media/shots/dashboard.jpg?v=f36b9bfe43" /></p>
 <p>Click the clock, or bind <code>media toggle</code>. The dashboard shows:</p>
 <ul>
 <li><strong>An album-art player</strong> for the active MPRIS player, with seeking, shuffle, repeat and the player's own volume. Players you never want to see can be hidden on the <strong>Top bar</strong> settings page.</li>
@@ -214,7 +214,7 @@
 <p>The player in the screenshots is <a href="https://github.com/cucu0628/Hibiki">Hibiki</a>, a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.</p>
 </div>
 <h2 id="notifications">Notifications<a class="anchor" href="#notifications" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The notification centre grouped by application" src="/media/shots/notifications.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="The notification centre grouped by application" src="/media/shots/notifications.jpg?v=f4293e9dbd" /></p>
 <p>Vellum is the notification server, so no other daemon such as mako or dunst is needed.</p>
 <ul>
 <li><strong>Toasts</strong> appear in the top-right corner with their actions.</li>
@@ -224,7 +224,7 @@
 </ul>
 <p>User-provided text is always rendered as plain text, never as markup.</p>
 <h2 id="clipboard">Clipboard<a class="anchor" href="#clipboard" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="Clipboard history with text and an image entry" src="/media/shots/clipboard.jpg" /></p>
+<p><img loading="lazy" decoding="async" alt="Clipboard history with text and an image entry" src="/media/shots/clipboard.jpg?v=cabb488893" /></p>
 <p>The backend records the clipboard over Wayland's data-control protocol, even while no panel is open. Open the history with <kbd>Super</kbd> + <kbd>V</kbd>.</p>
 <ul>
 <li>Text and images, with image previews.</li>
