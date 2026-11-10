@@ -19,6 +19,7 @@ vellum_shell/
 │   └── ShellIpc.qml                  # Publikus Quickshell IPC felület
 ├── assets/                           # Logó és képernyőkép
 │   ├── Overview.png
+│   ├── screensaver/                  # A képernyővédő-témák GIF bemutatói (README)
 │   └── vellum-logo.svg               # A shell emblémája QML-en kívüli használatra
 ├── backend/
 │   ├── src/
@@ -29,6 +30,7 @@ vellum_shell/
 │   │   │   ├── protocol.rs           # Newline-delimited JSON protokoll
 │   │   │   └── server.rs             # Unix socket szerver
 │   │   ├── modules/
+│   │   │   ├── audio.rs              # Hangkártya-profilok (pw-dump, wpctl), stream-áthelyezés
 │   │   │   ├── brightness.rs         # Háttérvilágítás: sysfs értesítés, logind SetBrightness
 │   │   │   ├── calendar.rs           # Google Naptár: OAuth (loopback + PKCE) és események
 │   │   │   ├── clipboard/
@@ -38,6 +40,7 @@ vellum_shell/
 │   │   │   ├── health.rs             # Verzió, pid, uptime; a huzalozás próbája
 │   │   │   ├── hypr.rs               # Hyprland monitorok és kompozitor-opciók
 │   │   │   ├── mod.rs
+│   │   │   ├── netsecrets.rs         # NetworkManager secret agent: jelszókérés a shellben
 │   │   │   ├── network.rs            # Aktív kapcsolat, LAN cím, VPN jelenlét
 │   │   │   ├── privacy.rs            # Kamerát használó folyamatok
 │   │   │   ├── removable.rs          # Cserélhető adathordozók udisks2-n
@@ -185,6 +188,8 @@ vellum_shell/
 │   │   ├── ConnectivityPopup.qml     # Közös Wi-Fi/VPN panel fülekkel
 │   │   ├── NetworkController.qml     # A backend Wi-Fi műveleteinek UI-kliense
 │   │   ├── NetworkPanel.qml          # Wi-Fi fül tartalma
+│   │   ├── NetworkSecretAgent.qml    # A `netsecrets` topic kliense (válasz, elutasítás)
+│   │   ├── NetworkSecretDialog.qml   # Hálózati jelszókérő overlay
 │   │   ├── ThroughputController.qml  # Le-/feltöltési sebesség a /proc/net/dev-ből
 │   │   └── VpnPanel.qml              # Proton VPN fül tartalma
 │   ├── media/
@@ -212,6 +217,12 @@ vellum_shell/
 │   │   └── PrivacyPopup.qml          # Mikrofont/kamerát használó appok listája
 │   ├── removable/
 │   │   └── RemovableDevicePopup.qml  # Mount, unmount, megnyitás és leválasztás
+│   ├── screensaver/
+│   │   ├── AsciiScene.qml            # Két shader-menet: raymarch + karakterrács
+│   │   ├── ScreensaverController.qml # Tétlenség, indítás, bármilyen bemenetre leáll
+│   │   ├── ScreensaverThemes.js      # Témák palettája és az évszak-naptár
+│   │   ├── ScreensaverWindow.qml     # Monitoronként egy overlay réteg
+│   │   └── shaders/                  # Témánként egy .frag + common.glsl, és a lefordított .qsb
 │   ├── screenshot/
 │   │   └── ScreenshotController.qml  # Képernyőkép-módok indítása
 │   ├── settings/
@@ -233,6 +244,8 @@ vellum_shell/
 │   │   ├── SettingsSection.qml       # Szekció: cím, leírás, műveletek, sorok kártyában
 │   │   ├── SettingsSidebar.qml       # Oldalsáv: kereső, csoportos lista, daemon-állapot
 │   │   ├── SettingsWindow.qml        # A settings FloatingWindow ablaka
+│   │   ├── SoundController.qml       # Hangkártya-profilok és áthelyezés az `audio` modulból
+│   │   ├── SoundPage.qml             # Hang oldal: eszközök, alkalmazások, kártyaprofilok
 │   │   ├── StatusBadge.qml           # Rövid állapotcímke egy sor szélén
 │   │   ├── SystemController.qml      # Rendszer-oldal állapota
 │   │   ├── SystemPage.qml            # Rendszer oldal
@@ -259,6 +272,8 @@ vellum_shell/
 │   ├── backend-install
 │   ├── community-install             # AUR (Arch) vagy COPR (Fedora)
 │   ├── fastfetch-panel               # Az about ablak tartalma
+│   ├── build-shaders                 # .frag -> .qsb (csak shader szerkesztése után)
+│   ├── screensaver-cursor            # Egérmutató elrejtése a képernyővédő alatt
 │   ├── floating-terminal
 │   ├── greeter-install               # greetd greeter telepítése / előnézete
 │   ├── keybindings-list
@@ -328,7 +343,8 @@ vellum_shell/
 
 # Futásidőben keletkező, nem verziózott állapot a shell gyökerében:
 #   current-theme, current-wallpaper, current-weather-location,
-#   lockscreen-monitor, kitty-theme.conf, gtk-theme.css, zen-theme.css
+#   lockscreen-monitor, lock-idle-minutes, screensaver-idle-minutes,
+#   screensaver-theme, kitty-theme.conf, gtk-theme.css, zen-theme.css
 ```
 
 ## Rétegek felelőssége
@@ -398,8 +414,8 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - `LockShell.qml` megmarad kompatibilitási belépési pontként; a fő shell a lockscreent IPC-n aktiválja.
 - A feature popupokat a `shell.qml` közvetlen, névterezett importokkal példányosítja; nincs szükség gyökér wrapper fájlokra.
 - Az IPC targetek neve és metódusai kompatibilisek maradnak: `settings`, `menu`,
-  `launcher`, `clipboard`, `style`, `power`, `lock`, `notifications`, `audio`,
-  `about`. A `menu` és `power` a megszűnt menü paletta helyett a settings appot
+  `launcher`, `clipboard`, `style`, `power`, `lock`, `screensaver`,
+  `notifications`, `audio`, `about`. A `menu` és `power` a megszűnt menü paletta helyett a settings appot
   nyitja, de a nevük megmarad.
 - A backend socketje (`$XDG_RUNTIME_DIR/vellum-shell.sock`), a protokoll `v: 1`
   verziója, valamint a topicok és metódusok nevei kompatibilisek maradnak: ezekre
@@ -446,12 +462,14 @@ Az alsóbb réteg nem importálhat magasabb réteget. A `core/` nem importál `f
 - Téma-motor: paletta, színmatek és a tíz generátor egy helyen, natív Material
   You-val (a `matugen` függőség megszűnt; a `jq`-t a screenshot- és lockscreen
   segédscriptek továbbra is használják). A kimenetet golden teszt védi.
-- Állapot modulok: `network`, `vpn`, `removable`, `privacy`, `sysstats`, `weather`,
-  `calendar`, `session`, `brightness`.
+- Állapot modulok: `network`, `netsecrets`, `vpn`, `removable`, `privacy`, `sysstats`,
+  `weather`, `calendar`, `session`, `brightness`; csak hívható: `audio`.
+- `netsecrets`: a shell a NetworkManager secret agentje (Wi-Fi, 802.1X, PPPoE),
+  csak amíg fut; az `nm-applet` már nem indul.
 - A backend systemd user service-ként indul bejelentkezéskor; a futó példány
   jelenti a git revízióját (`vellum ping`).
 - Settings app (`features/settings/`) igazi `FloatingWindow` ablakban, kereshető,
-  csoportosított oldalsávval: Desktop (Display, Windows, Input), Shell (Top bar,
+  csoportosított oldalsávval: Desktop (Display, Windows, Input, Sound), Shell (Top bar,
   Calendar, Keybindings) és System (Default apps, Autostart, System). A sorok
   szakaszonként kerek kártyákban állnak; Ctrl+Tab / Ctrl+PgUp/PgDown lapoz, a
   Ctrl+F az oldalsáv keresőjébe visz. A menü

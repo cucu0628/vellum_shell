@@ -20,8 +20,11 @@ Item {
     property alias errorMessage: controller.errorMessage
     readonly property alias networks: controller.networks
     // Allapotkartya (72) + szakaszcim (28) + ket koz; alatta legfeljebb ot sor,
-    // a kivalasztott halozatnal pedig a jelszolap.
-    readonly property int preferredHeight: 124 + Math.max(112, Math.min(networks.length, 5) * 56) + (selectedSsid !== "" ? 88 : 0)
+    // a kivalasztott halozatnal pedig a sora ala nyilo jelszolap.
+    readonly property int passwordDrawerHeight: 84
+    readonly property int preferredHeight: 124 + Math.max(112, Math.min(networks.length, 5) * 56) + (selectedSsid !== "" ? passwordDrawerHeight : 0)
+    // A kivalasztott halozat jelszava; a mezo a halozat sora alatt van.
+    property string password: ""
     readonly property string panelBg: theme ? theme.background : "#15110f"
     readonly property string panelFg: theme ? theme.foreground : "#f1e7d0"
     readonly property string panelAccent: theme ? theme.accent : "#d7472f"
@@ -47,22 +50,19 @@ Item {
 
     function chooseNetwork(network) {
         errorMessage = "";
-        passwordInput.text = "";
+        password = "";
         if (selectedSsid === network.ssid) {
             selectedSsid = "";
             return ;
         }
-        selectedSsid = network.ssid;
         selectedSecure = network.secure;
-        if (network.secure)
-            passwordInput.forceActiveFocus();
-
+        selectedSsid = network.ssid;
     }
 
     function connectSelected() {
         if (selectedSsid === "" || connecting)
             return ;
-        controller.connectNetwork(selectedSsid, selectedSecure, passwordInput.text);
+        controller.connectNetwork(selectedSsid, selectedSecure, password);
     }
 
     function disconnectNetwork(network) {
@@ -82,7 +82,7 @@ Item {
             controller.refresh();
         } else {
             selectedSsid = "";
-            passwordInput.text = "";
+            password = "";
             errorMessage = "";
         }
     }
@@ -173,7 +173,7 @@ Item {
 
         Item {
             width: parent.width
-            height: parent.height - 124 - (selectedSsid !== "" ? 88 : 0)
+            height: parent.height - 124
 
             Text {
                 anchors.centerIn: parent
@@ -187,6 +187,8 @@ Item {
             }
 
             Flickable {
+                id: networkFlick
+
                 anchors.fill: parent
                 visible: wifiEnabled && networks.length > 0
                 contentHeight: networkColumn.height
@@ -202,111 +204,162 @@ Item {
                     Repeater {
                         model: networks
 
-                        SharedUi.ListRow {
-                            id: networkRow
+                        // A sor, alatta a kivalasztaskor lenyilo jelszolappal. A
+                        // lap a sorhoz tartozik, igy a popup novekedesevel egyutt,
+                        // a helyen nyilik le, nem a lista aljan.
+                        Column {
+                            id: networkEntry
 
                             required property var modelData
                             readonly property bool chosen: networkPanel.selectedSsid === modelData.ssid
 
                             width: networkColumn.width
-                            theme: networkPanel.theme
-                            glyph: networkPanel.signalIcon(modelData.signal)
-                            title: modelData.ssid
-                            subtitle: modelData.active
-                                ? "Connected  ·  " + modelData.signal + "%"
-                                : modelData.signal + "%  ·  " + (modelData.secure ? modelData.security : "Open network")
-                            trailing: modelData.active
-                                ? (networkPanel.busySsid === modelData.ssid ? "Wait…" : "Disconnect")
-                                : (modelData.enterprise ? "802.1X settings" : (chosen && networkPanel.connecting ? "Connecting…" : "Connect"))
-                            active: modelData.active
-                            selected: chosen
-                            accessibleName: modelData.active
-                                ? qsTr("Disconnect from %1").arg(modelData.ssid)
-                                : qsTr("Select %1").arg(modelData.ssid)
-                            onClicked: {
-                                if (modelData.active)
-                                    networkPanel.disconnectNetwork(modelData);
-                                else if (modelData.enterprise)
-                                    networkPanel.openAdvancedSettings();
-                                else
-                                    networkPanel.chooseNetwork(modelData);
+
+                            function revealDrawer() {
+                                var bottom = networkEntry.y + networkEntry.height
+                                if (bottom > networkFlick.contentY + networkFlick.height)
+                                    networkFlick.contentY = Math.min(bottom - networkFlick.height,
+                                        Math.max(0, networkFlick.contentHeight - networkFlick.height))
                             }
+
+                            onChosenChanged: {
+                                passwordField.text = "";
+                                if (!chosen)
+                                    return ;
+                                revealTimer.restart();
+                                if (modelData.secure)
+                                    Qt.callLater(passwordField.forceInputFocus);
+                            }
+
+                            Timer {
+                                id: revealTimer
+
+                                interval: 240
+                                onTriggered: networkEntry.revealDrawer()
+                            }
+
+                            SharedUi.ListRow {
+                                width: parent.width
+                                theme: networkPanel.theme
+                                glyph: networkPanel.signalIcon(networkEntry.modelData.signal)
+                                title: networkEntry.modelData.ssid
+                                subtitle: networkEntry.modelData.active
+                                    ? "Connected  ·  " + networkEntry.modelData.signal + "%"
+                                    : networkEntry.modelData.signal + "%  ·  " + (networkEntry.modelData.secure ? networkEntry.modelData.security : "Open network")
+                                trailing: networkEntry.modelData.active
+                                    ? (networkPanel.busySsid === networkEntry.modelData.ssid ? "Wait…" : "Disconnect")
+                                    : (networkEntry.modelData.enterprise ? "802.1X settings" : (networkEntry.chosen ? (networkPanel.connecting ? "Connecting…" : "Cancel") : "Connect"))
+                                active: networkEntry.modelData.active
+                                selected: networkEntry.chosen
+                                accessibleName: networkEntry.modelData.active
+                                    ? qsTr("Disconnect from %1").arg(networkEntry.modelData.ssid)
+                                    : qsTr("Select %1").arg(networkEntry.modelData.ssid)
+                                onClicked: {
+                                    if (networkEntry.modelData.active)
+                                        networkPanel.disconnectNetwork(networkEntry.modelData);
+                                    else if (networkEntry.modelData.enterprise)
+                                        networkPanel.openAdvancedSettings();
+                                    else
+                                        networkPanel.chooseNetwork(networkEntry.modelData);
+                                }
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: networkEntry.chosen ? networkPanel.passwordDrawerHeight - 4 : 0
+                                visible: height > 0
+                                clip: true
+
+                                Behavior on height {
+                                    NumberAnimation {
+                                        duration: 220
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
+
+                                // Felulrol rogzitve: nyitaskor elobb a mezo latszik.
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 4
+                                    height: networkPanel.passwordDrawerHeight - 8
+                                    radius: 10
+                                    color: inkBg
+
+                                    Column {
+                                        anchors.fill: parent
+                                        anchors.margins: 8
+                                        spacing: 4
+
+                                        Row {
+                                            width: parent.width
+                                            height: 36
+                                            spacing: 8
+
+                                            SharedUi.SearchField {
+                                                id: passwordField
+
+                                                width: parent.width - connectChip.width - parent.spacing
+                                                height: parent.height
+                                                enabled: networkEntry.modelData.secure
+                                                opacity: networkEntry.modelData.secure ? 1 : 0.7
+                                                indicator: ""
+                                                inputLeftMargin: 12
+                                                inputVerticalPadding: 8
+                                                echoMode: TextInput.Password
+                                                placeholder: networkEntry.modelData.secure ? "Wi-Fi password" : "No password required"
+                                                foreground: panelFg
+                                                accent: panelAccent
+                                                muted: mutedFg
+                                                surface: panelBg
+                                                onTextEdited: (text) => networkPanel.password = text
+                                                onKeyPressed: (event) => {
+                                                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                                        networkPanel.connectSelected();
+                                                        event.accepted = true;
+                                                    } else if (event.key === Qt.Key_Escape) {
+                                                        networkPanel.chooseNetwork(networkEntry.modelData);
+                                                        event.accepted = true;
+                                                    }
+                                                }
+                                            }
+
+                                            SharedUi.HeaderChip {
+                                                id: connectChip
+
+                                                width: 104
+                                                height: parent.height
+                                                theme: networkPanel.theme
+                                                emphasized: true
+                                                enabled: !connecting
+                                                label: connecting ? "Connecting…" : "Connect"
+                                                accessibleName: qsTr("Connect to %1").arg(networkEntry.modelData.ssid)
+                                                onClicked: networkPanel.connectSelected()
+                                            }
+
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            text: errorMessage !== "" ? errorMessage : "Esc cancels"
+                                            textFormat: Text.PlainText
+                                            color: errorMessage !== "" ? panelAccent : mutedFg
+                                            font.pixelSize: 10
+                                            elide: Text.ElideRight
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
                         }
 
                     }
 
-                }
-
-            }
-
-        }
-
-        // A kivalasztott halozat jelszolapja: ugyanaz a kartyafelulet, benne a
-        // mezo es a kiemelt Connect.
-        Rectangle {
-            width: parent.width
-            height: selectedSsid !== "" ? 76 : 0
-            visible: height > 0
-            clip: true
-            radius: 10
-            color: inkBg
-
-            Column {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 6
-
-                Row {
-                    width: parent.width
-                    height: 36
-                    spacing: 8
-
-                    SharedUi.SearchField {
-                        id: passwordInput
-
-                        width: parent.width - connectChip.width - parent.spacing
-                        height: parent.height
-                        enabled: selectedSecure
-                        opacity: selectedSecure ? 1 : 0.7
-                        indicator: ""
-                        inputLeftMargin: 12
-                        inputVerticalPadding: 8
-                        echoMode: TextInput.Password
-                        placeholder: selectedSecure ? "Wi-Fi password" : "No password required"
-                        foreground: panelFg
-                        accent: panelAccent
-                        muted: mutedFg
-                        surface: panelBg
-                        onKeyPressed: (event) => {
-                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                connectSelected();
-                                event.accepted = true;
-                            }
-                        }
-                    }
-
-                    SharedUi.HeaderChip {
-                        id: connectChip
-
-                        width: 104
-                        height: parent.height
-                        theme: networkPanel.theme
-                        emphasized: true
-                        enabled: !connecting
-                        label: connecting ? "Connecting…" : "Connect"
-                        accessibleName: qsTr("Connect to %1").arg(networkPanel.selectedSsid)
-                        onClicked: connectSelected()
-                    }
-
-                }
-
-                Text {
-                    width: parent.width
-                    text: errorMessage !== "" ? errorMessage : "Connect to " + selectedSsid + "  ·  select it again to cancel"
-                    textFormat: Text.PlainText
-                    color: errorMessage !== "" ? panelAccent : mutedFg
-                    font.pixelSize: 10
-                    elide: Text.ElideRight
                 }
 
             }
@@ -329,7 +382,7 @@ Item {
         active: networkPanel.active
         onConnectionSucceeded: {
             networkPanel.selectedSsid = "";
-            passwordInput.text = "";
+            networkPanel.password = "";
         }
         onAdvancedSettingsOpened: networkPanel.closeRequested()
     }

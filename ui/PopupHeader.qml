@@ -26,6 +26,7 @@ Item {
         Text {
             width: parent.width
             text: header.title
+            textFormat: Text.PlainText
             color: header.foreground
             font.family: "serif"
             font.pixelSize: 18
@@ -37,6 +38,7 @@ Item {
             width: parent.width
             visible: header.subtitle !== ""
             text: header.subtitle
+            textFormat: Text.PlainText
             color: header.muted
             font.pixelSize: 10
             elide: Text.ElideRight

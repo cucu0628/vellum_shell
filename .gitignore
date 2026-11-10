@@ -2,6 +2,8 @@ current-weather-location
 kitty-theme.conf
 lockscreen-monitor
 lock-idle-minutes
+screensaver-idle-minutes
+screensaver-theme
 zen-theme.css
 zen-content-theme.css
 current-wallpaper

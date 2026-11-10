@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# A kepernyovedo alatt elrejti az egermutatot (Hyprland cursor:invisible).
+#
+#   screensaver-cursor hide lua|legacy        elrejt, megjegyzi az eredeti erteket
+#   screensaver-cursor show lua|legacy        visszaallitja, ha volt mit
+#   screensaver-cursor watch PID lua|legacy   (belso) a shell leallasa utan visszaallit
+#
+# A layer-shell felulet a sajat ures kurzorat csak akkor kapja meg, ha az eger
+# belep a feluletre, egy allo eger alatt a compositor kurzora latszana; a
+# kurzor ugyanarra a pontra mozgatasa sem valt ki belepest. Ezert a compositor
+# rejti el.
+#
+# A globalis beallitas tulelne a shellt, ezert ket biztositek van:
+#   - a shell indulaskor `show`-t hiv, ez egy osszeomlas utan visszaallit;
+#   - a `hide` a Hyprlanddel indit egy orfolyamatot (`watch`), amely a shell
+#     folyamatanak megszunesekor visszaallit. A Hyprland inditja, nem a shell,
+#     igy akkor is el, ha a shell egesz cgroupjat leallitjak.
+set -euo pipefail
+
+action=${1:-}
+state="${XDG_RUNTIME_DIR:-/tmp}/vellum-screensaver-cursor"
+self=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")
+shell_qml=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)/shell.qml
+
+command -v hyprctl >/dev/null 2>&1 || exit 0
+
+set_invisible() {
+  if [[ $parser == lua ]]; then
+    hyprctl eval "hl.config({ cursor = { invisible = $1 } })" >/dev/null 2>&1 || true
+  else
+    hyprctl keyword cursor:invisible "$1" >/dev/null 2>&1 || true
+  fi
+}
+
+lock() {
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>"$state.lock"
+    flock 9
+  fi
+}
+
+restore() {
+  [[ -e $state ]] || return 0
+  local previous
+  previous=$(<"$state")
+  [[ $previous == true ]] || previous=false
+  set_invisible "$previous"
+  rm -f "$state"
+}
+
+# A fajlban az orfolyamat es a varakozo `tail` azonositoja; mindkettot leallitjuk.
+stop_watcher() {
+  [[ -e $state.watch ]] || return 0
+  local pid
+  for pid in $(<"$state.watch"); do
+    [[ $pid =~ ^[0-9]+$ ]] && kill "$pid" 2>/dev/null || true
+  done
+  rm -f "$state.watch"
+}
+
+start_watcher() {
+  local pid
+  pid=$(pgrep -o -f "^quickshell( .*)? --path $shell_qml\$" || true)
+  [[ -n $pid ]] || return 0
+  stop_watcher
+  if [[ $parser == lua ]]; then
+    hyprctl dispatch "hl.dsp.exec_cmd(\"$self watch $pid lua\")" >/dev/null 2>&1 || true
+  else
+    hyprctl dispatch exec "$self watch $pid legacy" >/dev/null 2>&1 || true
+  fi
+}
+
+case $action in
+  hide)
+    parser=${2:-lua}
+    lock
+    if [[ ! -e $state ]]; then
+      previous=false
+      if hyprctl getoption cursor:invisible -j 2>/dev/null | grep -Eq '"(bool|int)": *(true|1)'; then
+        previous=true
+      fi
+      printf '%s\n' "$previous" >"$state"
+    fi
+    set_invisible true
+    start_watcher
+    ;;
+  show)
+    parser=${2:-lua}
+    lock
+    stop_watcher
+    restore
+    ;;
+  watch)
+    pid=${2:-}
+    parser=${3:-lua}
+    [[ $pid =~ ^[0-9]+$ ]] || exit 2
+    # A `tail --pid` a folyamat megszuneseig var, kulon ciklus nelkul.
+    tail --pid="$pid" -f /dev/null &
+    waiter=$!
+    printf '%s %s\n' "$$" "$waiter" >"$state.watch"
+    wait "$waiter" || exit 0
+    lock
+    rm -f "$state.watch"
+    restore
+    ;;
+  *)
+    echo "usage: screensaver-cursor hide|show [lua|legacy]" >&2
+    exit 2
+    ;;
+esac

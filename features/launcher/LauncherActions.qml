@@ -157,10 +157,16 @@ QtObject {
         "command": ipc("about", "toggle")
     }, {
         "name": "lock",
-        "terms": ["lockscreen", "screensaver"],
+        "terms": ["lockscreen"],
         "icon": "󰌾",
         "subtitle": "Lock the session",
         "command": ipc("lock", "lock")
+    }, {
+        "name": "screensaver",
+        "terms": ["ascii", "animation", "idle"],
+        "icon": "󰍹",
+        "subtitle": "Start the ASCII screensaver",
+        "command": ipc("screensaver", "start")
     }, {
         "name": "suspend",
         "terms": ["sleep", "power"],

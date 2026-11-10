@@ -9,6 +9,7 @@ Item {
     required property var lockProvider
     required property var focusedScreenProvider
     required property var screenshotCaptureProvider
+    required property var screensaverProvider
     // Az eppen szolo (vagy utolso) MPRIS lejatszo a medagombokhoz.
     property var activePlayer: null
     // A zene hangerejet lepteto core/MprisController.
@@ -112,6 +113,14 @@ Item {
 
         function lock(): void { lockProvider.lock() }
         function suspend(): void { lockProvider.suspend() }
+    }
+
+    IpcHandler {
+        target: "screensaver"
+
+        function start(): void { screensaverProvider.start() }
+        function stop(): void { screensaverProvider.stop() }
+        function toggle(): void { screensaverProvider.toggle() }
     }
 
     IpcHandler {

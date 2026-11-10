@@ -43,6 +43,13 @@ terminal helpers.
 - Google Calendar events in the calendar card and its expanded view, after a
   one-click sign-in on the Settings Calendar page (read-only access).
 - PipeWire audio mixer, NetworkManager controls, volume OSD, and Polkit agent.
+- NetworkManager secret agent: Wi-Fi, WEP, 802.1X and PPPoE passwords are asked
+  in a shell dialog instead of through `nm-applet`. Passwords saved "for this
+  user only" go to the keyring under the same attributes `nm-applet` uses, so
+  existing ones keep working.
+- Settings Sound page: default output and input, volume and mute, moving an
+  application to another device, and sound card profiles (HDMI or analog,
+  stereo or surround, Bluetooth codecs).
 - Removable-device popup with mount, unmount, open, and safe power-off actions.
 - Full-screen wallpaper and theme pickers in a skewed carousel, including an
   optional wallpaper-derived palette. Themes preview live on the running shell
@@ -87,7 +94,9 @@ require the corresponding command:
 | --- | --- |
 | Launcher calculator | `qalc` |
 | Media position control | `gdbus` |
-| Audio control panel | `pavucontrol` |
+| Settings sound card profiles | `pw-dump`, `wpctl` |
+| Moving an application to another output | `pactl` (`libpulse` on Arch, `pulseaudio-utils` on Fedora) |
+| VPN plugin password prompts (OpenVPN, OpenConnect) | `nm-applet` (optional, not started by default) |
 | Audio visualization | `cava` (optional) |
 | Battery status | UPower daemon (optional) |
 | AI usage panel | `codex` and/or `claude` CLI with an active subscription login |
@@ -157,11 +166,13 @@ cp your-wallpaper.png "$HOME/Pictures/wallpapers/"
 ```
 
 The setup installs `~/.config/hypr/autostart.lua`. It starts the shell
-immediately in a running Hyprland session and automatically on later sessions. It
-also starts `nm-applet`: the shell's network panel joins Wi-Fi networks itself,
-but NetworkManager still needs a secret agent to ask for passwords it starts on
-its own (enterprise Wi-Fi, VPN, a changed key), so its tray icon appears next
-to the bar's own network indicator.
+immediately in a running Hyprland session and automatically on later sessions.
+`nm-applet` is no longer started: the shell is NetworkManager's secret agent and
+asks for Wi-Fi, 802.1X and PPPoE passwords in its own dialog. The agent is
+registered only while the shell runs, so without it `nmcli --ask` or `nm-applet`
+can still answer. VPN plugins with their own password dialog (OpenVPN,
+OpenConnect) are left to `nm-applet`; uncomment its line in `autostart.lua` if
+you use one.
 
 Restart an already running instance with:
 
@@ -236,6 +247,7 @@ quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET ME
 | `lock` | `lock`, `suspend` (locks first and waits for compositor confirmation) |
 | `about` | `toggle`, `open`, `close` (a floating kitty window running Fastfetch) |
 | `screenshot` | `capture`, `window`, `workspace`, `region` |
+| `screensaver` | `start`, `stop`, `toggle` |
 
 Every overlay opens on the focused monitor and closes the others, because they
 all go through `app/PopupCoordinator.qml`. `about` is the one exception: it is
@@ -261,6 +273,82 @@ the shell shows the OSD from the change itself. The play, pause, next and
 previous keys go to the shell's active player, so `playerctl` is not needed;
 `CTRL` with the volume keys steps that player's own volume. All of them work on
 the lock screen.
+
+### Screensaver
+
+Settings → System → **Screensaver after inactivity** starts an ASCII animation
+on every monitor after 1–30 minutes without input (off by default). Any key
+press, click or mouse movement ends it; that first input does not reach the
+application underneath. The mouse pointer is hidden while it runs
+(`scripts/screensaver-cursor` toggles Hyprland's `cursor:invisible` and restores
+the previous value afterwards; a small watcher started through Hyprland also
+restores it if the shell dies while the screensaver runs).
+
+| Christmas | New Year's Eve |
+| --- | --- |
+| ![Christmas screensaver: a turning ASCII fir tree in falling snow](assets/screensaver/christmas.gif) | ![New Year's Eve screensaver: ASCII fireworks over a city skyline](assets/screensaver/newyear.gif) |
+| **Summer** | **Autumn** |
+| ![Summer screensaver: an ASCII sunset over the sea](assets/screensaver/summer.gif) | ![Autumn screensaver: a glowing carved pumpkin and falling leaves](assets/screensaver/autumn.gif) |
+| **Shapes** | |
+| ![Shapes screensaver: a morphing 3D form drawn in ASCII](assets/screensaver/shapes.gif) | |
+
+**Orbit across monitors**, recorded as two side-by-side screens. The planet
+sits on the boundary and the comet crosses from one screen to the other:
+
+![Orbit screensaver spanning two monitors](assets/screensaver/orbit.gif)
+
+The previews play the scenes about three times faster than real time.
+
+**Screensaver theme** picks the scene:
+
+| Theme | Scene |
+| --- | --- |
+| Shapes (default) | A 3D form morphs between droplets, a knot, a lattice and a gem, in the active theme's colours |
+| Christmas | A turning fir tree with baubles and a star, snowfall and snowdrifts |
+| New Year's Eve | Fireworks over a city skyline with lit windows |
+| Winter | A six-armed ice crystal in falling snow |
+| Valentine's Day | A beating 3D heart with rising `<3` |
+| Easter | A painted egg with zig-zag bands, falling petals and grass |
+| Summer | Sunset over the sea: waves, the sun's glitter path, gulls and clouds |
+| Autumn | A carved, glowing pumpkin, falling leaves and two bats |
+| Orbit across monitors | One picture over all monitors: a ringed planet on the centre of the combined desktop, an orbiting moon, a comet crossing every screen and a drifting starfield |
+
+Every other theme draws each monitor on its own. Orbit lays its scene over the
+rectangle that encloses all monitors, so the picture continues across the
+boundary; Automatic never picks it.
+
+**Automatic by season** chooses one when the screensaver starts:
+
+| Dates | Theme |
+| --- | --- |
+| 1 Jan – 6 Jan | New Year's Eve |
+| 7 Jan – 6 Feb | Winter |
+| 7 Feb – 15 Feb | Valentine's Day |
+| 16 Feb – 19 Mar | Winter |
+| 20 Mar – 31 May | Easter |
+| 1 Jun – 31 Aug | Summer |
+| 1 Sep – 30 Nov | Autumn |
+| 1 Dec – 26 Dec | Christmas |
+| 27 Dec – 31 Dec | New Year's Eve |
+
+The seasonal themes use their own colours. `features/screensaver/ScreensaverThemes.js`
+holds their palettes and this calendar.
+
+It needs no terminal or idle daemon: `features/screensaver/` is a Quickshell
+overlay rendered by two fragment shaders, so it costs nothing until it starts.
+It does not lock the session, and it gives way to the lock screen if that
+engages. Idle inhibitors and a focused fullscreen window keep it from starting.
+
+```bash
+quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call screensaver start
+```
+
+Each scene is one `shaders/<theme>.frag`, which includes the shared
+`shaders/common.glsl`. The compiled `.qsb` files are checked in. After editing a
+`.frag` or `common.glsl`, run
+`scripts/build-shaders`, which needs the Qt 6 Shader Tools, then restart the shell
+with `scripts/theme-refresh`. A live reload keeps using the shaders Qt has already
+cached in the running process.
 
 ### Lock screen
 
@@ -405,6 +493,8 @@ any other way restores the palette you started with.
 | `current-weather-location` | Location passed to Open-Meteo geocoding |
 | `lockscreen-monitor` | Preferred monitor for password input |
 | `lock-idle-minutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
+| `screensaver-idle-minutes` | Minutes of inactivity before the ASCII screensaver starts; `0` or missing means never |
+| `screensaver-theme` | Screensaver scene: `shapes` (default when missing), `auto`, or a theme name from `ScreensaverThemes.js` |
 
 Clipboard history lives outside the repository, in
 `$XDG_STATE_HOME/vellum-shell/clipboard/` (`~/.local/state/...` by default):
@@ -607,6 +697,7 @@ the daemon keeps that module running from start-up.
 | `theme` | `themes/*/theme.conf`, native Material You | 9 chained bash scripts, `matugen`, `jq` |
 | `clipboard` | Wayland `wlr-data-control`, history in `$XDG_STATE_HOME/vellum-shell/clipboard` | `cliphist`, two `wl-paste --watch` loops, ImageMagick thumbnails |
 | `network` | NetworkManager D-Bus for live state; bounded `nmcli` calls for Wi-Fi actions | QML-side `nmcli` and `ip -4 -j` polling |
+| `netsecrets` | NetworkManager secret agent on its own system-bus connection, registered only while subscribed; agent-owned secrets in the Secret Service keyring | `nm-applet` |
 | `vpn` | NetworkManager D-Bus, `protonvpn` for details | `protonvpn status` on every tick |
 | `removable` | udisks2 D-Bus | `lsblk --json` every 2.5 s, `udisksctl` |
 | `privacy` | `/proc` scan for `/dev/video*` handles | resident `camera-usage` bash loop |
@@ -616,6 +707,7 @@ the daemon keeps that module running from start-up.
 | `weather` | Open-Meteo | three `curl` calls per panel open |
 | `calendar` | Google Calendar API, OAuth sign-in through the browser | — |
 | `hypr` | `hyprctl`, `/sys/class/drm` EDID | hand-edited Hyprland config files |
+| `audio` (calls only) | `pw-dump` for sound card profiles, `wpctl set-profile`, `pactl move-sink-input` | `pavucontrol` |
 
 ### Hyprland settings
 

@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 
 // A rendszer-oldal allapota. A korabbi Setup beallitasok mellett egyszeri
@@ -17,6 +18,9 @@ Item {
     property string lockscreenMonitor: ""
     // Percben, szovegkent (a SettingSelect erteke); "0" = soha.
     property string lockIdleMinutes: "0"
+    property string screensaverIdleMinutes: "0"
+    // "shapes", "auto" vagy egy unnepi tema (features/screensaver/ScreensaverThemes.js).
+    property string screensaverTheme: "shapes"
     property var diagnosticFacts: []
     property var backendModules: []
     property var failedServices: []
@@ -180,6 +184,20 @@ Item {
         lockIdleFile.setText(value + "\n");
     }
 
+    function setScreensaverIdleMinutes(value) {
+        screensaverIdleMinutes = value;
+        screensaverIdleFile.setText(value + "\n");
+    }
+
+    function setScreensaverTheme(value) {
+        screensaverTheme = value;
+        screensaverThemeFile.setText(value + "\n");
+    }
+
+    function previewScreensaver() {
+        Quickshell.execDetached(["quickshell", "ipc", "--path", shellDir + "/shell.qml", "call", "screensaver", "start"]);
+    }
+
     Process {
         id: write
     }
@@ -196,6 +214,34 @@ Item {
         onFileChanged: lockIdleFile.reload()
         onLoadFailed: controller.lockIdleMinutes = "0"
         onSaveFailed: controller.diagnosticsMessage = "The lock timeout could not be saved."
+    }
+
+    // A kepernyovedo (features/screensaver/ScreensaverController.qml) ugyanezt
+    // a fajlt figyeli.
+    FileView {
+        id: screensaverIdleFile
+
+        path: controller.shellDir + "/screensaver-idle-minutes"
+        atomicWrites: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: controller.screensaverIdleMinutes = String(Math.max(0, parseInt(screensaverIdleFile.text().trim(), 10) || 0))
+        onFileChanged: screensaverIdleFile.reload()
+        onLoadFailed: controller.screensaverIdleMinutes = "0"
+        onSaveFailed: controller.diagnosticsMessage = "The screensaver timeout could not be saved."
+    }
+
+    FileView {
+        id: screensaverThemeFile
+
+        path: controller.shellDir + "/screensaver-theme"
+        atomicWrites: true
+        watchChanges: true
+        printErrors: false
+        onLoaded: controller.screensaverTheme = screensaverThemeFile.text().trim() || "shapes"
+        onFileChanged: screensaverThemeFile.reload()
+        onLoadFailed: controller.screensaverTheme = "shapes"
+        onSaveFailed: controller.diagnosticsMessage = "The screensaver theme could not be saved."
     }
 
     FileView {

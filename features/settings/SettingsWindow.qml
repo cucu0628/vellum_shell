@@ -47,6 +47,13 @@ FloatingWindow {
         "description": "Keyboard layout, pointer speed and touchpad behaviour.",
         "keywords": "keyboard layout variant repeat delay mouse pointer sensitivity focus follows touchpad natural scrolling tap click"
     }, {
+        "id": "sound",
+        "label": "Sound",
+        "icon": "󰕾",
+        "group": "Desktop",
+        "description": "Output and input devices, where each application plays, and sound card profiles.",
+        "keywords": "audio volume speaker headphones headset microphone mic output input hdmi analog surround profile card pipewire mute application stream"
+    }, {
         "id": "topbar",
         "label": "Top bar",
         "icon": "󰍜",
@@ -87,7 +94,7 @@ FloatingWindow {
         "icon": "󰒓",
         "group": "System",
         "description": "Shell services, diagnostics and maintenance.",
-        "keywords": "weather location power profile lock screen idle diagnostics backend daemon reset network hyprland"
+        "keywords": "weather location power profile lock screen idle screensaver ascii christmas seasonal theme diagnostics backend daemon reset network hyprland"
     }]
     readonly property var currentPage: {
         for (var i = 0; i < pages.length; i++) {
@@ -352,6 +359,8 @@ FloatingWindow {
                             return windowsPage;
                         case "input":
                             return inputPage;
+                        case "sound":
+                            return soundPage;
                         case "topbar":
                             return topbarPage;
                         case "defaults":
@@ -399,6 +408,16 @@ FloatingWindow {
 
         InputPage {
             controller: settingsController
+            theme: window.theme
+        }
+
+    }
+
+    Component {
+        id: soundPage
+
+        SoundPage {
+            backend: window.backend
             theme: window.theme
         }
 
