@@ -76,6 +76,9 @@ Click the clock, or bind `media toggle`. The dashboard shows:
 
 `media calendar` and `media weather` open the dashboard with that card already expanded.
 
+!!! tip "Hibiki"
+    The player in the screenshots is [Hibiki](https://github.com/cucu0628/Hibiki), a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.
+
 ## Notifications
 
 ![The notification centre grouped by application](/media/shots/notifications.jpg)

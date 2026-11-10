@@ -394,6 +394,46 @@ h1, h2, h3 { color: var(--fg-bright); }
 .stage-theme { color: var(--fg-bright); font-weight: 500; }
 .stage-painting { font-style: italic; }
 
+.stage-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 0 8px;
+    padding: 4px 14px 4px 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    color: var(--muted-text);
+    font-size: 13px;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+.stage-chip img { width: 20px; height: 20px; }
+.stage-chip strong { color: var(--fg-bright); font-weight: 500; }
+.stage-chip:hover { color: var(--fg); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+
+.promo {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--panel)), var(--panel));
+    text-decoration: none;
+    transition: border-color 0.2s ease, transform 0.3s var(--ease);
+}
+.promo:hover { border-color: color-mix(in srgb, var(--accent) 50%, transparent); transform: translateY(-2px); }
+.promo img { width: 48px; height: 48px; }
+.promo-text { display: flex; flex-direction: column; gap: 2px; }
+.promo-kicker { color: var(--accent-text); font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.promo-title { color: var(--fg-bright); font-family: var(--serif); font-size: 22px; line-height: 1.2; }
+.promo-body { color: var(--muted-text-surface); font-size: 14px; line-height: 1.5; }
+.promo-arrow { color: var(--accent-text); font-size: 18px; transition: transform 0.2s var(--ease); }
+.promo:hover .promo-arrow { transform: translateX(4px); }
+
 /* -- Marquee --------------------------------------------------------- */
 
 .marquee {
@@ -934,6 +974,7 @@ pre { margin: 0; overflow-x: auto; color: var(--fg-light); font-size: 13px; line
     .stage-frame { border-radius: 12px; }
     .stage-caption { font-size: 12px; }
     .stage-painting, .stage-sep { display: none; }
+    .stage-chip { margin-left: 0; font-size: 12px; }
     .marquee { margin-top: 64px; }
     .marquee figure { width: 240px; }
     .section { padding-top: 96px; }

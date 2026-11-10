@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Hibiki (響, "resonance"): a note and its echo, in Vellum's Varnished Horizon tones. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34312c"/>
+      <stop offset="1" stop-color="#1b1a18"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#tile)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="13.5" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+  <g transform="translate(2 0)">
+    <ellipse cx="21" cy="44" rx="7.5" ry="5.8" transform="rotate(-20 21 44)" fill="#e7dfcd"/>
+    <path d="M 27.5 42 V 14 L 36 18.5" fill="none" stroke="#e7dfcd" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <g fill="none" stroke-linecap="round" stroke-width="3.6">
+      <path d="M 37 31 A 10 10 0 0 1 37 45" stroke="#a7a27f"/>
+      <path d="M 43 25.5 A 17 17 0 0 1 43 50.5" stroke="#a7a27f" stroke-opacity="0.55"/>
+    </g>
+  </g>
+</svg>

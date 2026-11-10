@@ -56,8 +56,9 @@ a headless KWin (`kwin_wayland --virtual`) running a nested Hyprland with its
 own runtime directory, session bus and no system bus, a copy of the repository,
 and a backend started with `VELLUM_SHELL_DIR`, `VELLUM_GREETER_DIR` and
 `VELLUM_NO_SIDE_EFFECTS`. Frames were taken with `grim` and encoded to VP9 WebM
-and H.264 MP4. The wallpapers are public-domain paintings; the music track and
-notifications are made up.
+and H.264 MP4. The wallpapers are public-domain paintings. The player is a stand-in that
+announces itself over MPRIS exactly like [Hibiki](https://github.com/cucu0628/Hibiki),
+with a track and cover from its library; the notifications are made up.
 
 ## Building
 
