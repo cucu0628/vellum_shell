@@ -378,11 +378,20 @@ h1, h2, h3 { color: var(--fg-bright); }
 }
 .stage-video { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 
+.stage-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
 .stage-caption {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin-top: 20px;
+    min-height: 34px;
     padding: 6px 14px;
     border: 1px solid var(--line);
     border-radius: 999px;
@@ -398,8 +407,8 @@ h1, h2, h3 { color: var(--fg-bright); }
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin: 20px 0 0 8px;
-    padding: 4px 14px 4px 6px;
+    min-height: 34px;
+    padding: 0 14px 0 8px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: color-mix(in srgb, var(--surface) 60%, transparent);
@@ -974,7 +983,7 @@ pre { margin: 0; overflow-x: auto; color: var(--fg-light); font-size: 13px; line
     .stage-frame { border-radius: 12px; }
     .stage-caption { font-size: 12px; }
     .stage-painting, .stage-sep { display: none; }
-    .stage-chip { margin-left: 0; font-size: 12px; }
+    .stage-chip { font-size: 12px; }
     .marquee { margin-top: 64px; }
     .marquee figure { width: 240px; }
     .section { padding-top: 96px; }
