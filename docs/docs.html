@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#11130f">
+    <meta property="og:site_name" content="Vellum Shell">
+    <meta property="og:image" content="https://vellum.asked.hu/assets/Overview.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400..600&display=swap">
+    <link rel="stylesheet" href="style.css">
+    <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
+    <script src="themes.js"></script>
+    <script src="theme.js"></script>
+    <script src="site.js" defer></script>
+    <title>Documentation · Vellum Shell</title>
+    <meta name="description" content="Installation, usage, IPC reference, lock screen, appearance, backend and development documentation for Vellum Shell.">
+    <link rel="canonical" href="https://vellum.asked.hu/docs.html">
+    <meta property="og:title" content="Vellum Shell documentation">
+    <meta property="og:description" content="Installation, usage, IPC, theming and backend reference.">
+    <meta property="og:url" content="https://vellum.asked.hu/docs.html">
+</head>
+<body class="page-docs">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="./" aria-label="Vellum Shell home">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <span>Vellum</span>
+            </a>
+            <nav class="topnav" aria-label="Primary">
+                <a href="./#features" data-section="features">Features</a>
+                <a href="./#themes" data-section="themes">Themes</a>
+                <a href="./#screensaver" data-section="screensaver">Screensaver</a>
+                <a href="./#install" data-section="install">Install</a>
+                <a href="docs.html" data-section="docs">Docs</a>
+            </nav>
+            <div class="topbar-actions">
+                <div class="theme-menu">
+                    <button class="theme-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="theme-popover">
+                        <span class="theme-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                        <span class="theme-button-name">Theme</span>
+                        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="theme-popover" id="theme-popover" role="listbox" aria-label="Site theme" hidden></div>
+                </div>
+                <a class="icon-link" href="https://github.com/cucu0628/vellum_shell" aria-label="Source code on GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="docs-layout">
+        <aside class="docs-toc" aria-label="Contents">
+            <details class="toc-details" open>
+                <summary>On this page</summary>
+                <nav>
+                    <ol class="toc-list"><li><a href="#features">Features</a></li><li><a href="#requirements">Requirements</a><ol class="toc-sub"><li><a href="#core">Core</a></li><li><a href="#feature-dependencies">Feature dependencies</a></li></ol></li><li><a href="#installation">Installation</a><ol class="toc-sub"><li><a href="#removing-it-again">Removing it again</a></li></ol></li><li><a href="#usage">Usage</a><ol class="toc-sub"><li><a href="#ipc-reference">IPC reference</a></li><li><a href="#screensaver">Screensaver</a></li><li><a href="#lock-screen">Lock screen</a></li><li><a href="#login-screen-greetd">Login screen (greetd)</a></li></ol></li><li><a href="#appearance">Appearance</a><ol class="toc-sub"><li><a href="#state-files">State files</a></li><li><a href="#google-calendar">Google Calendar</a></li><li><a href="#themes">Themes</a></li><li><a href="#neovim-and-lazyvim">Neovim and LazyVim</a></li></ol></li><li><a href="#project-structure">Project structure</a></li><li><a href="#backend">Backend</a><ol class="toc-sub"><li><a href="#hyprland-settings">Hyprland settings</a></li></ol></li><li><a href="#development">Development</a></li></ol>
+                </nav>
+            </details>
+        </aside>
+
+        <main id="main" class="docs-main">
+            <header class="docs-head">
+                <p class="eyebrow">Documentation</p>
+                <h1>Vellum Shell</h1>
+                <p class="docs-meta">Rendered from the <a href="https://github.com/cucu0628/vellum_shell/blob/main/README.md">README</a> at <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a>. The architecture notes are in <a href="https://github.com/cucu0628/vellum_shell/blob/main/layout.md">layout.md</a>.</p>
+            </header>
+            <article class="prose">
+                <p>Vellum Shell is an ink-inspired desktop shell for
+<a href="https://quickshell.outfoxxed.me/">Quickshell</a> and Hyprland. It provides a
+multi-monitor top bar, application launcher, notification center, media
+dashboard, system controls, appearance management, and a separate Wayland
+session lock.</p>
+<p>The project targets Arch Linux, CachyOS, and Fedora Linux with Hyprland 0.55 or
+newer. It uses Hyprland's native Lua configuration API and assumes Kitty for
+terminal helpers.</p>
+<h2 id="features">Features<a class="anchor" href="#features" title="Link to this section">#</a></h2>
+<ul>
+<li>Per-monitor wallpaper layers and top bars with Hyprland workspaces.</li>
+<li>MPRIS media status, Cava visualization, clock, network, VPN, audio,
+  notifications, system tray, system monitor, optional battery status, and
+  power controls.</li>
+<li>Application launcher with desktop-entry search and frecency ranking. One
+  prefix-free field searches applications, shell actions (lock, shutdown,
+  appearance, screenshot) and emoji at once, and evaluates anything that looks
+  like a maths expression.</li>
+<li>Launcher project mode (<code>&gt;</code>) for directories under <code>~/Projects</code>.</li>
+<li>Terminal desktop entries (<code>Terminal=true</code>, such as Neovim or btop) open in the
+  default terminal instead of being started without a TTY. Settings &gt; Default
+  apps picks it from the installed <code>TerminalEmulator</code> entries and stores it as
+  the first line of <code>~/.config/xdg-terminals.list</code> (the xdg-terminal-exec list);
+  without one, Kitty is used. GLib launches (<code>xdg-open</code>, file managers) only read
+  that list through <code>xdg-terminal-exec</code>; without it they fall back to their own
+  order, which skips Kitty and picks e.g. Konsole. The floating helpers (btop, installers, About)
+  stay on Kitty.</li>
+<li>Clipboard history with text and image previews, activation, and deletion.</li>
+<li>Notification server with toasts, history, actions, unread state, and DND.
+  History and DND survive a shell restart (kept in <code>$XDG_RUNTIME_DIR</code>, so
+  they are gone after logging out); restored entries have no actions.</li>
+<li>Notification center grouping per application, with collapsible groups,
+  per-group unread counts, and per-group clearing.</li>
+<li>Media dashboard: an album-art player above a compact calendar, weather, and system statistics row.</li>
+<li>Google Calendar events in the calendar card and its expanded view, after a
+  one-click sign-in on the Settings Calendar page (read-only access).</li>
+<li>PipeWire audio mixer, NetworkManager controls, volume OSD, and Polkit agent.</li>
+<li>NetworkManager secret agent: Wi-Fi, WEP, 802.1X and PPPoE passwords are asked
+  in a shell dialog instead of through <code>nm-applet</code>. Passwords saved "for this
+  user only" go to the keyring under the same attributes <code>nm-applet</code> uses, so
+  existing ones keep working.</li>
+<li>Settings Sound page: default output and input, volume and mute, moving an
+  application to another device, and sound card profiles (HDMI or analog,
+  stereo or surround, Bluetooth codecs).</li>
+<li>Removable-device popup with mount, unmount, open, and safe power-off actions.</li>
+<li>Full-screen wallpaper and theme pickers in a skewed carousel, including an
+  optional wallpaper-derived palette. Themes preview live on the running shell
+  and are written out once you settle.</li>
+<li>Screenshot modes for smart selection, windows, workspaces, and regions.</li>
+<li>Multi-monitor Wayland lock screen with PAM authentication.</li>
+<li>Settings application in a real resizable window, with Hyprland display
+  arrangement, tiling and decoration, input devices, a drag-and-drop top-bar
+  layout editor, default applications, system diagnostics, XDG autostart
+  entries, systemd user services, desktop preferences, and searchable
+  keybindings. Every bar module can be reordered, moved between the left,
+  center and right zones, or hidden.</li>
+<li>Searchable Launcher actions for guided package, AUR/COPR, web app, and terminal
+  app installation and removal.</li>
+</ul>
+<p>Popups are loaded on demand and coordinated so that overlapping shell surfaces
+do not remain open at the same time.</p>
+<h2 id="requirements">Requirements<a class="anchor" href="#requirements" title="Link to this section">#</a></h2>
+<h3 id="core">Core<a class="anchor" href="#core" title="Link to this section">#</a></h3>
+<ul>
+<li>A Wayland session running Hyprland.</li>
+<li>Quickshell with Hyprland, PipeWire, MPRIS, notifications, system tray, PAM,
+  Polkit, UPower, and Wayland support.</li>
+<li>PipeWire, NetworkManager, and udisks2.</li>
+<li>Rust (<code>cargo</code>) to build the backend. The shell starts without it, but with no
+  theming and no system state.</li>
+<li>A Nerd Font for the shell icons, preferably <code>Symbols Nerd Font Mono</code>.</li>
+<li>Standard command-line tools such as <code>bash</code>, <code>hyprctl</code>, and <code>jq</code>. The backend
+  reads NetworkManager and udisks2 over D-Bus, so <code>ip</code>, <code>lsblk</code>, <code>udisksctl</code>,
+  <code>curl</code>, and <code>matugen</code> are no longer needed. Two tools are still required:
+  the backend uses <code>nmcli</code> for Wi-Fi scanning and connection changes, and <code>jq</code>
+  is used by the screenshot and lock-screen helper scripts.</li>
+</ul>
+<h3 id="feature-dependencies">Feature dependencies<a class="anchor" href="#feature-dependencies" title="Link to this section">#</a></h3>
+<p>Some features remain usable when their optional tool is missing, while others
+require the corresponding command:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launcher calculator</td>
+<td><code>qalc</code></td>
+</tr>
+<tr>
+<td>Media position control</td>
+<td><code>gdbus</code></td>
+</tr>
+<tr>
+<td>Settings sound card profiles</td>
+<td><code>pw-dump</code>, <code>wpctl</code></td>
+</tr>
+<tr>
+<td>Moving an application to another output</td>
+<td><code>pactl</code> (<code>libpulse</code> on Arch, <code>pulseaudio-utils</code> on Fedora)</td>
+</tr>
+<tr>
+<td>VPN plugin password prompts (OpenVPN, OpenConnect)</td>
+<td><code>nm-applet</code> (optional, not started by default)</td>
+</tr>
+<tr>
+<td>Audio visualization</td>
+<td><code>cava</code> (optional)</td>
+</tr>
+<tr>
+<td>Battery status</td>
+<td>UPower daemon (optional)</td>
+</tr>
+<tr>
+<td>AI usage panel</td>
+<td><code>codex</code> and/or <code>claude</code> CLI with an active subscription login</td>
+</tr>
+<tr>
+<td>Weather</td>
+<td>Internet access to Open-Meteo (the backend does the request)</td>
+</tr>
+<tr>
+<td>Google Calendar</td>
+<td>A browser for sign-in and a one-time Desktop OAuth client from Google Cloud Console</td>
+</tr>
+<tr>
+<td>Screenshot capture</td>
+<td><code>grim</code>, <code>slurp</code>, <code>magick</code>, <code>hyprctl</code>, <code>jq</code>; the selection freezes the screen with <code>wayfreeze</code> or, failing that, <code>hyprpicker</code>, and still works without either</td>
+</tr>
+<tr>
+<td>Screenshot extras</td>
+<td><code>snip</code> (optional editor), <code>wl-copy</code>, <code>notify-send</code>, <code>xdg-user-dir</code></td>
+</tr>
+<tr>
+<td>Interactive utility scripts</td>
+<td><code>fzf</code>, Kitty</td>
+</tr>
+<tr>
+<td>Package management</td>
+<td><code>pacman</code> plus <code>paru</code>/<code>yay</code> on Arch; <code>dnf</code> plus its COPR plugin on Fedora</td>
+</tr>
+<tr>
+<td>Power profiles</td>
+<td><code>powerprofilesctl</code> or a compatible PPD D-Bus service</td>
+</tr>
+<tr>
+<td>Settings default applications</td>
+<td><code>xdg-mime</code> from <code>xdg-utils</code>; <code>xdg-terminal-exec</code> so GLib apps (<code>xdg-open</code>, file managers) honour the default terminal</td>
+</tr>
+<tr>
+<td>Settings user services</td>
+<td>A reachable systemd user manager</td>
+</tr>
+<tr>
+<td>Bluetooth settings</td>
+<td><code>blueman-manager</code>, Blueberry, or KDE System Settings</td>
+</tr>
+<tr>
+<td>Removable devices</td>
+<td><code>util-linux</code>, <code>udisks2</code>, <code>xdg-utils</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The package helpers detect Arch/CachyOS or Fedora at runtime. The community
+package action uses the AUR through <code>paru</code>/<code>yay</code> on Arch and enables a selected
+COPR before installing on Fedora. Hyprland integration uses the native Lua API
+introduced in Hyprland 0.55 (<code>hl.config(...)</code>, <code>hl.bind(...)</code>, and <code>hl.dsp.*</code>).</p>
+<h2 id="installation">Installation<a class="anchor" href="#installation" title="Link to this section">#</a></h2>
+<p>Clone the repository to the path expected by the shell:</p>
+<pre><code class="language-bash">git clone https://github.com/cucu0628/vellum_shell.git \
+  &quot;$HOME/.config/quickshell/vellum_shell&quot;
+</code></pre>
+<p>Run the complete setup. It installs dependencies, creates state directories,
+sets up PAM and external themes, enables required services, and installs the
+Hyprland Lua modules under <code>~/.config/hypr/</code>:</p>
+<pre><code class="language-bash">cd &quot;$HOME/.config/quickshell/vellum_shell&quot;
+./setup.sh
+</code></pre>
+<p>To see what it would do first — the setup checks every prerequisite up front and
+prints its plan without changing anything:</p>
+<pre><code class="language-bash">./setup.sh --dry-run
+</code></pre>
+<p>The same preflight runs before a real install, so a missing Rust toolchain or an
+unusable Hyprland config stops the setup before it has touched the system. It
+also reports what it will <em>not</em> do: if you already have your own
+<code>~/.config/hypr/bindings.lua</code> or <code>autostart.lua</code>, those are kept and Vellum's
+versions are skipped, so the shell would come up without its key bindings. The
+notice is repeated at the end of the run.</p>
+<p>To install the Vellum login screen and make greetd the display manager as well:</p>
+<pre><code class="language-bash">./setup.sh --with-greeter
+</code></pre>
+<p>Use <code>./setup.sh --with-zen</code> to modify an existing Zen Browser profile and add
+the generated Vellum chrome theme. It is opt-in because it changes <code>user.js</code>.</p>
+<p>The setup preserves a valid existing wallpaper selection. If none exists, put
+an image in the wallpaper directory; the shell selects the first image:</p>
+<pre><code class="language-bash">cp your-wallpaper.png &quot;$HOME/Pictures/wallpapers/&quot;
+</code></pre>
+<p>The setup installs <code>~/.config/hypr/autostart.lua</code>. It starts the shell
+immediately in a running Hyprland session and automatically on later sessions.
+<code>nm-applet</code> is no longer started: the shell is NetworkManager's secret agent and
+asks for Wi-Fi, 802.1X and PPPoE passwords in its own dialog. The agent is
+registered only while the shell runs, so without it <code>nmcli --ask</code> or <code>nm-applet</code>
+can still answer. VPN plugins with their own password dialog (OpenVPN,
+OpenConnect) are left to <code>nm-applet</code>; uncomment its line in <code>autostart.lua</code> if
+you use one.</p>
+<p>Restart an already running instance with:</p>
+<pre><code class="language-bash">~/.config/quickshell/vellum_shell/scripts/theme-refresh
+</code></pre>
+<p><code>install.sh</code> remains available as a package-only installer. <code>setup.sh</code> is the
+recommended entry point for a fresh system.</p>
+<p>Both scripts detect Arch/CachyOS and Fedora automatically. On Fedora they use
+DNF and enable the <code>lionheartp/Hyprland</code> COPR recommended by Hyprland upstream.
+Vellum needs Hyprland 0.55 or newer with its Lua configuration API. Fedora 44
+and newer provide Quickshell directly. The installer keeps an existing
+PPD-compatible power-profile service; otherwise it installs Fedora's default
+<code>tuned-ppd</code>. DNF weak dependencies are disabled so the Hyprland package cannot
+pull in another panel or launcher such as nwg-panel or Wofi. The package
+installer passes only missing RPMs to DNF, avoiding an unrelated desktop or KDE
+upgrade during setup. It targets regular DNF-based Fedora installations;
+Fedora Atomic variants require their packages to be layered separately before
+running <code>./setup.sh --skip-packages</code>.</p>
+<h3 id="removing-it-again">Removing it again<a class="anchor" href="#removing-it-again" title="Link to this section">#</a></h3>
+<p><code>scripts/uninstall</code> reverses what the setup installed: the systemd user service
+and the <code>vellum</code> binary, the generated Hyprland modules, the <code>require</code> lines it
+appended, the include/import lines it added to <code>kitty.conf</code>, <code>gtk.css</code>, and
+<code>btop.conf</code>, the qt6ct palette and portal environment, and the generated Neovim
+colorscheme with its LazyVim spec. It is also the ownership manifest — anything not listed there was
+yours before the install and is left alone, including the repository, your
+wallpapers, and your screenshots.</p>
+<pre><code class="language-bash">scripts/uninstall --dry-run     # show what would be removed
+scripts/uninstall               # remove it
+scripts/uninstall --with-greeter --purge-state
+</code></pre>
+<p>Config files you had modified yourself (your own <code>bindings.lua</code>, a <code>colors.lua</code>
+that is not ours) are reported and kept.</p>
+<h2 id="usage">Usage<a class="anchor" href="#usage" title="Link to this section">#</a></h2>
+<p>Bar items open their related surfaces on the selected monitor. Every major
+surface is also exposed through Quickshell IPC, making it straightforward to
+bind shell actions in Hyprland.</p>
+<p>The general command format is:</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call TARGET METHOD
+</code></pre>
+<h3 id="ipc-reference">IPC reference<a class="anchor" href="#ipc-reference" title="Link to this section">#</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>menu</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code> (alias of <code>settings</code>)</td>
+</tr>
+<tr>
+<td><code>launcher</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>clipboard</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>theme</code>, <code>wallpaper</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>power</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code> (alias of <code>settings</code>)</td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td><code>toggle</code>, <code>dnd</code>, <code>close</code>, <code>clear</code>, <code>grouping</code>, <code>expand</code>, <code>collapse</code></td>
+</tr>
+<tr>
+<td><code>audio</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>volumeUp</code>, <code>volumeDown</code> (5% steps), <code>mute</code>, <code>micMute</code></td>
+</tr>
+<tr>
+<td><code>brightness</code></td>
+<td><code>up</code>, <code>down</code> (5% steps on the built-in display; no-op without a backlight)</td>
+</tr>
+<tr>
+<td><code>media</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>calendar</code>, <code>weather</code> (open with that card expanded), <code>playPause</code>, <code>next</code>, <code>previous</code>, <code>volumeUp</code>, <code>volumeDown</code> (the active player's own volume); <code>overview</code> and <code>player</code> are kept as aliases of <code>open</code></td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>bluetooth</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>vpn</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code>, <code>connect</code>, <code>disconnect</code>, <code>app</code></td>
+</tr>
+<tr>
+<td><code>removable</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code></td>
+</tr>
+<tr>
+<td><code>lock</code></td>
+<td><code>lock</code>, <code>suspend</code> (locks first and waits for compositor confirmation)</td>
+</tr>
+<tr>
+<td><code>about</code></td>
+<td><code>toggle</code>, <code>open</code>, <code>close</code> (a floating kitty window running Fastfetch)</td>
+</tr>
+<tr>
+<td><code>screenshot</code></td>
+<td><code>capture</code>, <code>window</code>, <code>workspace</code>, <code>region</code></td>
+</tr>
+<tr>
+<td><code>screensaver</code></td>
+<td><code>start</code>, <code>stop</code>, <code>toggle</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Every overlay opens on the focused monitor and closes the others, because they
+all go through <code>app/PopupCoordinator.qml</code>. <code>about</code> is the one exception: it is
+not an overlay but a real window -- Hyprland floats a centred kitty running
+Fastfetch -- so opening it only closes the overlays that would cover it.</p>
+<p>The setup installs these bindings in <code>~/.config/hypr/bindings.lua</code> using the
+native Hyprland Lua API:</p>
+<pre><code class="language-lua">local shell = [[quickshell ipc --path &quot;$HOME/.config/quickshell/vellum_shell/shell.qml&quot; call]]
+hl.bind(&quot;SUPER + SPACE&quot;, hl.dsp.exec_cmd(shell .. &quot; launcher toggle&quot;))
+hl.bind(&quot;SUPER + V&quot;, hl.dsp.exec_cmd(shell .. &quot; clipboard toggle&quot;))
+hl.bind(&quot;SUPER + N&quot;, hl.dsp.exec_cmd(shell .. &quot; notifications toggle&quot;))
+hl.bind(&quot;SUPER + P&quot;, hl.dsp.exec_cmd(shell .. &quot; settings toggle&quot;))
+</code></pre>
+<p>The same file binds <code>SUPER + SHIFT + L</code> to the lock screen, <code>PRINT</code> and
+<code>SHIFT + PRINT</code> to screenshots, and the media, volume and brightness keys. The
+volume keys call <code>wpctl</code> directly (capped at 100%) and the brightness keys call
+<code>vellum call brightness step</code>, so both keep working while the shell restarts;
+the shell shows the OSD from the change itself. The play, pause, next and
+previous keys go to the shell's active player, so <code>playerctl</code> is not needed;
+<code>CTRL</code> with the volume keys steps that player's own volume. All of them work on
+the lock screen.</p>
+<h3 id="screensaver">Screensaver<a class="anchor" href="#screensaver" title="Link to this section">#</a></h3>
+<p>Settings → System → <strong>Screensaver after inactivity</strong> starts an ASCII animation
+on every monitor after 1–30 minutes without input (off by default). Any key
+press, click or mouse movement ends it; that first input does not reach the
+application underneath. The mouse pointer is hidden while it runs
+(<code>scripts/screensaver-cursor</code> toggles Hyprland's <code>cursor:invisible</code> and restores
+the previous value afterwards; a small watcher started through Hyprland also
+restores it if the shell dies while the screensaver runs).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Christmas</th>
+<th>New Year's Eve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img loading="lazy" decoding="async" alt="Christmas screensaver: a turning ASCII fir tree in falling snow" src="assets/screensaver/christmas.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="New Year's Eve screensaver: ASCII fireworks over a city skyline" src="assets/screensaver/newyear.gif" /></td>
+</tr>
+<tr>
+<td><strong>Summer</strong></td>
+<td><strong>Autumn</strong></td>
+</tr>
+<tr>
+<td><img loading="lazy" decoding="async" alt="Summer screensaver: an ASCII sunset over the sea" src="assets/screensaver/summer.gif" /></td>
+<td><img loading="lazy" decoding="async" alt="Autumn screensaver: a glowing carved pumpkin and falling leaves" src="assets/screensaver/autumn.gif" /></td>
+</tr>
+<tr>
+<td><strong>Shapes</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><img loading="lazy" decoding="async" alt="Shapes screensaver: a morphing 3D form drawn in ASCII" src="assets/screensaver/shapes.gif" /></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Orbit across monitors</strong>, recorded as two side-by-side screens. The planet
+sits on the boundary and the comet crosses from one screen to the other:</p>
+<p><img loading="lazy" decoding="async" alt="Orbit screensaver spanning two monitors" src="assets/screensaver/orbit.gif" /></p>
+<p>The previews play the scenes about three times faster than real time.</p>
+<p><strong>Screensaver theme</strong> picks the scene:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Theme</th>
+<th>Scene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shapes (default)</td>
+<td>A 3D form morphs between droplets, a knot, a lattice and a gem, in the active theme's colours</td>
+</tr>
+<tr>
+<td>Christmas</td>
+<td>A turning fir tree with baubles and a star, snowfall and snowdrifts</td>
+</tr>
+<tr>
+<td>New Year's Eve</td>
+<td>Fireworks over a city skyline with lit windows</td>
+</tr>
+<tr>
+<td>Winter</td>
+<td>A six-armed ice crystal in falling snow</td>
+</tr>
+<tr>
+<td>Valentine's Day</td>
+<td>A beating 3D heart with rising <code>&lt;3</code></td>
+</tr>
+<tr>
+<td>Easter</td>
+<td>A painted egg with zig-zag bands, falling petals and grass</td>
+</tr>
+<tr>
+<td>Summer</td>
+<td>Sunset over the sea: waves, the sun's glitter path, gulls and clouds</td>
+</tr>
+<tr>
+<td>Autumn</td>
+<td>A carved, glowing pumpkin, falling leaves and two bats</td>
+</tr>
+<tr>
+<td>Orbit across monitors</td>
+<td>One picture over all monitors: a ringed planet on the centre of the combined desktop, an orbiting moon, a comet crossing every screen and a drifting starfield</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every other theme draws each monitor on its own. Orbit lays its scene over the
+rectangle that encloses all monitors, so the picture continues across the
+boundary; Automatic never picks it.</p>
+<p><strong>Automatic by season</strong> chooses one when the screensaver starts:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Dates</th>
+<th>Theme</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 Jan – 6 Jan</td>
+<td>New Year's Eve</td>
+</tr>
+<tr>
+<td>7 Jan – 6 Feb</td>
+<td>Winter</td>
+</tr>
+<tr>
+<td>7 Feb – 15 Feb</td>
+<td>Valentine's Day</td>
+</tr>
+<tr>
+<td>16 Feb – 19 Mar</td>
+<td>Winter</td>
+</tr>
+<tr>
+<td>20 Mar – 31 May</td>
+<td>Easter</td>
+</tr>
+<tr>
+<td>1 Jun – 31 Aug</td>
+<td>Summer</td>
+</tr>
+<tr>
+<td>1 Sep – 30 Nov</td>
+<td>Autumn</td>
+</tr>
+<tr>
+<td>1 Dec – 26 Dec</td>
+<td>Christmas</td>
+</tr>
+<tr>
+<td>27 Dec – 31 Dec</td>
+<td>New Year's Eve</td>
+</tr>
+</tbody>
+</table></div>
+<p>The seasonal themes use their own colours. <code>features/screensaver/ScreensaverThemes.js</code>
+holds their palettes and this calendar.</p>
+<p>It needs no terminal or idle daemon: <code>features/screensaver/</code> is a Quickshell
+overlay rendered by two fragment shaders, so it costs nothing until it starts.
+It does not lock the session, and it gives way to the lock screen if that
+engages. Idle inhibitors and a focused fullscreen window keep it from starting.</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call screensaver start
+</code></pre>
+<p>Each scene is one <code>shaders/&lt;theme&gt;.frag</code>, which includes the shared
+<code>shaders/common.glsl</code>. The compiled <code>.qsb</code> files are checked in. After editing a
+<code>.frag</code> or <code>common.glsl</code>, run
+<code>scripts/build-shaders</code>, which needs the Qt 6 Shader Tools, then restart the shell
+with <code>scripts/theme-refresh</code>. A live reload keeps using the shaders Qt has already
+cached in the running process.</p>
+<h3 id="lock-screen">Lock screen<a class="anchor" href="#lock-screen" title="Link to this section">#</a></h3>
+<p>The lock screen is hosted by the main shell and activated over IPC:</p>
+<pre><code class="language-bash">quickshell ipc --path ~/.config/quickshell/vellum_shell/shell.qml call lock lock
+</code></pre>
+<p>It creates a secure <code>WlSessionLock</code> surface on every monitor. Locking blurs the
+current desktop wallpaper behind a themed scrim instead of cutting to black, so
+the transition stays continuous in both directions; without a wallpaper the
+shell palette and the logo watermark stand in. Every monitor sets a large serif
+clock in the lower-left corner over a palette-tinted gradient; the input monitor
+adds the user name and password field beneath it, the others echo the typed
+characters and name the input monitor. Select the input monitor on the Settings app's System page, or
+directly:</p>
+<pre><code class="language-bash">~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor list
+~/.config/quickshell/vellum_shell/scripts/lockscreen-monitor set HDMI-A-1
+</code></pre>
+<p>Authentication uses the dedicated PAM service named <code>vellum-shell</code>. The setup
+installs <code>/etc/pam.d/vellum-shell</code>; no external lock-screen package is used.
+When that file is missing (for example after a manual install without <code>sudo</code>),
+the lock screen falls back to the system <code>login</code> service instead of refusing
+every password, so a locked session can always be unlocked.</p>
+<p>The screen also locks before the machine sleeps when something else suspends
+it: closing the lid, <code>systemctl suspend</code>, or an idle daemon. While the shell
+runs, the backend holds a logind delay inhibitor, locks on <code>PrepareForSleep</code>,
+and lets the suspend continue once the compositor has confirmed the lock
+surface, or after 4.5 seconds if the shell does not answer. Without the
+daemon, only <code>lock suspend</code> locks first.</p>
+<p><code>loginctl lock-session</code> locks the Vellum lock screen too, so an idle daemon
+such as hypridle can use <code>lock_cmd = loginctl lock-session</code>. The shell reports
+its state to logind (<code>LockedHint</code>). Without an idle daemon, Settings → System →
+<strong>Lock after inactivity</strong> locks the screen after 1–30 minutes without input
+(off by default); fullscreen video and other idle inhibitors keep it awake.</p>
+<p>If the shell crashes while the screen is locked, <code>scripts/shell-run</code> (which
+<code>shell-start</code> and <code>theme-refresh</code> use) restarts it, and the new instance locks
+again straight away. <code>vellum_tuning.lua</code> sets Hyprland's
+<code>misc.allow_session_lock_restore</code> so that the restarted shell can take the lock
+back instead of leaving the session stuck on Hyprland's fallback screen. The
+supervisor gives up after five crashes within a minute.</p>
+<h3 id="login-screen-greetd">Login screen (greetd)<a class="anchor" href="#login-screen-greetd" title="Link to this section">#</a></h3>
+<p>The login screen is the lock screen's own QML running as a greetd greeter:
+<code>GreeterShell.qml</code> → <code>features/lock/GreeterRoot.qml</code>. It reuses the lock
+background, clock, password field and ambient view, and adds the greeter-only
+controls: user picker, session picker (Wayland sessions from
+<code>/usr/share/wayland-sessions</code>), keyboard layout, and sleep / restart / shut down.
+No X server is started; there is no SDDM involved.</p>
+<p>greetd runs a minimal Hyprland as the greeter user with
+<code>greeter/hyprland.lua</code>, which starts Quickshell and exits the compositor when
+the greeter quits (greetd only starts the session after the greeter is gone).
+Because it is the same compositor as your desktop, connector names match and
+the greeter gets the real multi-monitor layout:</p>
+<ul>
+<li>every output gets a layer-shell surface; the password field is on the
+  <code>lockscreen-monitor</code> output and the others show the ambient view, which
+  mirrors the typed characters;</li>
+<li>only the input output takes the keyboard, so typing always lands there;</li>
+<li>monitor modes, positions, scale, rotation and the keyboard layout are copied
+  from your live session.</li>
+</ul>
+<pre><code class="language-bash">~/.config/quickshell/vellum_shell/scripts/greeter-install --preview   # in your session, no root; Esc quits
+~/.config/quickshell/vellum_shell/scripts/greeter-install --enable    # install and make greetd the display manager
+</code></pre>
+<p>Run it as your user; it asks for <code>sudo</code> itself. It copies the QML to
+<code>/usr/share/vellum-greeter/</code> (plus the Symbols Nerd Font, because the greeter
+user cannot read <code>~/.local/share/fonts</code>), creates <code>/var/lib/vellum-greeter/</code>
+(state) and <code>/var/cache/vellum-greeter/</code> (the greeter's own cache and the
+remembered user/session), and with <code>--enable</code> writes <code>/etc/greetd/config.toml</code>
+(the previous file is kept as <code>config.toml.before-vellum-*</code>), disables other
+display managers and enables <code>greetd.service</code>. The switch takes effect at the
+next boot or logout. Re-run it after changing the greeter QML.</p>
+<p>The greeter cannot read <code>$HOME</code>, so everything it needs lives in
+<code>/var/lib/vellum-greeter/</code>. The directory is root-owned and its files are
+chowned to you, so the backend refreshes them without root:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Written by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>theme.json</code>, <code>background.jpg</code></td>
+<td>the <code>greeter</code> theme generator, on every theme or wallpaper change</td>
+</tr>
+<tr>
+<td><code>layout.conf</code></td>
+<td>the <code>hypr</code> module, at daemon start and after every confirmed display change</td>
+</tr>
+<tr>
+<td><code>input-screen</code></td>
+<td><code>scripts/lockscreen-monitor set</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>layout.conf</code> is data, not Lua: the root-owned <code>greeter/hyprland.lua</code> parses it
+line by line and drops anything that does not match the expected pattern, so a
+user-writable file cannot run code in the greeter. Outputs that are unplugged
+when the layout is captured keep their previous line.</p>
+<p>PAM uses greetd's own <code>/etc/pam.d/greetd</code>. Signing in, the power actions and
+the multi-monitor layout need a real greetd boot to test; the preview never
+authenticates or powers anything off.</p>
+<h2 id="appearance">Appearance<a class="anchor" href="#appearance" title="Link to this section">#</a></h2>
+<p>The Appearance Studio is a full-screen overlay below the bar with two separate
+pickers that share one skewed carousel: <strong>Wallpaper</strong> reads images from
+<code>$HOME/Pictures/wallpapers</code>, <strong>Theme</strong> reads palettes from <code>themes/</code>. Each
+commits on its own — picking a wallpaper does not touch the theme, and picking
+a theme does not touch the wallpaper. The one exception is the dynamic theme:
+while it is active, a new wallpaper also re-derives the palette.</p>
+<p><code>style wallpaper</code> and <code>style theme</code> open the matching picker, and
+double-clicking the desktop wallpaper opens the wallpaper picker on the monitor
+you clicked. <code>Tab</code> switches between the two.</p>
+<p><code>←</code>/<code>→</code> (or <code>H</code>/<code>L</code>, or the wheel) move through the carousel and wrap at the
+ends, <code>Home</code>/<code>End</code> jump to the first and last card, and <code>Ctrl+F</code> or <code>/</code> filters
+wallpapers by name. Clicking a side card centres it; clicking the centred card
+or pressing <code>Enter</code> applies it. <code>Esc</code> or a click on empty space closes.</p>
+<p>Each theme card is a small desktop drawn in that theme: a bar, a terminal
+whose sample code uses the theme's terminal colours, a type specimen with an
+accent button and switch, and the surface colours as paint bands. The centred
+card types its code in, and the dynamic theme's desktop is your current
+wallpaper. Behind the carousel, the focused theme's accent glows.</p>
+<p>Browsing wallpapers changes nothing. Browsing themes only recolours the running
+shell in process, so the bar above the overlay shows the candidate palette.
+<code>Enter</code> writes the choice out: a wallpaper goes to the state file and the login
+screen copy, a theme to the state files plus every external application palette
+(GTK, kitty, btop, Neovim, icons, Zen, login screen). Closing the theme picker
+any other way restores the palette you started with.</p>
+<h3 id="state-files">State files<a class="anchor" href="#state-files" title="Link to this section">#</a></h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>current-theme</code></td>
+<td>Active theme slug</td>
+</tr>
+<tr>
+<td><code>current-wallpaper</code></td>
+<td>Absolute path to the active wallpaper</td>
+</tr>
+<tr>
+<td><code>current-weather-location</code></td>
+<td>Location passed to Open-Meteo geocoding</td>
+</tr>
+<tr>
+<td><code>lockscreen-monitor</code></td>
+<td>Preferred monitor for password input</td>
+</tr>
+<tr>
+<td><code>lock-idle-minutes</code></td>
+<td>Minutes of inactivity before the screen locks; <code>0</code> or missing means never</td>
+</tr>
+<tr>
+<td><code>screensaver-idle-minutes</code></td>
+<td>Minutes of inactivity before the ASCII screensaver starts; <code>0</code> or missing means never</td>
+</tr>
+<tr>
+<td><code>screensaver-theme</code></td>
+<td>Screensaver scene: <code>shapes</code> (default when missing), <code>auto</code>, or a theme name from <code>ScreensaverThemes.js</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Clipboard history lives outside the repository, in
+<code>$XDG_STATE_HOME/vellum-shell/clipboard/</code> (<code>~/.local/state/...</code> by default):
+<code>index.json</code> describes the entries, <code>blobs/</code> holds the copied content and
+<code>thumbs/</code> the image previews. It keeps the latest 100 entries plus up to 25
+pinned ones, skips anything over 5 MB, and never stores content that a password
+manager marks as secret (<code>x-kde-passwordManagerHint</code>).</p>
+<p>Weather configuration uses the following precedence:</p>
+<ol>
+<li><code>WEATHER_LOCATION</code></li>
+<li><code>current-weather-location</code></li>
+<li><code>Budapest</code></li>
+</ol>
+<p>Set <code>WEATHER_COORDS=latitude,longitude</code> to bypass location geocoding.</p>
+<h3 id="google-calendar">Google Calendar<a class="anchor" href="#google-calendar" title="Link to this section">#</a></h3>
+<p>Settings → Calendar connects a Google account. <strong>Sign in with Google</strong> opens the
+browser; after you approve read-only access, the events show up as dots in the
+calendar card, and the expanded calendar lists the selected day's events.
+Clicking an event opens it in Google Calendar. The Calendar page also chooses
+which of your calendars are shown.</p>
+<p>Google requires every desktop application to have its own OAuth client, so the
+first sign-in needs a one-time setup in
+<a href="https://console.cloud.google.com/auth/clients">Google Cloud Console</a>:</p>
+<ol>
+<li>Create a project and enable the <strong>Google Calendar API</strong>.</li>
+<li>In <strong>Google Auth Platform</strong>, fill in <em>Branding</em>, then publish the app under
+   <em>Audience</em> (<strong>In production</strong>). In <em>Testing</em> status Google expires the
+   sign-in after seven days. An unverified personal app shows a warning on the
+   consent screen; continue through <em>Advanced</em>.</li>
+<li>Under <em>Clients</em>, create a <strong>Desktop app</strong> client and paste its ID and
+   secret on the Settings Calendar page.</li>
+</ol>
+<p>The daemon signs in with the loopback-redirect and PKCE flow and requests only
+<code>calendar.readonly</code>. The refresh token is kept in the system keyring through
+the Secret Service API (GNOME Keyring or KWallet), which stores it encrypted.
+Signing in fails with a clear message when no keyring is running. The plain
+files hold nothing that grants access. They are created with <code>0600</code>
+permissions:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$XDG_CONFIG_HOME/vellum-shell/google-oauth.json</code></td>
+<td>The OAuth client ID and secret, which identify the app but do not grant access to the account</td>
+</tr>
+<tr>
+<td><code>$XDG_STATE_HOME/vellum-shell/calendar/google.json</code></td>
+<td>The account email and which calendars are shown</td>
+</tr>
+</tbody>
+</table></div>
+<p>A token stored in that file by an earlier version moves to the keyring the
+first time it is used. Access tokens and events are kept only in memory.
+Events are synced every ten minutes while the panel or the settings page is
+open, and they cover two months back and a year ahead. <strong>Sign out</strong> revokes
+the token at Google and removes it from the keyring.</p>
+<p>A background sync never opens a password dialog. When the keyring is locked,
+the Calendar page shows <strong>Unlock</strong>, which asks for the keyring password once.
+To avoid this after every login, give the keyring the same password as your
+login. <code>pam_gnome_keyring</code> then unlocks it when you sign in.</p>
+<p>The client can also come from <code>VELLUM_GOOGLE_CLIENT_ID</code> and
+<code>VELLUM_GOOGLE_CLIENT_SECRET</code>, either in the daemon's environment or at build
+time, which bakes it into the binary. The downloaded <code>client_secret_*.json</code>
+file is accepted as <code>google-oauth.json</code> too.</p>
+<h3 id="themes">Themes<a class="anchor" href="#themes" title="Link to this section">#</a></h3>
+<p>Each <code>themes/&lt;slug&gt;/theme.conf</code> defines six values:</p>
+<pre><code class="language-ini">NAME=&quot;Kanagawa Wave&quot;
+BACKGROUND=&quot;#1f1f28&quot;
+FOREGROUND=&quot;#dcd7ba&quot;
+ACCENT=&quot;#7e9cd8&quot;
+SURFACE=&quot;#2a2a37&quot;
+MUTED=&quot;#727169&quot;
+</code></pre>
+<p>Included palettes are Catppuccin Mocha, Dynamic Matugen, Gruvbox Material,
+Japanese Ink, Kanagawa Wave, Monochrome, Rose Pine, Sakura Blossom, Tokyo Night,
+and Varnished Horizon.</p>
+<p>Dynamic mode derives a Material You palette from the wallpaper inside the
+backend, so no external tool is involved. A wallpaper with no usable hue keeps a
+neutral palette instead of being given an invented colour.</p>
+<p>The backend generates:</p>
+<ul>
+<li><code>kitty-theme.conf</code> for Kitty.</li>
+<li><code>gtk-theme.css</code> for GTK 3 and GTK 4.</li>
+<li><code>~/.config/qt6ct/colors/vellum.conf</code> for Qt 6 applications and the Hyprland
+  screen-sharing picker (through a service-specific portal environment).</li>
+<li><code>~/.config/hypr/colors.lua</code> for Hyprland's native Lua configuration.</li>
+<li><code>vellum-theme.css</code> in the active Zen Browser profile, imported by <code>userChrome.css</code>.</li>
+<li>A <code>btop</code> theme in the user's btop configuration.</li>
+<li><code>~/.local/share/nvim/site/colors/vellum.lua</code>, a full Neovim colorscheme.</li>
+<li>A matching Vellum logo and Fastfetch configuration. A local
+  <code>~/.config/fastfetch/config.template.jsonc</code> overrides the bundled layout. This
+  is what the <code>about</code> target shows: <code>about toggle</code> floats a kitty window running
+  Fastfetch (<code>scripts/fastfetch-panel</code>) instead of a QML panel that would have to
+  re-render the same facts -- and because it is a real terminal, the kitty
+  graphics logo renders too.</li>
+</ul>
+<h3 id="neovim-and-lazyvim">Neovim and LazyVim<a class="anchor" href="#neovim-and-lazyvim" title="Link to this section">#</a></h3>
+<p>The Neovim colorscheme is generated into <code>~/.local/share/nvim/site/colors/vellum.lua</code>.
+That directory is on Neovim's runtime path, so <code>:colorscheme vellum</code> works from
+any configuration and nothing generated ends up inside the user's own nvim
+config repository. The generator only runs when Neovim is present on the machine.</p>
+<p><code>nvim/vellum.lua</code> is the LazyVim side. <code>setup.sh</code> copies it to
+<code>~/.config/nvim/lua/plugins/vellum.lua</code> when a LazyVim layout exists, leaving an
+existing file of that name alone. The spec sets <code>colorscheme = "vellum"</code> and
+watches the generated file, so a theme switch in the Appearance Studio recolours
+running Neovim instances without a restart.</p>
+<p><code>nvim/vellum-keys/</code> is a small local plugin that keeps the base keymaps of the
+current mode visible in a corner of the editor: file manager, new tab, delete,
+save, buffer and window motions, LSP actions. Unlike which-key it needs no
+leading key press — it is always on screen and follows the mode, so normal,
+insert, visual and terminal each show their own list. <code>&lt;leader&gt;uk</code> and
+<code>:VellumKeys on|off|toggle</code> hide it, and it steps aside on its own in a narrow
+terminal, on the dashboard, and while a picker or the Lazy UI has focus. Its
+colours are <code>default</code>-linked to the float highlights, so it follows the palette
+with everything else, and the key list is data in <code>lua/vellum_keys/keys.lua</code>
+(or <code>setup({ groups = ... })</code> from your own spec).</p>
+<p><code>nvim/vellum-keys.lua</code> is the spec that loads it from the repository, so a
+<code>git pull</code> updates the hint list without copying anything into the nvim config.</p>
+<p>The output formats live in <code>backend/templates/</code>, so they can be adjusted without
+rebuilding. A missing template falls back to the version compiled into the
+binary, which means theming cannot break by editing one.</p>
+<p>These files are generated, not automatically imported by every application.
+Add the relevant include or import to each application's configuration.</p>
+<h2 id="project-structure">Project structure<a class="anchor" href="#project-structure" title="Link to this section">#</a></h2>
+<pre><code class="language-text">vellum_shell/
+├── shell.qml              Main shell entry point and composition
+├── LockShell.qml          Standalone lock-screen compatibility entry point
+├── GreeterShell.qml       greetd login screen entry point (installed as shell.qml)
+├── app/                   Popup lifecycle, coordination, and public IPC
+├── core/                  Platform and shared state controllers
+├── features/              Self-contained shell features and surfaces
+├── ui/                    Reusable feature-independent QML components
+├── backend/               Rust backend: theme engine and state daemon
+│   ├── src/modules/       One file per capability (theme, network, vpn, ...)
+│   ├── templates/         Theme output templates, editable without rebuilding
+│   └── tests/             Golden output, IPC contract, and theme transaction tests
+├── nvim/                  LazyVim specs: generated colorscheme and the key hints
+├── systemd/               User service that starts the backend at login
+├── scripts/               Interactive helpers and installers
+├── greeter/               Hyprland config for the greetd login screen
+├── themes/                Declarative color palettes
+└── assets/                Static visual assets
+</code></pre>
+<p>The intended dependency direction is:</p>
+<pre><code class="language-text">shell.qml -&gt; app, core, features
+features  -&gt; core, ui
+core      -&gt; Quickshell, and the backend through core/Backend.qml
+ui        -&gt; QtQuick
+</code></pre>
+<h2 id="backend">Backend<a class="anchor" href="#backend" title="Link to this section">#</a></h2>
+<p>System state and theming live in a Rust daemon rather than in shell scripts and
+per-tick <code>Process</code> calls. It listens on <code>$XDG_RUNTIME_DIR/vellum-shell.sock</code> and
+speaks newline-delimited JSON.</p>
+<p>The shell keeps working when the daemon is down: <code>core/Backend.qml</code> falls back to
+built-in defaults and reconnects with backoff, so nothing blocks or crashes. The
+palette is read from <code>current-theme</code> and the matching <code>theme.conf</code> until the
+daemon answers, so the shell still starts in your theme. A call that the daemon
+accepts but never answers fails with a <code>timeout</code> error after 60 seconds.</p>
+<pre><code class="language-bash">scripts/backend-install        # build, install, and enable the user service
+vellum ping                    # which binary and git revision is running
+vellum describe                # every topic and method the daemon offers
+vellum theme apply rose-pine   # works with or without the daemon running
+vellum watch network vpn       # live state on stdout
+vellum call clipboard copy '{&quot;id&quot;:12}'   # put a history entry back on the clipboard
+</code></pre>
+<p><code>describe</code> is the contract: clients discover what exists instead of hardcoding
+it, which is what the Settings app is built on.</p>
+<p>Topics are lazy. A module's loop only runs while something is subscribed, so an
+idle daemon costs no CPU and about 7 MB of memory. The one exception is
+<code>clipboard</code>: history has to be recorded even while the shell is not looking, so
+the daemon keeps that module running from start-up.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Source</th>
+<th>Replaces</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>theme</code></td>
+<td><code>themes/*/theme.conf</code>, native Material You</td>
+<td>9 chained bash scripts, <code>matugen</code>, <code>jq</code></td>
+</tr>
+<tr>
+<td><code>clipboard</code></td>
+<td>Wayland <code>wlr-data-control</code>, history in <code>$XDG_STATE_HOME/vellum-shell/clipboard</code></td>
+<td><code>cliphist</code>, two <code>wl-paste --watch</code> loops, ImageMagick thumbnails</td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td>NetworkManager D-Bus for live state; bounded <code>nmcli</code> calls for Wi-Fi actions</td>
+<td>QML-side <code>nmcli</code> and <code>ip -4 -j</code> polling</td>
+</tr>
+<tr>
+<td><code>netsecrets</code></td>
+<td>NetworkManager secret agent on its own system-bus connection, registered only while subscribed; agent-owned secrets in the Secret Service keyring</td>
+<td><code>nm-applet</code></td>
+</tr>
+<tr>
+<td><code>vpn</code></td>
+<td>NetworkManager D-Bus, <code>protonvpn</code> for details</td>
+<td><code>protonvpn status</code> on every tick</td>
+</tr>
+<tr>
+<td><code>removable</code></td>
+<td>udisks2 D-Bus</td>
+<td><code>lsblk --json</code> every 2.5 s, <code>udisksctl</code></td>
+</tr>
+<tr>
+<td><code>privacy</code></td>
+<td><code>/proc</code> scan for <code>/dev/video*</code> handles</td>
+<td>resident <code>camera-usage</code> bash loop</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>logind <code>PrepareForSleep</code> with a delay inhibitor, the session <code>Lock</code> signal, and <code>LockedHint</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>brightness</code></td>
+<td><code>/sys/class/backlight</code> change notifications; set through logind <code>SetBrightness</code></td>
+<td><code>brightnessctl</code></td>
+</tr>
+<tr>
+<td><code>sysstats</code></td>
+<td><code>/proc</code>, <code>statvfs</code></td>
+<td><code>df -P /</code></td>
+</tr>
+<tr>
+<td><code>weather</code></td>
+<td>Open-Meteo</td>
+<td>three <code>curl</code> calls per panel open</td>
+</tr>
+<tr>
+<td><code>calendar</code></td>
+<td>Google Calendar API, OAuth sign-in through the browser</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>hypr</code></td>
+<td><code>hyprctl</code>, <code>/sys/class/drm</code> EDID</td>
+<td>hand-edited Hyprland config files</td>
+</tr>
+<tr>
+<td><code>audio</code> (calls only)</td>
+<td><code>pw-dump</code> for sound card profiles, <code>wpctl set-profile</code>, <code>pactl move-sink-input</code></td>
+<td><code>pavucontrol</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="hyprland-settings">Hyprland settings<a class="anchor" href="#hyprland-settings" title="Link to this section">#</a></h3>
+<p>The Settings app never edits your own Hyprland files. What it changes is stored
+in <code>~/.config/hypr/vellum-settings.json</code>, rendered into two generated modules,
+and applied live with <code>hyprctl eval</code> through the native Lua API, so the change
+is visible without a reload:</p>
+<pre><code class="language-text">~/.config/hypr/vellum_display.lua   hl.monitor() per configured display
+~/.config/hypr/vellum_tuning.lua    hl.config() for gaps, decoration, input
+</code></pre>
+<p><code>setup.sh</code> appends both to the <code>require</code> list in <code>hyprland.lua</code>, after your own
+modules, so their values win. Deleting the JSON store (or the System page's
+"Reset Hyprland settings") drops every override and falls back to your config.</p>
+<p>The top-bar editor stores its independent layout in <code>bar-layout.json</code> in the
+Vellum directory. It is shared by every monitor and applied live; deleting the
+file restores the built-in module order on the next shell start.</p>
+<p>Display changes go through a transaction owned by the daemon, because a bad mode
+or position can leave a screen the user can no longer click on:</p>
+<pre><code class="language-text">hypr.previewMonitors   validate, apply live, arm a 12 s auto-revert; returns a token
+hypr.confirmMonitors   cancel the timer and persist the layout
+hypr.revertMonitors    restore the previous layout right away
+</code></pre>
+<p>Nothing reaches <code>vellum-settings.json</code> until it is confirmed, and the timer lives
+in the daemon, so closing the Settings window — or losing the shell entirely —
+still restores the previous layout. <code>previewMonitors</code> rejects a layout before it
+touches the compositor: unknown outputs, unsupported resolutions, out-of-range
+scale, transform or VRR values, overlapping displays, and turning off the last
+active output. <code>setMonitors</code> remains for non-interactive callers and now saves
+only after the live apply succeeds.</p>
+<p>PipeWire, UPower, Bluetooth, MPRIS, notifications, the system tray, and PAM stay
+in QML: Quickshell already exposes them as event-driven C++ services.</p>
+<p>See <a href="https://github.com/cucu0628/vellum_shell/blob/main/layout.md"><code>layout.md</code></a> for the detailed architecture and migration notes.</p>
+<h2 id="development">Development<a class="anchor" href="#development" title="Link to this section">#</a></h2>
+<p>One command runs Rust formatting, Clippy, the test suites, <code>qmllint</code>, and
+ShellCheck — skipping whatever is not installed:</p>
+<pre><code class="language-bash">./scripts/check
+</code></pre>
+<p>The same gates run in CI (<code>.github/workflows/checks.yml</code>). To run a single piece:</p>
+<pre><code class="language-bash">cargo fmt --manifest-path backend/Cargo.toml --check
+cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path backend/Cargo.toml
+qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+shellcheck setup.sh install.sh scripts/*
+python3 -B -m unittest discover -s tests -p 'test_*.py'
+node tests/notifications.js
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+  /usr/lib/qt6/bin/qmltestrunner -import tests/qml/stubs -input tests/qml
+</code></pre>
+<p>On Fedora the Qt tools live in <code>/usr/lib64/qt6/bin/</code> (or on <code>PATH</code> as
+<code>qmllint-qt6</code> and <code>qmltestrunner-qt6</code>); <code>scripts/check</code> finds either layout.
+<code>scripts/check rust</code>, <code>scripts/check qml</code>, and <code>scripts/check shell</code> run a
+single group, which is how CI calls it, with <code>VELLUM_CHECK_STRICT=1</code> so a
+missing tool fails the job instead of being skipped. Quickshell's own QML
+modules are compiled into the <code>quickshell</code> binary, so <code>tests/qml/stubs</code> stands
+in for the few types the tested components use.</p>
+<p>The security regressions use isolated Unix sockets, mocked monitor metadata,
+and offscreen Qt components. They do not register a notification server, run
+installers, or change the active desktop. The Python tests cover shell and
+Desktop Entry escaping; Node exercises the notification controller functions.
+The QML tests verify that untrusted notification and clipboard text stays
+literal, following <a href="https://doc.qt.io/qt-6/qml-qtquick-text.html#details">Qt's guidance for untrusted text</a>.</p>
+<p><code>qmllint</code> warns on a clean tree because it does not know the Quickshell types.
+The gate rejects errors, previously unseen warning categories, and growth above
+the recorded warning budget, so new diagnostics cannot disappear into that
+background noise.</p>
+<p>The shell has not yet been covered by an automated integration test in a
+nested Wayland session. Test changes on a non-critical session before using the
+lock screen or power actions as daily-driver controls.</p>
+            </article>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
+                <div>
+                    <p class="footer-title">Vellum Shell</p>
+                    <p class="footer-meta">Quickshell and Hyprland desktop shell. Documentation built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a>.</p>
+                </div>
+            </div>
+            <nav class="footer-links" aria-label="Footer">
+                <a href="docs.html">Documentation</a>
+                <a href="https://github.com/cucu0628/vellum_shell">Source</a>
+                <a href="https://github.com/cucu0628/vellum_shell/issues">Issues</a>
+            </nav>
+        </div>
+    </footer>
+</body>
+</html>
