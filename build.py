@@ -23,6 +23,7 @@ GitHub Pages serves the `docs/` folder of this branch.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import io
 import json
@@ -267,7 +268,15 @@ def build(out: Path, ref: str, fetch: bool) -> None:
     )
 
     partials = {p.stem: p.read_text(encoding="utf-8").strip() for p in sorted((SRC / "partials").glob("*.html"))}
+    def version(path: Path) -> str:
+        # Cache busting: Pages lets browsers keep CSS and JS for ten minutes.
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+
     values = {
+        "V_STYLE": version(SRC / "style.css"),
+        "V_THEME": version(SRC / "theme.js"),
+        "V_SITE": version(SRC / "site.js"),
+        "V_THEMES": version(out / "themes.js"),
         "REVISION": html.escape(sha[:7]),
         "REVISION_URL": f"{REPO_URL}/commit/{sha}",
         "REPO_URL": REPO_URL,
