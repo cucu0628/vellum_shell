@@ -37,6 +37,10 @@ ShellRoot {
     // a beagyazott esetben ne nyiljon feleslegesen masodik socket.
     property var backend: null
     readonly property var effectiveBackend: backend ? backend : ownBackend.item
+    // Ugyanigy a beallitasok: a fo shell a kozos tarolot adja at, az onallo
+    // LockShell.qml csak olvaso peldanyt epit.
+    property var shellSettings: null
+    readonly property var effectiveSettings: shellSettings ? shellSettings : ownSettings.item
     // A zárolt ciklus egyetlen igazságforrása: ez hajtja a WlSessionLockot és az ütemezőket is.
     property bool sessionActive: false
     // Az altatas csak azutan indulhat, hogy a compositor minden kijelzon
@@ -176,19 +180,13 @@ ShellRoot {
         seenLockRequests = sessionLockRequests
     }
 
-    // Tetlenseg utani zarolas. Az ido percben a `lock-idle-minutes` fajlban (a
-    // Settings System oldala irja); 0 vagy hianyzo fajl = kikapcsolva. Az idle
-    // inhibitorokat (pl. teljes kepernyos video) tiszteletben tartjuk.
-    property int idleLockMinutes: 0
-
-    property FileView idleSetting: FileView {
-        path: settingsController.shellDir + "/lock-idle-minutes"
-        watchChanges: true
-        printErrors: false
-        onLoaded: root.idleLockMinutes = Math.max(0, parseInt(root.idleSetting.text().trim(), 10) || 0)
-        onFileChanged: root.idleSetting.reload()
-        onLoadFailed: root.idleLockMinutes = 0
-    }
+    // Tetlenseg utani zarolas. Az ido percben a `settings.json`
+    // `lockScreen.idleMinutes` kulcsaban (a Settings System oldala irja); 0 vagy
+    // hianyzo ertek = kikapcsolva. Az idle inhibitorokat (pl. teljes kepernyos
+    // video) tiszteletben tartjuk.
+    readonly property int idleLockMinutes: effectiveSettings
+        ? Math.max(0, parseInt(effectiveSettings.value("lockScreen", "idleMinutes", 0), 10) || 0)
+        : 0
 
     IdleMonitor {
         enabled: root.idleLockMinutes > 0 && !root.sessionActive
@@ -237,6 +235,16 @@ ShellRoot {
         active: !root.backend
         sourceComponent: Component {
             Core.Backend {}
+        }
+    }
+
+    Loader {
+        id: ownSettings
+        active: !root.shellSettings
+        sourceComponent: Component {
+            Core.SettingsStore {
+                shellDir: settingsController.shellDir
+            }
         }
     }
 

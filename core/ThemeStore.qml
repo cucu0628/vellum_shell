@@ -54,15 +54,45 @@ Item {
     // Az alapertekek a Japanese Ink paletta (themes/japanese-ink): a feature-ok
     // sajat tartalek szinei is ebbol jonnek, igy egy hianyzo kulcs nem kever
     // ket kulonbozo palettat.
-    readonly property string background: effective.BACKGROUND || "#11130f"
-    readonly property string foreground: effective.FOREGROUND || "#e8ddc7"
-    readonly property string accent: effective.ACCENT || "#b7372f"
-    readonly property string surface: effective.SURFACE || "#191b16"
-    readonly property string muted: effective.LIGHT_FOREGROUND || "#cfc3ad"
-    readonly property string outline: effective.MUTED || "#958b7a"
+    readonly property color targetBackground: effective.BACKGROUND || "#11130f"
+    readonly property color targetForeground: effective.FOREGROUND || "#e8ddc7"
+    readonly property color targetAccent: effective.ACCENT || "#b7372f"
+    readonly property color targetSurface: effective.SURFACE || "#191b16"
+    readonly property color targetMuted: effective.LIGHT_FOREGROUND || "#cfc3ad"
+    readonly property color targetOutline: effective.MUTED || "#958b7a"
     // Figyelmeztetes (pl. majdnem tele lemez). Szemantikus szin, nem akcentus;
     // minden tema megadja az ORANGE kulcsot.
-    readonly property string warning: effective.ORANGE || "#c9693f"
+    readonly property color targetWarning: effective.ORANGE || "#c9693f"
+
+    // A kozzetett szinek a cel-szinek fele usznak, igy a temavaltas (es a
+    // valaszto elonezete) nem egy kepkocka alatt ugrik at. A nevek
+    // valtozatlanok; a fogyasztok `color` property-be kotik oket.
+    property color background: targetBackground
+    property color foreground: targetForeground
+    property color accent: targetAccent
+    property color surface: targetSurface
+    property color muted: targetMuted
+    property color outline: targetOutline
+    property color warning: targetWarning
+
+    // Az atmenet hossza (ms); 0 kikapcsolja. A hatterkep tus-atmenete
+    // (WallpaperController) valamivel hosszabb, igy dinamikus temanal a felulet
+    // a kep terulese kozben er at.
+    property int transitionDuration: 700
+    // Inditaskor a beepitett alapszinekrol a felhasznalo temajara nem usztatunk:
+    // csak az elso valodi paletta utan kapcsol be.
+    property bool transitionsReady: false
+    readonly property bool animateColors: transitionsReady && transitionDuration > 0
+    readonly property bool hasPalette: Object.keys(colors).length > 0
+    onHasPaletteChanged: if (hasPalette) Qt.callLater(() => store.transitionsReady = true)
+
+    Behavior on background { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on foreground { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on accent { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on surface { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on muted { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on outline { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
+    Behavior on warning { enabled: store.animateColors; ColorAnimation { duration: store.transitionDuration; easing.type: Easing.InOutCubic } }
 
     width: 0
     height: 0

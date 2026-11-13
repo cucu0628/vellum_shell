@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Io
 import Quickshell.Services.Mpris
 
 Item {
@@ -7,22 +6,30 @@ Item {
 
     // A beallitasokban felvett kivetelek: ezeket a lejatszokat a shell sehol nem
     // mutatja (sem a sav jelzojeben, sem a dashboardon). Pl. egy bongeszo, amely
-    // a hover-elonezeteket is lejatszaskent jelenti. Soronkent egy nev a
-    // `media-ignore` fajlban; a lejatszo nevere (identity) vagy bus-nevere illik,
-    // kis- es nagybetutol fuggetlenul.
-    property string shellDir: ""
+    // a hover-elonezeteket is lejatszaskent jelenti. A nevek a `settings.json`
+    // `media.ignoredPlayers` listajaban; a lejatszo nevere (identity) vagy
+    // bus-nevere illik, kis- es nagybetutol fuggetlenul.
+    // A kozos `settings.json` (core/SettingsStore.qml).
+    property var settings: null
     property var ignoredPlayers: []
     // A nem kihagyott lejatszok: mindenki ezt hasznalja a nyers lista helyett.
     readonly property var players: Mpris.players.values.filter((player) => !isIgnored(player))
 
-    function parseIgnored(text) {
+    function sanitizeIgnored(list) {
         var result = []
-        var lines = (text || "").split("\n")
-        for (var i = 0; i < lines.length; i++) {
-            var name = lines[i].trim()
-            if (name !== "" && name[0] !== "#" && result.indexOf(name) < 0) result.push(name)
+        var source = Array.isArray(list) ? list : []
+        for (var i = 0; i < source.length; i++) {
+            var name = String(source[i] || "").trim()
+            if (name !== "" && result.indexOf(name) < 0) result.push(name)
         }
         return result
+    }
+
+    // Barmelyik beallitas valtozasa uj `data`-t ad; csak tenyleges elteres
+    // eseten cserelunk, hogy a lejatszolista ne epuljon ujra feleslegesen.
+    function syncIgnored() {
+        var next = sanitizeIgnored(settings ? settings.value("media", "ignoredPlayers", []) : [])
+        if (JSON.stringify(next) !== JSON.stringify(ignoredPlayers)) ignoredPlayers = next
     }
 
     function isIgnored(player) {
@@ -42,21 +49,18 @@ Item {
         var next = ignoredPlayers.filter((entry) => entry.toLowerCase() !== clean.toLowerCase())
         if (ignored) next.push(clean)
         ignoredPlayers = next
-        ignoreFile.setText(next.length > 0 ? next.join("\n") + "\n" : "")
+        if (settings) settings.setValue("media", "ignoredPlayers", next)
     }
 
     onIgnoredPlayersChanged: updateActivePlayer()
 
-    FileView {
-        id: ignoreFile
+    Connections {
+        target: controller.settings
 
-        path: controller.shellDir !== "" ? controller.shellDir + "/media-ignore" : ""
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.ignoredPlayers = controller.parseIgnored(text())
-        onFileChanged: reload()
-        onLoadFailed: controller.ignoredPlayers = []
+        function onDataChanged() { controller.syncIgnored() }
     }
+
+    onSettingsChanged: syncIgnored()
 
     property string preferredPlayerDbusName: ""
     // A felhasznalo altal kivalasztott lejatszo (a dashboardon). Amig letezik,
@@ -169,7 +173,10 @@ Item {
         }
     }
 
-    Component.onCompleted: updateActivePlayer()
+    Component.onCompleted: {
+        syncIgnored()
+        updateActivePlayer()
+    }
 
     Connections {
         target: Mpris.players

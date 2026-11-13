@@ -9,18 +9,20 @@ Item {
 
     property var backend: null
     required property string shellDir
+    // A kozos `settings.json` (core/SettingsStore.qml); a fo shell adja at.
+    property var settings: null
 
-    property string weatherLocation: ""
+    readonly property string weatherLocation: settingText("weather", "location", "Budapest")
     property string powerProfile: ""
     property var powerProfiles: []
     property bool powerProfilesAvailable: false
     property var lockscreenMonitors: []
     property string lockscreenMonitor: ""
     // Percben, szovegkent (a SettingSelect erteke); "0" = soha.
-    property string lockIdleMinutes: "0"
-    property string screensaverIdleMinutes: "0"
+    readonly property string lockIdleMinutes: settingMinutes("lockScreen")
+    readonly property string screensaverIdleMinutes: settingMinutes("screensaver")
     // "shapes", "auto" vagy egy unnepi tema (features/screensaver/ScreensaverThemes.js).
-    property string screensaverTheme: "shapes"
+    readonly property string screensaverTheme: settingText("screensaver", "theme", "shapes")
     property var diagnosticFacts: []
     property var backendModules: []
     property var failedServices: []
@@ -34,8 +36,26 @@ Item {
     height: 0
     visible: false
 
+    function settingText(section, key, fallback) {
+        var value = settings ? String(settings.value(section, key, "")).trim() : "";
+        return value === "" ? fallback : value;
+    }
+
+    function settingMinutes(section) {
+        var value = settings ? settings.value(section, "idleMinutes", 0) : 0;
+        return String(Math.max(0, parseInt(value, 10) || 0));
+    }
+
+    function saveSetting(section, key, value) {
+        if (settings)
+            settings.setValue(section, key, value);
+        else
+            diagnosticsMessage = "Settings could not be saved.";
+    }
+
     function reload() {
-        weatherFile.reload();
+        if (settings)
+            settings.reload();
 
         readProfiles.running = false;
         // A seged egyseges kimenetet ad a powerprofilesctl es a Fedora
@@ -161,8 +181,7 @@ Item {
         if (trimmed === "")
             return ;
 
-        weatherLocation = trimmed;
-        weatherFile.setText(trimmed + "\n");
+        saveSetting("weather", "location", trimmed);
     }
 
     function setPowerProfile(value) {
@@ -180,84 +199,35 @@ Item {
     }
 
     function setLockIdleMinutes(value) {
-        lockIdleMinutes = value;
-        lockIdleFile.setText(value + "\n");
+        saveSetting("lockScreen", "idleMinutes", Math.max(0, parseInt(value, 10) || 0));
     }
 
     function setScreensaverIdleMinutes(value) {
-        screensaverIdleMinutes = value;
-        screensaverIdleFile.setText(value + "\n");
+        saveSetting("screensaver", "idleMinutes", Math.max(0, parseInt(value, 10) || 0));
     }
 
     function setScreensaverTheme(value) {
-        screensaverTheme = value;
-        screensaverThemeFile.setText(value + "\n");
+        saveSetting("screensaver", "theme", value);
     }
 
     function previewScreensaver() {
         Quickshell.execDetached(["quickshell", "ipc", "--path", shellDir + "/shell.qml", "call", "screensaver", "start"]);
     }
 
+    // A `lockscreen-monitor set` a `settings.json`-ba is ir; ha a fajl meg nem
+    // letezett, a figyelo nem latja, ezert utana kezzel olvasunk.
     Process {
         id: write
+
+        onExited: if (controller.settings) controller.settings.reload()
     }
 
-    // A lock (features/lock/LockRoot.qml) ugyanezt a fajlt figyeli.
-    FileView {
-        id: lockIdleFile
+    Connections {
+        target: controller.settings
 
-        path: controller.shellDir + "/lock-idle-minutes"
-        atomicWrites: true
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.lockIdleMinutes = String(Math.max(0, parseInt(lockIdleFile.text().trim(), 10) || 0))
-        onFileChanged: lockIdleFile.reload()
-        onLoadFailed: controller.lockIdleMinutes = "0"
-        onSaveFailed: controller.diagnosticsMessage = "The lock timeout could not be saved."
-    }
-
-    // A kepernyovedo (features/screensaver/ScreensaverController.qml) ugyanezt
-    // a fajlt figyeli.
-    FileView {
-        id: screensaverIdleFile
-
-        path: controller.shellDir + "/screensaver-idle-minutes"
-        atomicWrites: true
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.screensaverIdleMinutes = String(Math.max(0, parseInt(screensaverIdleFile.text().trim(), 10) || 0))
-        onFileChanged: screensaverIdleFile.reload()
-        onLoadFailed: controller.screensaverIdleMinutes = "0"
-        onSaveFailed: controller.diagnosticsMessage = "The screensaver timeout could not be saved."
-    }
-
-    FileView {
-        id: screensaverThemeFile
-
-        path: controller.shellDir + "/screensaver-theme"
-        atomicWrites: true
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.screensaverTheme = screensaverThemeFile.text().trim() || "shapes"
-        onFileChanged: screensaverThemeFile.reload()
-        onLoadFailed: controller.screensaverTheme = "shapes"
-        onSaveFailed: controller.diagnosticsMessage = "The screensaver theme could not be saved."
-    }
-
-    FileView {
-        id: weatherFile
-
-        path: controller.shellDir + "/current-weather-location"
-        atomicWrites: true
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            var value = weatherFile.text().trim();
-            controller.weatherLocation = value === "" ? "Budapest" : value;
+        function onSaveFailed() {
+            controller.diagnosticsMessage = "Settings could not be saved.";
         }
-        onFileChanged: weatherFile.reload()
-        onLoadFailed: controller.weatherLocation = "Budapest"
-        onSaveFailed: controller.diagnosticsMessage = "The weather location could not be saved."
     }
 
     Process {

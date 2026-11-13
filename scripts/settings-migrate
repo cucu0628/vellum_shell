@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# A korabbi, beallitasonkent kulon allapotfajlokat athozza a `settings.json`-ba,
+# majd torli oket. A shell minden inditaskor hivja; ha nincs mit athozni, nem
+# ir semmit. A `settings.json`-ban mar meglevo kulcs nyer, igy egy kesobbi
+# lefutas sem irja felul a Settingsben azota valtoztatott erteket.
+#
+# Hibas `settings.json` mellett nem nyul semmihez: a regi fajlok maradnak.
+set -euo pipefail
+
+# shellcheck source=scripts/lib.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
+
+base=$(vellum_shell_dir)
+settings=$(vellum_settings_file)
+has jq || exit 0
+
+legacy='{}'
+migrated=()
+
+first_line() {
+  local value=""
+  IFS= read -r value < "$1" || true
+  value=${value%$'\r'}
+  # Elol-hatul szokozok nelkul, ahogy a regi olvasok is trimmeltek.
+  value=${value#"${value%%[![:space:]]*}"}
+  value=${value%"${value##*[![:space:]]}"}
+  printf '%s' "$value"
+}
+
+put() {
+  legacy=$(jq -c --argjson value "$2" "$1 = \$value" <<< "$legacy")
+}
+
+put_text() {
+  local file=$base/$1 value
+  [[ -f $file ]] || return 0
+  value=$(first_line "$file")
+  [[ -n $value ]] && put "$2" "$(jq -n --arg value "$value" '$value')"
+  migrated+=("$file")
+}
+
+put_minutes() {
+  local file=$base/$1 value
+  [[ -f $file ]] || return 0
+  value=$(first_line "$file")
+  [[ $value =~ ^[0-9]+$ ]] && put "$2" "$((10#$value))"
+  migrated+=("$file")
+}
+
+put_text current-weather-location '.weather.location'
+put_text lockscreen-monitor '.lockScreen.monitor'
+put_minutes lock-idle-minutes '.lockScreen.idleMinutes'
+put_minutes screensaver-idle-minutes '.screensaver.idleMinutes'
+put_text screensaver-theme '.screensaver.theme'
+
+if [[ -f $base/media-ignore ]]; then
+  put '.media.ignoredPlayers' "$(jq -Rn '
+    [inputs | gsub("^\\s+|\\s+$"; "") | select(length > 0 and (startswith("#") | not))]
+    | reduce .[] as $name ([]; if index([$name]) then . else . + [$name] end)
+  ' < "$base/media-ignore")"
+  migrated+=("$base/media-ignore")
+fi
+
+# Az ervenytelen sav-elrendezest nem toroljuk: maradjon meg kezi javitasra.
+if [[ -f $base/bar-layout.json ]] \
+  && layout=$(jq -c '{left, center, right, hidden}
+      | with_entries(select(.value | type == "array"))' "$base/bar-layout.json" 2>/dev/null); then
+  put '.bar' "$layout"
+  migrated+=("$base/bar-layout.json")
+fi
+
+((${#migrated[@]} > 0)) || exit 0
+
+current='{}'
+if [[ -s $settings ]]; then
+  current=$(jq -c 'if type == "object" then . else error("not an object") end' "$settings") || {
+    printf 'settings-migrate: %s is not valid JSON; legacy files kept\n' "$settings" >&2
+    exit 1
+  }
+fi
+
+tmp=$(mktemp "$settings.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+jq -n --argjson legacy "$legacy" --argjson current "$current" \
+  '{version: 1} + ($legacy * $current) | .version = 1' > "$tmp"
+mv -f "$tmp" "$settings"
+rm -f -- "${migrated[@]}"

@@ -3,7 +3,28 @@
 set -eu
 
 base=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "$0")/.." && pwd)}
-config="$base/lockscreen-monitor"
+settings="$base/settings.json"
+
+# A valasztott monitor a `settings.json` `lockScreen.monitor` kulcsa (a shell
+# `core/SettingsStore.qml`-je ugyanezt figyeli).
+saved_monitor() {
+    [ -r "$settings" ] || return 0
+    jq -r '.lockScreen.monitor // empty | tostring' "$settings" 2>/dev/null || true
+}
+
+save_monitor() {
+    tmp=$(mktemp "$settings.XXXXXX")
+    if [ -s "$settings" ]; then
+        if ! jq --arg monitor "$1" '.version = 1 | .lockScreen.monitor = $monitor' "$settings" > "$tmp"; then
+            rm -f "$tmp"
+            printf '%s is not valid JSON\n' "$settings" >&2
+            exit 1
+        fi
+    else
+        jq -n --arg monitor "$1" '{version: 1, lockScreen: {monitor: $monitor}}' > "$tmp"
+    fi
+    mv -f "$tmp" "$settings"
+}
 
 monitors() {
     hyprctl monitors -j 2>/dev/null | jq -r '.[].name'
@@ -17,10 +38,7 @@ has_monitor() {
 }
 
 current() {
-    saved=""
-    if [ -r "$config" ]; then
-        IFS= read -r saved < "$config" || true
-    fi
+    saved=$(saved_monitor)
 
     if [ -n "$saved" ] && has_monitor "$saved"; then
         printf '%s\n' "$saved"
@@ -51,7 +69,7 @@ case ${1:-list} in
         requested=${2:-}
         [ -n "$requested" ] || exit 2
         has_monitor "$requested" || exit 2
-        printf '%s\n' "$requested" > "$config"
+        save_monitor "$requested"
         # A greeter ugyanazon a kijelzon kerje a jelszot. A fajlt a
         # greeter-install hozza letre es chownolja; nelkule nincs greeter.
         greeter_screen=/var/lib/vellum-greeter/input-screen

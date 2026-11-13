@@ -17,7 +17,7 @@ if [[ -z $qsb ]]; then
   exit 1
 fi
 
-for source in "$root"/features/*/shaders/*.frag; do
+for source in "$root"/core/shaders/*.frag "$root"/features/*/shaders/*.frag; do
   "$qsb" --glsl "300 es,330" --hlsl 50 --msl 12 --qt6 -o "$source.qsb" "$source"
   echo "built ${source#"$root"/}.qsb"
 done

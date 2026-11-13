@@ -1,15 +1,9 @@
-current-weather-location
+/settings.json
 kitty-theme.conf
-lockscreen-monitor
-lock-idle-minutes
-screensaver-idle-minutes
-screensaver-theme
 zen-theme.css
 zen-content-theme.css
 current-wallpaper
 current-theme
-bar-layout.json
-media-ignore
 gtk-theme.css
 push-both.sh
 backend/target/

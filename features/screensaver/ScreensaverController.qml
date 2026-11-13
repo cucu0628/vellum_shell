@@ -13,18 +13,24 @@ Item {
     id: controller
 
     required property string shellDir
+    // A kozos `settings.json` (core/SettingsStore.qml).
+    property var settings: null
     required property var theme
     required property var screens
     required property var focusedScreenProvider
     // Igaz, amig a munkamenet zarolva van.
     property bool blocked: false
 
-    // Percben, a `screensaver-idle-minutes` fajlbol (a Settings System oldala
-    // irja); 0 vagy hianyzo fajl = kikapcsolva.
-    property int idleMinutes: 0
-    // A `screensaver-theme` fajlbol: "shapes", "auto" (evszak szerint) vagy egy
-    // tema neve (ScreensaverThemes.js). Hianyzo fajl = az alapjelenet.
-    property string themeSetting: "shapes"
+    // Percben, a `settings.json` `screensaver.idleMinutes` kulcsabol (a Settings
+    // System oldala irja); 0 vagy hianyzo ertek = kikapcsolva.
+    readonly property int idleMinutes: settings
+        ? Math.max(0, parseInt(settings.value("screensaver", "idleMinutes", 0), 10) || 0)
+        : 0
+    // A `screensaver.theme` kulcsbol: "shapes", "auto" (evszak szerint) vagy egy
+    // tema neve (ScreensaverThemes.js). Hianyzo ertek = az alapjelenet.
+    readonly property string themeSetting: settings
+        ? (String(settings.value("screensaver", "theme", "")).trim() || "shapes")
+        : "shapes"
     // Az inditaskor kivalasztott jelenet; futas kozben nem valt.
     property string scene: "shapes"
     property bool running: false
@@ -120,28 +126,6 @@ Item {
     onBlockedChanged: if (blocked) stop()
     // Ha a shell futo kepernyovedo kozben allt le, a kurzor rejtve maradt volna.
     Component.onCompleted: setCursorHidden(false)
-
-    FileView {
-        id: idleSetting
-
-        path: controller.shellDir + "/screensaver-idle-minutes"
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.idleMinutes = Math.max(0, parseInt(idleSetting.text().trim(), 10) || 0)
-        onFileChanged: idleSetting.reload()
-        onLoadFailed: controller.idleMinutes = 0
-    }
-
-    FileView {
-        id: themeFile
-
-        path: controller.shellDir + "/screensaver-theme"
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.themeSetting = themeFile.text().trim() || "shapes"
-        onFileChanged: themeFile.reload()
-        onLoadFailed: controller.themeSetting = "shapes"
-    }
 
     IdleMonitor {
         enabled: controller.idleMinutes > 0 && !controller.blocked

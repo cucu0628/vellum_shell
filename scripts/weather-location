@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base=${VELLUM_SHELL_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
-file="$base/current-weather-location"
-current="Budapest"
+# shellcheck source=scripts/lib.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 
-if [[ -r "$file" ]]; then
-  current=$(<"$file")
-fi
+current=$(vellum_setting_get weather location)
+current=${current:-Budapest}
 
 if [[ -n "${WEATHER_LOCATION:-}" ]]; then
   current="$WEATHER_LOCATION"
@@ -20,8 +18,7 @@ printf '%s' 'Enter city/location [Budapest]: '
 read -r location || true
 location=${location:-Budapest}
 
-mkdir -p "$base"
-printf '%s\n' "$location" > "$file"
+vellum_setting_set weather location "$location"
 
 printf '\nSaved: %s\n' "$location"
 printf '%s\n' 'Open the weather popup again to refresh the data.'

@@ -112,10 +112,12 @@ vellum_shell/
 │   ├── Paths.qml                     # XDG- és shell-útvonalak egyetlen forrásból
 │   ├── PrivacyController.qml         # Mikrofon- és kamerahasználat figyelése
 │   ├── RemovableDeviceController.qml # Cserélhető kötetek és mount műveletek
+│   ├── SettingsStore.qml             # Felhasználói beállítások egyetlen `settings.json`-ban
 │   ├── TerminalController.qml        # Alapértelmezett terminál (`xdg-terminals.list`)
-│   ├── ThemeStore.qml                # Paletta betöltése és frissítése
+│   ├── ThemeStore.qml                # Paletta betöltése, frissítése és színátmenete
 │   ├── VpnController.qml             # ProtonVPN állapot a backend `vpn` topicjából
-│   ├── WallpaperController.qml       # Háttérkép állapot és monitorablakok
+│   ├── WallpaperController.qml       # Háttérkép állapot, monitorablakok és tus-átmenet
+│   ├── shaders/                      # wallpaper-ink.frag és a lefordított .qsb
 │   ├── WeatherController.qml         # Időjárásállapot a backend `weather` topicjából
 │   └── WorkspaceController.qml       # Hyprland workspace állapot
 ├── features/                         # Önálló shell funkciók
@@ -285,6 +287,7 @@ vellum_shell/
 │   ├── pkg-remove
 │   ├── screenshot-capture
 │   ├── settings-autostart
+│   ├── settings-migrate              # Régi beállításfájlok átemelése a `settings.json`-ba
 │   ├── shell-run                     # Felügyelt Quickshell: összeomlás után újraindítja
 │   ├── shell-start
 │   ├── theme-current
@@ -342,9 +345,9 @@ vellum_shell/
 └── setup.sh                          # Teljes rendszerbeállítás
 
 # Futásidőben keletkező, nem verziózott állapot a shell gyökerében:
-#   current-theme, current-wallpaper, current-weather-location,
-#   lockscreen-monitor, lock-idle-minutes, screensaver-idle-minutes,
-#   screensaver-theme, kitty-theme.conf, gtk-theme.css, zen-theme.css
+#   settings.json (a felhasználói beállítások, core/SettingsStore.qml),
+#   current-theme, current-wallpaper, kitty-theme.conf, gtk-theme.css,
+#   zen-theme.css
 ```
 
 ## Rétegek felelőssége

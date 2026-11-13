@@ -65,6 +65,41 @@ vellum_shell_dir() {
   fi
 }
 
+# A shell egyesitett beallitasfajlja. A QML `core/SettingsStore.qml` ugyanezt
+# olvassa es irja; a ket oldal a `szekcio.kulcs` utvonalakban egyezik meg.
+vellum_settings_file() {
+  printf '%s/settings.json\n' "$(vellum_shell_dir)"
+}
+
+# Egy beallitas szovegkent (`vellum_setting_get weather location`); hianyzo
+# fajl, kulcs vagy jq eseten ures.
+vellum_setting_get() {
+  local file
+  file=$(vellum_settings_file)
+  [[ -r $file ]] && has jq || return 0
+  jq -r --arg section "$1" --arg key "$2" \
+    '.[$section][$key] // empty | tostring' "$file" 2>/dev/null || true
+}
+
+# Egy szoveges beallitas atomikus irasa. Hibas JSON-t nem irunk felul.
+vellum_setting_set() {
+  local file tmp
+  file=$(vellum_settings_file)
+  has jq || die "jq is required to save settings"
+  tmp=$(mktemp "$file.XXXXXX")
+  if [[ -s $file ]]; then
+    if ! jq --arg section "$1" --arg key "$2" --arg value "$3" \
+      '.version = 1 | .[$section][$key] = $value' "$file" > "$tmp"; then
+      rm -f "$tmp"
+      die "$file is not valid JSON; fix or remove it first"
+    fi
+  else
+    jq -n --arg section "$1" --arg key "$2" --arg value "$3" \
+      '{version: 1} | .[$section][$key] = $value' > "$tmp"
+  fi
+  mv -f "$tmp" "$file"
+}
+
 fzf_theme_args() {
   local title=${1:-"Select entries"}
   local theme_file

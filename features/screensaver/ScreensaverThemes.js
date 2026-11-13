@@ -5,7 +5,8 @@
 // shaderjenek fejlecet koveti (shaders/<scene>.frag).
 //
 // A Settings (features/settings/SystemPage.qml) ugyanezeket az azonositokat
-// irja a `screensaver-theme` fajlba; uj tema eseten ott is fel kell venni.
+// irja a `settings.json` `screensaver.theme` kulcsaba; uj tema eseten ott is
+// fel kell venni.
 
 var seasonal = {
     "christmas": {

@@ -206,7 +206,7 @@ fi
 # `lockscreen-monitor current` tartaleka a pillanatnyilag fokuszalt monitor --
 # az a telepites pillanatanak veletlene, a greeternek nem jo alap.
 monitor=""
-if [[ -s $base/lockscreen-monitor ]]; then
+if [[ -n $(jq -r '.lockScreen.monitor // empty' "$base/settings.json" 2>/dev/null || true) ]]; then
   monitor=$(sh "$base/scripts/lockscreen-monitor" current 2>/dev/null || true)
 else
   monitor=$(hyprctl monitors -j 2>/dev/null \

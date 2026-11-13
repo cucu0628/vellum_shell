@@ -90,10 +90,20 @@ ShellRoot {
     }
     readonly property var shellTheme: theme
 
+    // A felhasznaloi beallitasok kozos `settings.json`-ja. Egyetlen peldany ir,
+    // a tobbiek ezt kapjak meg.
+    Core.SettingsStore {
+        id: settingsStore
+
+        shellDir: shellRoot.shellDir
+        migrateLegacy: true
+    }
+    readonly property var shellSettings: settingsStore
+
     Core.BarLayoutController {
         id: barLayoutController
 
-        shellDir: shellRoot.shellDir
+        settings: shellRoot.shellSettings
     }
     readonly property var barLayoutState: barLayoutController
 
@@ -158,7 +168,7 @@ ShellRoot {
 
     Core.MprisController {
         id: mprisController
-        shellDir: shellRoot.shellDir
+        settings: shellRoot.shellSettings
     }
 
     // Mindig fut (masodpercenkent egy /proc-olvasas a backendben), hogy a
@@ -311,6 +321,7 @@ ShellRoot {
                     backend: shellRoot.shellBackend
                     mpris: mprisController
                     barLayout: shellRoot.barLayoutState
+                    settings: shellRoot.shellSettings
                     theme: shellRoot.shellTheme
                     terminal: terminalController
                     shellDir: shellRoot.shellDir
@@ -464,11 +475,13 @@ ShellRoot {
     LockFeature.LockRoot {
         id: lockRoot
         backend: shellRoot.shellBackend
+        shellSettings: shellRoot.shellSettings
     }
 
     ScreensaverFeature.ScreensaverController {
         id: screensaver
         shellDir: shellRoot.shellDir
+        settings: shellRoot.shellSettings
         theme: shellRoot.shellTheme
         screens: shellRoot.uniqueScreens
         focusedScreenProvider: function() { return shellRoot.focusedScreen() }

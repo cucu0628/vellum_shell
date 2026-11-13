@@ -12,6 +12,7 @@ FloatingWindow {
 
     property var backend: null
     property var barLayout: null
+    property var settings: null
     property var mpris: null
     property var theme: null
     property var terminal: null
@@ -151,6 +152,7 @@ FloatingWindow {
 
         backend: window.backend
         shellDir: window.shellDir
+        settings: window.settings
     }
 
     DefaultAppsController {

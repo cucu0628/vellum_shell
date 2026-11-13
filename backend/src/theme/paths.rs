@@ -37,8 +37,10 @@ pub fn current_wallpaper_file() -> PathBuf {
     shell_dir().join("current-wallpaper")
 }
 
-pub fn lockscreen_monitor_file() -> PathBuf {
-    shell_dir().join("lockscreen-monitor")
+/// A shell egyesitett beallitasfajlja. A QML `core/SettingsStore.qml` irja; a
+/// backend csak olvas belole.
+pub fn settings_file() -> PathBuf {
+    shell_dir().join("settings.json")
 }
 
 pub fn config_dir() -> PathBuf {
@@ -91,9 +93,40 @@ pub fn hypr_tuning_module() -> PathBuf {
     hypr_dir().join("vellum_tuning.lua")
 }
 
+/// Egy szoveges beallitas a `settings.json`-bol (`szekcio.kulcs`). Hianyzo
+/// fajl, hibas JSON, nem szoveges vagy ures ertek: `None`.
+pub fn read_setting(section: &str, key: &str) -> Option<String> {
+    setting_from(&std::fs::read_to_string(settings_file()).ok()?, section, key)
+}
+
+fn setting_from(text: &str, section: &str, key: &str) -> Option<String> {
+    let root: serde_json::Value = serde_json::from_str(text).ok()?;
+    let value = root.get(section)?.get(key)?.as_str()?.trim();
+    if value.is_empty() { None } else { Some(value.to_string()) }
+}
+
 /// Egy soros allapotfajl olvasasa (`current-theme` es tarsai).
 pub fn read_line_file(path: &std::path::Path) -> Option<String> {
     let text = std::fs::read_to_string(path).ok()?;
     let value = text.trim().to_string();
     if value.is_empty() { None } else { Some(value) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::setting_from;
+
+    #[test]
+    fn setting_is_read_from_its_section() {
+        let text = r#"{"version": 1, "weather": {"location": "  Veszprem "}}"#;
+        assert_eq!(setting_from(text, "weather", "location").as_deref(), Some("Veszprem"));
+    }
+
+    #[test]
+    fn missing_blank_or_malformed_settings_are_none() {
+        assert_eq!(setting_from(r#"{"weather": {}}"#, "weather", "location"), None);
+        assert_eq!(setting_from(r#"{"weather": {"location": " "}}"#, "weather", "location"), None);
+        assert_eq!(setting_from(r#"{"weather": {"location": 3}}"#, "weather", "location"), None);
+        assert_eq!(setting_from("{not json", "weather", "location"), None);
+    }
 }

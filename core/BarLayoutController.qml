@@ -1,14 +1,15 @@
 import QtQuick
-import Quickshell.Io
 
 // A topbar moduljainak kozos, monitorfuggetlen elrendezese. A teljes katalogus
 // minden modulja pontosan egy zonaban szerepel; a `hidden` ugyanennek a negyedik,
-// nem renderelt zonaja. A fajl figyelese miatt egy kulso szerkesztes is eloben
-// megjelenik, de iras csak egy drag-and-drop muvelet utan tortenik.
+// nem renderelt zonaja. Az elrendezes a `settings.json` `bar` szekcioja; a
+// tarolo figyeli a fajlt, igy egy kulso szerkesztes is eloben megjelenik, de
+// iras csak egy drag-and-drop muvelet utan tortenik.
 Item {
     id: controller
 
-    required property string shellDir
+    // A kozos `settings.json` (core/SettingsStore.qml).
+    property var settings: null
 
     readonly property var moduleCatalog: [{
         "id": "workspaces",
@@ -77,7 +78,7 @@ Item {
     property var centerModules: ["clock"]
     property var rightModules: ["tray", "connectivity", "bluetooth", "removable", "audio", "notifications", "ai", "system-monitor", "battery"]
     property var hiddenModules: []
-    property bool ready: false
+    readonly property bool ready: settings !== null && settings.loaded
     property string errorMessage: ""
 
     width: 0
@@ -160,17 +161,28 @@ Item {
         hiddenModules = layout.hidden.slice();
     }
 
-    function loadText(text) {
-        var parsed;
-        try {
-            parsed = JSON.parse(text || "{}");
-            applyLayout(sanitizedLayout(parsed));
-            errorMessage = "";
-        } catch (error) {
-            applyLayout(defaultLayout());
-            errorMessage = "The saved bar layout is invalid; defaults are shown.";
+    function currentLayout() {
+        return {
+            "left": leftModules,
+            "center": centerModules,
+            "right": rightModules,
+            "hidden": hiddenModules
+        };
+    }
+
+    // Barmelyik beallitas valtozasa uj `data`-t ad; a zonakat csak tenyleges
+    // elteres eseten csereljuk, kulonben a sav modulai feleslegesen ujraepulnenek.
+    function syncFromSettings() {
+        if (!settings || !settings.loaded)
+            return;
+        if (settings.invalid) {
+            errorMessage = "settings.json is invalid; the bar layout cannot be saved.";
+            return;
         }
-        ready = true;
+        var layout = sanitizedLayout(settings.section("bar"));
+        if (JSON.stringify(layout) !== JSON.stringify(currentLayout()))
+            applyLayout(layout);
+        errorMessage = "";
     }
 
     function zoneOf(id) {
@@ -217,14 +229,17 @@ Item {
     }
 
     function save() {
-        var data = {
-            "version": 1,
-            "left": leftModules,
-            "center": centerModules,
-            "right": rightModules,
-            "hidden": hiddenModules
-        };
-        layoutFile.setText(JSON.stringify(data, null, 2) + "\n");
+        if (!settings) {
+            errorMessage = "The bar layout could not be saved.";
+            return;
+        }
+        var layout = currentLayout();
+        settings.setSection("bar", {
+            "left": layout.left.slice(),
+            "center": layout.center.slice(),
+            "right": layout.right.slice(),
+            "hidden": layout.hidden.slice()
+        });
     }
 
     Timer {
@@ -234,19 +249,26 @@ Item {
         onTriggered: controller.save()
     }
 
-    FileView {
-        id: layoutFile
+    Connections {
+        target: controller.settings
 
-        path: controller.shellDir + "/bar-layout.json"
-        atomicWrites: true
-        watchChanges: true
-        printErrors: false
-        onLoaded: controller.loadText(layoutFile.text())
-        onFileChanged: layoutFile.reload()
-        onLoadFailed: {
-            controller.applyLayout(controller.defaultLayout());
-            controller.ready = true;
+        function onDataChanged() {
+            controller.syncFromSettings();
         }
-        onSaveFailed: controller.errorMessage = "The bar layout could not be saved."
+
+        function onLoadedChanged() {
+            controller.syncFromSettings();
+        }
+
+        function onInvalidChanged() {
+            controller.syncFromSettings();
+        }
+
+        function onSaveFailed() {
+            controller.errorMessage = "The bar layout could not be saved.";
+        }
     }
+
+    onSettingsChanged: syncFromSettings()
+    Component.onCompleted: syncFromSettings()
 }

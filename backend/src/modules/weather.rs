@@ -193,7 +193,10 @@ fn configured_location() -> String {
     {
         return value.to_string_lossy().to_string();
     }
-    paths::read_line_file(&paths::shell_dir().join("current-weather-location"))
+    // A regi, kulon fajl csak addig szamit, amig a shell at nem hozta a
+    // `settings.json`-ba (`scripts/settings-migrate`).
+    paths::read_setting("weather", "location")
+        .or_else(|| paths::read_line_file(&paths::shell_dir().join("current-weather-location")))
         .unwrap_or_else(|| "Budapest".to_string())
 }
 

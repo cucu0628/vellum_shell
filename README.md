@@ -484,17 +484,58 @@ screen copy, a theme to the state files plus every external application palette
 (GTK, kitty, btop, Neovim, icons, Zen, login screen). Closing the theme picker
 any other way restores the palette you started with.
 
+Neither change cuts over in one frame. The shell palette eases to the new
+colours over 700 ms (`ThemeStore.transitionDuration`), and a new wallpaper
+spreads over the old one like an ink drop on paper: an irregular, fibrous edge
+grows from just below the centre of each monitor, leaves a briefly darker wet
+rim, and the incoming image settles from a slight zoom over 1.1 s
+(`WallpaperController.transitionDuration`). With the dynamic theme both run
+together, so the bar recolours while the picture is still spreading. The
+wallpaper effect is `core/shaders/wallpaper-ink.frag`, built by
+`scripts/build-shaders` like the screensaver scenes; if it cannot load, the
+wallpaper falls back to a plain crossfade. External applications (GTK, kitty,
+Zen) still switch when their own palette files are rewritten.
+
 ### State files
+
+Shell preferences live in a single `settings.json` in the Vellum directory. The
+Settings window writes it, and the shell watches it, so a hand edit applies
+live. A missing key falls back to its default; deleting the file resets every
+preference below.
+
+```json
+{
+  "version": 1,
+  "weather": { "location": "Budapest" },
+  "lockScreen": { "monitor": "HDMI-A-1", "idleMinutes": 0 },
+  "screensaver": { "idleMinutes": 5, "theme": "shapes" },
+  "media": { "ignoredPlayers": ["Mozilla zen"] },
+  "bar": { "left": [], "center": [], "right": [], "hidden": [] }
+}
+```
+
+| Key | Purpose |
+| --- | --- |
+| `weather.location` | Location passed to Open-Meteo geocoding |
+| `lockScreen.monitor` | Preferred monitor for password input |
+| `lockScreen.idleMinutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
+| `screensaver.idleMinutes` | Minutes of inactivity before the ASCII screensaver starts; `0` or missing means never |
+| `screensaver.theme` | Screensaver scene: `shapes` (default when missing), `auto`, or a theme name from `ScreensaverThemes.js` |
+| `media.ignoredPlayers` | Media players hidden everywhere in the shell, matched by name or bus name |
+| `bar` | Top-bar module order per zone |
+
+The theme and the wallpaper stay in their own files, because the daemon commits
+them as part of a theme transaction:
 
 | File | Purpose |
 | --- | --- |
 | `current-theme` | Active theme slug |
 | `current-wallpaper` | Absolute path to the active wallpaper |
-| `current-weather-location` | Location passed to Open-Meteo geocoding |
-| `lockscreen-monitor` | Preferred monitor for password input |
-| `lock-idle-minutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
-| `screensaver-idle-minutes` | Minutes of inactivity before the ASCII screensaver starts; `0` or missing means never |
-| `screensaver-theme` | Screensaver scene: `shapes` (default when missing), `auto`, or a theme name from `ScreensaverThemes.js` |
+
+Older versions kept each preference in its own file (`current-weather-location`,
+`lockscreen-monitor`, `lock-idle-minutes`, `screensaver-idle-minutes`,
+`screensaver-theme`, `media-ignore`, `bar-layout.json`). The shell moves them
+into `settings.json` on start (`scripts/settings-migrate`) and removes them.
 
 Clipboard history lives outside the repository, in
 `$XDG_STATE_HOME/vellum-shell/clipboard/` (`~/.local/state/...` by default):
@@ -506,7 +547,7 @@ manager marks as secret (`x-kde-passwordManagerHint`).
 Weather configuration uses the following precedence:
 
 1. `WEATHER_LOCATION`
-2. `current-weather-location`
+2. `weather.location` in `settings.json`
 3. `Budapest`
 
 Set `WEATHER_COORDS=latitude,longitude` to bypass location geocoding.
@@ -725,9 +766,9 @@ is visible without a reload:
 modules, so their values win. Deleting the JSON store (or the System page's
 "Reset Hyprland settings") drops every override and falls back to your config.
 
-The top-bar editor stores its independent layout in `bar-layout.json` in the
-Vellum directory. It is shared by every monitor and applied live; deleting the
-file restores the built-in module order on the next shell start.
+The top-bar editor stores its independent layout in the `bar` section of
+`settings.json`. It is shared by every monitor and applied live; removing the
+section restores the built-in module order.
 
 Display changes go through a transaction owned by the daemon, because a bad mode
 or position can leave a screen the user can no longer click on:
