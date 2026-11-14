@@ -125,6 +125,22 @@
             items.forEach(function (item) { item.classList.add('in'); });
             return;
         }
+        // Behind the loader nothing is seen yet: start once the paper opens.
+        if (document.documentElement.classList.contains('splash-on')) {
+            var started = false;
+            var start = function () {
+                if (started) return;
+                started = true;
+                observe(items);
+            };
+            document.addEventListener('vellum:splash-open', start);
+            setTimeout(start, 9000);
+        } else {
+            observe(items);
+        }
+    }
+
+    function observe(items) {
         var observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (!entry.isIntersecting) return;

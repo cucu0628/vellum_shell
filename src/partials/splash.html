@@ -1,0 +1,28 @@
+<!-- Betolto: a shell inditokepernyoje (features/splash/) a weben. Csak akkor
+         latszik, ha a theme.js a <html>-re tette a `splash-on` osztalyt. -->
+    <div class="splash" id="splash" aria-hidden="true">
+        <div class="splash-night"></div>
+        <canvas class="splash-ink"></canvas>
+        <div class="splash-paper"></div>
+        <div class="splash-mark">
+            <div class="splash-glow"></div>
+            <svg class="splash-svg" viewBox="-20 -20 40 40">
+                <defs>
+                    <clipPath id="splash-left"><rect x="0" y="0" width="16" height="0"/></clipPath>
+                    <clipPath id="splash-right"><rect x="0" y="16" width="16" height="0"/></clipPath>
+                </defs>
+                <g class="splash-enso">
+                    <circle class="splash-ring" r="15.2" pathLength="360" stroke-width="0.64" transform="rotate(-70)"/>
+                    <circle class="splash-ring" r="15.76" pathLength="360" stroke-width="0.26" transform="rotate(-64)"/>
+                </g>
+                <g class="splash-logo" transform="translate(-8 -8)">
+                    <path clip-path="url(#splash-left)" d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1Z"/>
+                    <path clip-path="url(#splash-right)" d="M7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/>
+                </g>
+            </svg>
+        </div>
+        <div class="splash-words">
+            <p class="splash-name">Vellum</p>
+            <p class="splash-greeting">Welcome</p>
+        </div>
+    </div>

@@ -51,6 +51,8 @@
 
 html {
     background: var(--bg);
+    /* The loader hides the scrollbar; keep its place so nothing shifts. */
+    scrollbar-gutter: stable;
     scroll-padding-top: calc(var(--topbar) + 24px);
     -webkit-text-size-adjust: 100%;
 }
@@ -1008,3 +1010,65 @@ pre { margin: 0; overflow-x: auto; color: var(--fg-light); font-size: 13px; line
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* -- Loader: the shell's splash screen (splash.js) ------------------------ */
+
+.splash { display: none; }
+.splash-on, .splash-on body { overflow: hidden; }
+.splash-on .splash, .splash-leaving .splash {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    cursor: progress;
+    /* Without the script that lifts it, it lifts itself. */
+    animation: splash-fallback 0.6s 9s forwards;
+}
+.splash-leaving .splash { pointer-events: none; }
+@keyframes splash-fallback { to { opacity: 0; visibility: hidden; } }
+
+.splash-night, .splash-ink, .splash-paper { position: absolute; inset: 0; width: 100%; height: 100%; }
+.splash-night { background: #000; }
+.splash-ink { display: none; }
+.splash-gl .splash-ink { display: block; }
+.splash-paper { background: var(--bg); opacity: 0; }
+.splash-gl .splash-paper { display: none; }
+
+.splash-mark {
+    position: absolute;
+    left: 50%;
+    top: var(--center-y, 45vh);
+    width: calc(var(--logo, 72px) * 2.5);
+    height: calc(var(--logo, 72px) * 2.5);
+    margin: calc(var(--logo, 72px) * -1.25) 0 0 calc(var(--logo, 72px) * -1.25);
+    opacity: 1;
+}
+.splash-glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--logo, 72px) * 3.04);
+    height: calc(var(--logo, 72px) * 3.04);
+    margin: calc(var(--logo, 72px) * -1.52) 0 0 calc(var(--logo, 72px) * -1.52);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--accent), color-mix(in srgb, var(--accent) 35%, transparent) 45%, transparent);
+    opacity: 0;
+}
+.splash-svg { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+.splash-enso { opacity: 0.5; }
+.splash-ring { fill: none; stroke: var(--fg); stroke-linecap: round; stroke-dasharray: 0 360; }
+.splash-logo { fill: var(--accent); }
+
+.splash-words {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--center-y, 45vh) + var(--logo, 72px) * 1.25 + 16px);
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    opacity: 0;
+    text-align: center;
+}
+.splash-name { margin: 0; color: var(--fg); font-family: var(--serif); font-size: 26px; line-height: 1.2; letter-spacing: 12px; padding-left: 0; }
+.splash-greeting { margin: 0; color: var(--muted-text); font-family: var(--sans); font-size: 12px; line-height: 1.4; }

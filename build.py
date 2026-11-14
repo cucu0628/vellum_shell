@@ -289,6 +289,7 @@ def build(out: Path, ref: str, fetch: bool) -> None:
         "V_STYLE": version(SRC / "style.css"),
         "V_THEME": version(SRC / "theme.js"),
         "V_SITE": version(SRC / "site.js"),
+        "V_SPLASH": version(SRC / "splash.js"),
         "V_THEMES": version(out / "themes.js"),
         "REVISION": html.escape(sha[:7]),
         "REVISION_URL": f"{REPO_URL}/commit/{sha}",

@@ -12,11 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=5d135855ba">
+    <link rel="stylesheet" href="/style.css?v=066a142c2e">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=7429b59e2e"></script>
-    <script src="/theme.js?v=8d349b06de"></script>
-    <script src="/site.js?v=5f7136bc7f" defer></script>
+    <script src="/themes.js?v=6a9450c0a1"></script>
+    <script src="/theme.js?v=015323a10c"></script>
+    <script src="/splash.js?v=2b46be2938" defer></script>
+    <script src="/site.js?v=dc2f53a525" defer></script>
     <title>Themes and wallpapers · Vellum Shell guide</title>
     <meta name="description" content="The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/appearance.html">
@@ -25,6 +26,34 @@
     <meta property="og:url" content="https://vellum.asked.hu/guide/appearance.html">
 </head>
 <body class="page-guide">
+    <!-- Betolto: a shell inditokepernyoje (features/splash/) a weben. Csak akkor
+         latszik, ha a theme.js a <html>-re tette a `splash-on` osztalyt. -->
+    <div class="splash" id="splash" aria-hidden="true">
+        <div class="splash-night"></div>
+        <canvas class="splash-ink"></canvas>
+        <div class="splash-paper"></div>
+        <div class="splash-mark">
+            <div class="splash-glow"></div>
+            <svg class="splash-svg" viewBox="-20 -20 40 40">
+                <defs>
+                    <clipPath id="splash-left"><rect x="0" y="0" width="16" height="0"/></clipPath>
+                    <clipPath id="splash-right"><rect x="0" y="16" width="16" height="0"/></clipPath>
+                </defs>
+                <g class="splash-enso">
+                    <circle class="splash-ring" r="15.2" pathLength="360" stroke-width="0.64" transform="rotate(-70)"/>
+                    <circle class="splash-ring" r="15.76" pathLength="360" stroke-width="0.26" transform="rotate(-64)"/>
+                </g>
+                <g class="splash-logo" transform="translate(-8 -8)">
+                    <path clip-path="url(#splash-left)" d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1Z"/>
+                    <path clip-path="url(#splash-right)" d="M7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/>
+                </g>
+            </svg>
+        </div>
+        <div class="splash-words">
+            <p class="splash-name">Vellum</p>
+            <p class="splash-greeting">Welcome</p>
+        </div>
+    </div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
         <div class="topbar-inner">
@@ -292,7 +321,7 @@ ICON_THEME=Yaru-red-dark
                 <svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>
                 <div>
                     <p class="footer-title">Vellum Shell</p>
-                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/57076fa9f33bc0a27ad41b489168fafdc8619bd9"><code>57076fa</code></a> on main.</p>
+                    <p class="footer-meta">Palettes built from <a href="https://github.com/cucu0628/vellum_shell/commit/9a1defc67007cc826f438c75d4c874c232f56849"><code>9a1defc</code></a> on main.</p>
                 </div>
             </div>
             <nav class="footer-links" aria-label="Footer">

@@ -14,6 +14,7 @@ src/
 ├── style.css            Layout and components; colours are CSS variables
 ├── theme.js             Palette as variables, remembered choice, no flash on load
 ├── site.js              Theme menu, gallery, videos, slider, guide navigation
+├── splash.js            Loader: the shell's splash screen, once per session
 ├── 404.html
 └── favicon.svg
 docs/                    Built site that GitHub Pages serves (do not edit by hand)
@@ -59,6 +60,17 @@ and a backend started with `VELLUM_SHELL_DIR`, `VELLUM_GREETER_DIR` and
 and H.264 MP4. The wallpapers are public-domain paintings. The player is a stand-in that
 announces itself over MPRIS exactly like [Hibiki](https://github.com/cucu0628/Hibiki),
 with a track and cover from its library; the notifications are made up.
+
+## Loader
+
+`splash.js` and `partials/splash.html` replay the shell's splash screen
+(`features/splash/` on `main`) on the first page of a browser session: the paper
+spreads like ink from black, the logo is written in two strokes inside an
+ensō, and once the fonts and the hero poster have loaded the paper tears open
+from the centre. The paper is a WebGL port of `splash-ink.frag`; without WebGL
+it fades instead. `theme.js` decides before the first paint (never with reduced
+motion); any click, key or scroll skips it. `?splash` forces it, and
+`?splash=<ms>` freezes it at that point of the timeline for inspection.
 
 ## Building
 

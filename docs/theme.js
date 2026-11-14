@@ -14,6 +14,16 @@
     var root = document.documentElement;
     // Scroll reveals hide content only when the script that shows it again runs.
     root.classList.add('js');
+
+    // The loader (splash.js): once per browser session, never with reduced
+    // motion. ?splash forces it, for showing it off.
+    (function () {
+        var forced = /[?&]splash\b/.test(window.location.search);
+        var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var seen = false;
+        try { seen = sessionStorage.getItem('vellum-splash') === '1'; sessionStorage.setItem('vellum-splash', '1'); } catch (e) { seen = true; }
+        if (forced || (!seen && !calm)) root.classList.add('splash-on');
+    })();
     var applied = null;
     var committed = null;
 
