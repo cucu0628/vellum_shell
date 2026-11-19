@@ -23,6 +23,9 @@ Item {
     readonly property string screensaverIdleMinutes: settingMinutes("screensaver")
     // "shapes", "auto" vagy egy unnepi tema (features/screensaver/ScreensaverThemes.js).
     readonly property string screensaverTheme: settingText("screensaver", "theme", "shapes")
+    // A hatterkep-valtas es az inditokepernyo tus-shadere; a kepernyovedo
+    // mindig shaderrel fut, arra ez nem vonatkozik.
+    readonly property bool shaderEffects: settings ? settings.value("effects", "shaders", true) !== false : true
     property var diagnosticFacts: []
     property var backendModules: []
     property var failedServices: []
@@ -204,6 +207,10 @@ Item {
 
     function setScreensaverIdleMinutes(value) {
         saveSetting("screensaver", "idleMinutes", Math.max(0, parseInt(value, 10) || 0));
+    }
+
+    function setShaderEffects(value) {
+        saveSetting("effects", "shaders", value === true);
     }
 
     function setScreensaverTheme(value) {

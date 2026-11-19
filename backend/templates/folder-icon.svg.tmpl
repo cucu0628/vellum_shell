@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Vellum mappaikon. A {{GLYPH}} a mappa jele (a kis meretekben ures),
+       a szinek a paletta akcentusabol szarmaznak. clipPath nincs benne:
+       a Qt SVG motorja nem minden valtozatban tamogatja. -->
+  <defs>
+    <linearGradient id="back" x1="9" y1="12" x2="120" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="{{BACK_DARK}}"/>
+      <stop offset="0.55" stop-color="{{BACK_MID}}"/>
+      <stop offset="1" stop-color="{{BACK_LIGHT}}"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="28" x2="0" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="{{FRONT_TOP}}"/>
+      <stop offset="1" stop-color="{{FRONT_BOTTOM}}"/>
+    </linearGradient>
+  </defs>
+  <path d="M9 22Q9 12 19 12H45Q49 12 52 15L56 19Q58 21 62 21H110Q120 21 120 31V100H9Z" fill="url(#back)"/>
+  <path d="M8 46Q8 36 18 36H48Q52 36 55 33L59 30Q61 28 65 28H110Q120 28 120 38V106Q120 116 110 116H18Q8 116 8 106Z" transform="translate(0 1.5)" fill="#000000" fill-opacity="0.28"/>
+  <path d="M8 46Q8 36 18 36H48Q52 36 55 33L59 30Q61 28 65 28H110Q120 28 120 38V106Q120 116 110 116H18Q8 116 8 106Z" fill="url(#front)"/>
+  <path d="M120 80L84 116H110Q120 116 120 106Z" fill="#ffffff" fill-opacity="0.06"/>
+  <path d="M9 45.5Q9 37 18 37H48Q52.4 37 55.6 34L59.6 31Q61.4 29 65 29H110Q119 29 119 37.5" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+  <g transform="translate(64 75) scale(1.15) translate(-64 -75)" fill="none" stroke="{{GLYPH_COLOR}}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">{{GLYPH}}</g>
+</svg>

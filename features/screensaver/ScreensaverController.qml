@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Io
 import Quickshell.Wayland
+import "../../core" as Core
 import "." as Screensaver
 import "ScreensaverThemes.js" as Themes
 
@@ -127,8 +128,9 @@ Item {
     // Ha a shell futo kepernyovedo kozben allt le, a kurzor rejtve maradt volna.
     Component.onCompleted: setCursorHidden(false)
 
-    IdleMonitor {
-        enabled: controller.idleMinutes > 0 && !controller.blocked
+    // Core.IdleWatch: a beallitas kesobb erkezik, mint ahogy a figyelo letrejon.
+    Core.IdleWatch {
+        active: controller.idleMinutes > 0 && !controller.blocked
         timeout: controller.idleMinutes * 60
         respectInhibitors: true
         onIsIdleChanged: if (isIdle) controller.startFromIdle()

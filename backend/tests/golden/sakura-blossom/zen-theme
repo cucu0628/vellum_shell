@@ -80,7 +80,7 @@ menupopup {
   --button-text-color-menu-hover: #f6dce8 !important;
   --button-text-color-menu-active: #f6dce8 !important;
   --button-text-color-menu-disabled: #b994a6 !important;
-  --button-background-color-menu-hover: #241824 !important;
+  --button-background-color-menu-hover: #513747 !important;
   --button-background-color-menu-active: #795467 !important;
 }
 
@@ -109,8 +109,10 @@ menupopup :is(menu, menuitem)[disabled] :is(.menu-text, .menu-accel) {
   --button-text-color-menu-hover: #f6dce8 !important;
   --button-text-color-menu-active: #f6dce8 !important;
   --button-text-color-menu-disabled: #b994a6 !important;
-  --button-background-color-menu-hover: #241824 !important;
+  --button-background-color-menu-hover: #513747 !important;
   --button-background-color-menu-active: #795467 !important;
+  --panel-item-hover-bgcolor: #513747 !important;
+  --panel-item-active-bgcolor: #795467 !important;
   --uei-button-color: #f6dce8 !important;
 }
 

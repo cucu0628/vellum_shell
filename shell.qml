@@ -14,6 +14,7 @@ import "features/launcher" as LauncherFeature
 import "features/lock" as LockFeature
 import "features/media" as MediaFeature
 import "features/settings" as SettingsFeature
+import "features/splash" as SplashFeature
 import "features/bluetooth" as BluetoothFeature
 import "features/connectivity" as ConnectivityFeature
 import "features/notifications" as NotificationFeature
@@ -111,8 +112,16 @@ ShellRoot {
         id: wallpaperStore
         backend: shellRoot.shellBackend
         shellDir: shellRoot.shellDir
+        settings: shellRoot.shellSettings
         screens: shellRoot.uniqueScreens
         onDoubleClicked: (targetScreen) => popupCoordinator.setThemeSwitcherOpen(true, "wallpaper", targetScreen)
+    }
+
+    // A munkamenet eleji inditokepernyot (SplashShell.qml) az elso kesz
+    // hatterkep zarja le.
+    SplashFeature.SplashHandoff {
+        shellDir: shellRoot.shellDir
+        desktopReady: wallpaperStore.settled
     }
 
     Core.WorkspaceController {

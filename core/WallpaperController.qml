@@ -9,6 +9,10 @@ Item {
 
     required property string shellDir
     required property var backend
+    // A kozos `settings.json` (core/SettingsStore.qml). Az `effects.shaders`
+    // kikapcsolasa gyengebb gepen a tus-shader helyett sima atusztatast ad.
+    property var settings: null
+    readonly property bool shadersEnabled: !settings || settings.value("effects", "shaders", true) !== false
     property var screens: []
     // Empty until the backend reports a real file, so the wallpaper windows
     // never try to open a path that may not exist.
@@ -43,12 +47,33 @@ Item {
     }
 
 
+    // Igaz, amint minden kijelzon latszik hatterkep. Az inditokepernyo erre
+    // var: addig takarja az asztalt, amig az meg ures.
+    property bool settled: false
+
+    function updateSettled() {
+        var count = windows.count
+        for (var i = 0; i < count; i++) {
+            var window = windows.objectAt(i)
+            if (!window || !window.showing) {
+                settled = false
+                return
+            }
+        }
+        settled = count > 0
+    }
+
     // Az atmenet hossza (ms). A ThemeStore szinatmenete ennel kicsit rovidebb,
     // igy dinamikus temanal a felulet a kep terulese alatt er at.
     property int transitionDuration: 1100
 
     Instantiator {
+        id: windows
+
         model: controller.screens
+        onObjectAdded: Qt.callLater(controller.updateSettled)
+        onObjectRemoved: Qt.callLater(controller.updateSettled)
+
         delegate: PanelWindow {
             id: wallpaperWindow
             required property var modelData
@@ -61,6 +86,8 @@ Item {
             property bool frontIsA: true
             readonly property Image frontImage: frontIsA ? layerA : layerB
             readonly property Image backImage: frontIsA ? layerB : layerA
+            readonly property bool showing: frontImage.status === Image.Ready
+            onShowingChanged: controller.updateSettled()
             // Atmenet kozben ide kerul a kesobb kert kep; a folyo atmenet
             // vegen indul. A kozbulso kerelmek elesnek, csak az utolso szamit.
             property string pendingSource: ""
@@ -141,7 +168,7 @@ Item {
 
             // A shader alatt mindket reteg lathato marad: igy a textura-szolgaltato
             // biztosan friss. A bejovo reteg csak tartalek-modban latszik (ha a
-            // shader nem toltheto), ott sima keresztusztatassal.
+            // shader nem toltheto vagy ki van kapcsolva), ott sima keresztusztatassal.
             function layerOpacity(layer, front) {
                 if (layer.status !== Image.Ready) return 0
                 if (front || inkEffect.usable) return 1
@@ -200,7 +227,7 @@ Item {
             ShaderEffect {
                 id: inkEffect
 
-                readonly property bool usable: status !== ShaderEffect.Error
+                readonly property bool usable: controller.shadersEnabled && status !== ShaderEffect.Error
                 property var fromTexture: wallpaperWindow.frontImage
                 property var toTexture: wallpaperWindow.backImage
                 readonly property real progress: wallpaperWindow.progress
@@ -215,7 +242,8 @@ Item {
                 anchors.fill: parent
                 z: 2
                 visible: wallpaperWindow.transitioning && usable
-                fragmentShader: Qt.resolvedUrl("shaders/wallpaper-ink.frag.qsb")
+                // Kikapcsolva a shadert be sem toltjuk.
+                fragmentShader: controller.shadersEnabled ? Qt.resolvedUrl("shaders/wallpaper-ink.frag.qsb") : ""
             }
 
             NumberAnimation {

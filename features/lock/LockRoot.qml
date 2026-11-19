@@ -188,8 +188,8 @@ ShellRoot {
         ? Math.max(0, parseInt(effectiveSettings.value("lockScreen", "idleMinutes", 0), 10) || 0)
         : 0
 
-    IdleMonitor {
-        enabled: root.idleLockMinutes > 0 && !root.sessionActive
+    Core.IdleWatch {
+        active: root.idleLockMinutes > 0 && !root.sessionActive
         timeout: root.idleLockMinutes * 60
         respectInhibitors: true
         onIsIdleChanged: if (isIdle) root.lockNow()
