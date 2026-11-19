@@ -9,13 +9,16 @@
 
 pub mod btop;
 pub mod fastfetch;
+pub mod folder_icons;
 pub mod greeter;
 pub mod gtk;
 pub mod hyprland;
+pub mod hyprtoolkit;
 pub mod icon;
 pub mod kitty;
 pub mod neovim;
 pub mod qt6ct;
+pub mod t3code;
 pub mod zen;
 
 use crate::theme::palette::Palette;
@@ -80,11 +83,15 @@ pub fn run_all(palette: &Palette, wallpaper: Option<&Path>, include_zen: bool) -
         run("gtk", REQUIRED, || gtk::generate(palette)),
         run("qt6ct", OPTIONAL, || qt6ct::generate(palette)),
         run("hyprland", REQUIRED, || hyprland::generate(palette)),
+        // A Hyprland sajat GUI-ja (pl. a kepernyomegosztas valasztoja).
+        run("hyprtoolkit", OPTIONAL, || hyprtoolkit::generate(palette)),
         // Kulso alkalmazasok: hianyozhatnak, es akkor nincs mit temazni.
         run("icon", OPTIONAL, || icon::generate(palette)),
         run("btop", OPTIONAL, || btop::generate(palette)),
         run("neovim", OPTIONAL, || neovim::generate(palette)),
         run("fastfetch", OPTIONAL, || fastfetch::generate(palette)),
+        // A T3 Code a temamappajat figyeli: a valtas ujrainditas nelkul atszinezi.
+        run("t3code", OPTIONAL, || t3code::generate(palette)),
         // A greeter allapota rendszerkonyvtarban ul: telepites nelkul nincs mit irni.
         run("greeter", OPTIONAL, || greeter::generate(palette, wallpaper)),
     ];

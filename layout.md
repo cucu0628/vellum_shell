@@ -9,6 +9,7 @@ vellum_shell/
 ├── shell.qml                         # Stabil fő belépési pont, csak kompozíció
 ├── LockShell.qml                     # Stabil külön processzes lock belépési pont
 ├── GreeterShell.qml                  # greetd greeter belépési pont (telepítve shell.qml)
+├── SplashShell.qml                   # Munkamenet eleji indítóképernyő (a shell-start indítja)
 ├── layout.md                         # Architektúra és célstruktúra
 ├── README.md                         # Telepítés, használat és IPC dokumentáció
 ├── AGENTS.md                         # Közreműködői útmutató (a CLAUDE.md ide mutat)
@@ -53,13 +54,16 @@ vellum_shell/
 │   │   │   ├── generators/
 │   │   │   │   ├── btop.rs           # btop színséma
 │   │   │   │   ├── fastfetch.rs      # Fastfetch konfiguráció és logó
+│   │   │   │   ├── folder_icons.rs   # Palettából generált mappaikon-téma
 │   │   │   │   ├── gtk.rs            # GTK3/GTK4 színváltozók
 │   │   │   │   ├── hyprland.rs       # Ablakkeret-színek
-│   │   │   │   ├── icon.rs           # Ikontéma választása
+│   │   │   │   ├── hyprtoolkit.rs    # Hyprland GUI (megosztásválasztó) palettája
+│   │   │   │   ├── icon.rs           # Ikontéma választása és beállítása
 │   │   │   │   ├── kitty.rs          # kitty színséma
 │   │   │   │   ├── mod.rs
 │   │   │   │   ├── neovim.rs         # Neovim colorscheme (LazyVim)
 │   │   │   │   ├── qt6ct.rs           # Qt6/portal színpaletta
+│   │   │   │   ├── t3code.rs         # T3 Code környezeti téma (JSON)
 │   │   │   │   └── zen.rs            # Zen Browser stíluslapok és profil-bekötés
 │   │   │   ├── color.rs              # Színműveletek (mix, luminancia, árnyalat)
 │   │   │   ├── material.rs           # Natív Material You paletta háttérképből
@@ -80,8 +84,10 @@ vellum_shell/
 │   ├── templates/                    # Téma-sablonok ({{KULCS}} helyőrzőkkel)
 │   │   ├── btop.theme.tmpl
 │   │   ├── dynamic-theme.conf.tmpl
+│   │   ├── folder-icon.svg.tmpl
 │   │   ├── gtk-theme.css.tmpl
 │   │   ├── hyprland-colors.lua.tmpl
+│   │   ├── hyprtoolkit.conf.tmpl
 │   │   ├── kitty.conf.tmpl
 │   │   ├── nvim-colors.lua.tmpl
 │   │   ├── qt6ct-colors.conf.tmpl
@@ -107,6 +113,7 @@ vellum_shell/
 │   ├── BluetoothStatusController.qml # Bluez adapter és eszközlista nézete
 │   ├── CalendarController.qml        # Google Naptár a backend `calendar` topicjából, napi index
 │   ├── CavaController.qml            # Hangvizualizáció, csak lejátszás közben fut
+│   ├── IdleWatch.qml                 # Tétlenség-figyelő, ami az időkorlát változását is követi
 │   ├── MprisController.qml           # Aktív médialejátszó kiválasztása
 │   ├── NetworkStatusController.qml   # Aktív kapcsolat a backend `network` topicjából
 │   ├── Paths.qml                     # XDG- és shell-útvonalak egyetlen forrásból
@@ -256,6 +263,11 @@ vellum_shell/
 │   └── tray/
 │       └── TrayMenu.qml
 ├── hypr/                             # Telepíthető Hyprland modulok
+│   ├── splash/
+│   │   ├── SplashHandoff.qml         # Fő shell oldal: kész háttérképnél `splash dismiss`
+│   │   ├── SplashRoot.qml            # Külön példány: tus-terülés, kiírt logó, felszakadás
+│   │   ├── SplashView.qml            # Egy kijelző lapja: papír, ensō, logó, felirat
+│   │   └── shaders/                  # splash-ink.frag + a lefordított .qsb
 │   ├── autostart.lua
 │   └── bindings.lua
 ├── nvim/                             # Telepíthető Neovim modulok
@@ -320,7 +332,9 @@ vellum_shell/
 │   │   └── theme.conf
 │   ├── tokyo-night/
 │   │   └── theme.conf
-│   └── varnished-horizon/
+│   ├── varnished-horizon/
+│   │   └── theme.conf
+│   └── vice-sunset/
 │       └── theme.conf
 ├── ui/                               # Feature-független vizuális elemek
 │   ├── ActionButton.qml              # Feliratos, billentyűzettel kezelhető gomb

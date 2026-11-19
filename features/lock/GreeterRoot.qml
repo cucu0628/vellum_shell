@@ -40,6 +40,8 @@ ShellRoot {
     property bool ready: false
     property bool closing: false
     property bool thawing: false
+    // A belepes vege: a felulet feketebe usztat (lasd finishLogin).
+    property bool fadingOut: false
     property int revealStep: 0
     property var currentTime: new Date()
     readonly property string timeText: two(currentTime.getHours()) + ":" + two(currentTime.getMinutes())
@@ -150,16 +152,31 @@ ShellRoot {
         // Az Exec sort egyben adjuk at. A greetd a parancs elemeit szokozzel
         // osszefuzi egy `/bin/sh -c '. /etc/profile; ...; exec <parancs>'`
         // sorba, tehat egy sajat `sh -c` csak a szot ("exec") futtatna, es a
-        // munkamenet azonnal kilepne.
-        auth.launch([session.exec], environment)
+        // munkamenet azonnal kilepne. Ezert az elotag egyetlen, idezett
+        // szkript; az Exec sor utana ugyanugy szavakra bomlik, mint eddig.
+        auth.launch([sessionWrapper + " " + session.exec], environment)
     }
 
-    // Ugyanaz a ket utemu kilepes, mint a zarolasnal: eloszor a panel tunik el,
-    // aztan felenged a hatter, es csak a tiszta hatterkep utan lepunk ki.
+    // A greeter es a munkamenet compositora kozott a TTY latszik. A greetd
+    // ugyan torli, de a kurzor villog rajta, es a munkamenet (pl. a
+    // start-hyprland) a kimenetet is oda irna. A burok elrejti a kurzort, es a
+    // kimenetet a journalba kuldi -- journald nelkul marad a regi viselkedes.
+    readonly property string sessionWrapper: "sh -c '"
+        + "t=/dev/$(cat /sys/class/tty/tty0/active 2>/dev/null); "
+        + "if [ \"$t\" = /dev/ ] || [ ! -w \"$t\" ]; then t=/dev/stdout; fi; "
+        + "printf \"\\033[?25l\\033[H\\033[2J\\033[3J\" > \"$t\" 2>/dev/null; "
+        + "if [ -S /run/systemd/journal/stdout ] && command -v systemd-cat >/dev/null 2>&1; "
+        + "then exec systemd-cat -t vellum-session \"$@\"; fi; "
+        + "exec \"$@\"' vellum-session"
+
+    // Ket utemu kilepes: eloszor a panel tunik el, aztan a felulet feketebe
+    // usztat. A ket compositor kozti TTY-szunet fekete, es a munkamenet
+    // inditokepernyoje (features/splash) is feketebol indul, igy a lanc
+    // varrat nelkuli. Csak a teljes fekete utan lepunk ki.
     function finishLogin() {
         if (closing) return
         closing = true
-        thawTimer.restart()
+        fadeTimer.restart()
         quitTimer.restart()
     }
 
@@ -235,10 +252,10 @@ ShellRoot {
     }
 
     Timer {
-        id: thawTimer
+        id: fadeTimer
 
         interval: 130
-        onTriggered: root.thawing = true
+        onTriggered: root.fadingOut = true
     }
 
     // A greetd csak a greeter kilepese utan inditja a munkamenetet, ezert a
@@ -302,6 +319,14 @@ ShellRoot {
                     idleText: root.preview ? "Greeter preview" : "Ready to sign in"
                     inputHint: "Sign in on " + root.effectiveInputMonitorName
                 }
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                color: "#000000"
+                opacity: root.fadingOut ? 1 : 0
+
+                Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.InOutQuad } }
             }
         }
     }

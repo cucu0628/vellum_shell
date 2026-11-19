@@ -1,20 +1,24 @@
 //! Ikontema valasztasa es beallitasa.
 //!
-//! Ez az egyetlen generator, ami nem fajlt ir: a `gsettings` es a
-//! `kwriteconfig6` az API. Temavaltaskor fut le egyszer, nem forro ut.
+//! Az alap egy kesz Yaru-variáns (vagy a tema `ICON_THEME` kulcsa). Erre epul
+//! a generalt mappaikon-tema (`folder_icons`), ami csak a mappakat szinezi at
+//! a palettaval; a `gsettings` es a `kwriteconfig6` ezt kapja meg. Ha a
+//! generalas ki van kapcsolva vagy nem sikerul, az alap tema marad.
+//! Temavaltaskor fut le egyszer, nem forro ut.
 
+use crate::theme::generators::folder_icons;
 use crate::theme::palette::Palette;
 use crate::theme::{color, paths};
 use anyhow::Result;
 use std::path::PathBuf;
 
 pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
-    let icon_theme = resolve(palette);
+    let base = resolve(palette);
 
     // Ha a tema nincs telepitve, nem allitunk semmit -- kulonben eltunnenek az
     // ikonok.
-    if !is_installed(&icon_theme) {
-        tracing::debug!(icon_theme, "az ikontema nincs telepitve, kihagyva");
+    if !is_installed(&base) {
+        tracing::debug!(icon_theme = base, "az ikontema nincs telepitve, kihagyva");
         return Ok(None);
     }
 
@@ -22,10 +26,37 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
         return Ok(None);
     }
 
-    run_quiet("gsettings", &["set", "org.gnome.desktop.interface", "icon-theme", &icon_theme]);
+    let root = folder_icons::icons_root();
+    let folders = if folder_icons::enabled(palette) {
+        match folder_icons::write_into(&root, palette, &base) {
+            Ok(written) => Some(written),
+            Err(err) => {
+                tracing::warn!(
+                    error = format!("{err:#}"),
+                    "a mappaikonok nem generalhatok, marad az alap ikontema"
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
+    let icon_theme = folders.as_ref().map_or_else(|| base.clone(), |written| written.name.clone());
+
+    apply(&icon_theme);
+
+    // A regi nevet csak az atallitas utan toroljuk: addig meg az a hasznalt tema.
+    folder_icons::remove_others(&root, folders.as_ref().map(|written| written.name.as_str()));
+
+    Ok(folders.map(|written| (written.dir, written.changed)))
+}
+
+/// Beallitja az ikontemat a GTK-nak, a KDE-nek es a qt6ct-nek.
+fn apply(icon_theme: &str) {
+    run_quiet("gsettings", &["set", "org.gnome.desktop.interface", "icon-theme", icon_theme]);
     run_quiet(
         "kwriteconfig6",
-        &["--file", "kdeglobals", "--group", "Icons", "--key", "Theme", "--notify", &icon_theme],
+        &["--file", "kdeglobals", "--group", "Icons", "--key", "Theme", "--notify", icon_theme],
     );
 
     let qt6ct = paths::config_dir().join("qt6ct/qt6ct.conf");
@@ -39,12 +70,10 @@ pub fn generate(palette: &Palette) -> Result<Option<(PathBuf, bool)>> {
                 "Appearance",
                 "--key",
                 "icon_theme",
-                &icon_theme,
+                icon_theme,
             ],
         );
     }
-
-    Ok(None)
 }
 
 /// Az ICON_THEME kulcs, vagy -- ha hianyzik/`auto` -- az akcentus arnyalatabol
@@ -79,7 +108,7 @@ pub fn resolve(palette: &Palette) -> String {
     .to_string()
 }
 
-fn is_installed(name: &str) -> bool {
+pub fn is_installed(name: &str) -> bool {
     let home = paths::home();
     [
         PathBuf::from("/usr/share/icons").join(name),

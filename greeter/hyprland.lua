@@ -133,9 +133,26 @@ hl.config({
 	},
 })
 
+-- A Hyprland indulaskor egy nagy ASCII-bannert ir a kimenetere, ami itt a
+-- greeter TTY-ja. A ket compositor kozotti pillanatban (belepeskor) ez a TTY
+-- latszik, ezert a szoveget es a villogo kurzort eltakaritjuk: indulaskor es a
+-- kilepes elott is. Az aktiv VT neve vilag-olvashato; a TTY-t a greetd a
+-- greeter felhasznalonak adja. Ha nem irhato, csak kimarad.
+local clear_tty = [[
+tty=/dev/$(cat /sys/class/tty/tty0/active 2>/dev/null)
+if [ "$tty" != /dev/ ] && [ -w "$tty" ]; then
+	printf "\033[?25l\033[H\033[2J\033[3J" > "$tty" 2>/dev/null
+fi
+]]
+
 -- A greetd csak a greeter kilepese utan inditja a munkamenetet: ha a Quickshell
 -- kilep (sikeres belepes vagy hiba), a compositornak is ki kell lepnie. A Lua
 -- modban a regi `hyprctl dispatch exit` mar nem dispatcher, csak hibat ad.
+local session_script = clear_tty
+	.. "qs -p " .. shell_dir .. "\n"
+	.. clear_tty
+	.. 'hyprctl dispatch "hl.dsp.exit()"\n'
+
 hl.on("hyprland.start", function()
-	hl.exec_cmd("sh -c 'qs -p " .. shell_dir .. '; hyprctl dispatch "hl.dsp.exit()"\'')
+	hl.exec_cmd("sh -c '" .. session_script .. "'")
 end)

@@ -66,7 +66,7 @@ cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
 
 # QML (from the repository root)
-qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+qmllint shell.qml LockShell.qml GreeterShell.qml SplashShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
 
 # Bash, when ShellCheck is installed
 shellcheck setup.sh install.sh scripts/*

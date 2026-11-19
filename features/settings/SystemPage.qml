@@ -79,6 +79,21 @@ Flickable {
 
             SharedUi.SettingRow {
                 theme: page.theme
+                label: "Shader effects"
+                description: "Ink transitions for wallpaper changes and the startup splash. Turn off on slower GPUs for a plain fade."
+
+                SharedUi.SettingToggle {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    theme: page.theme
+                    checked: page.systemController.shaderEffects
+                    onToggled: (value) => page.systemController.setShaderEffects(value)
+                }
+
+            }
+
+            SharedUi.SettingRow {
+                theme: page.theme
                 enabled: page.systemController.lockscreenMonitors.length > 1
                 label: "Lock screen input display"
                 description: "Which display shows the password prompt. Only matters with more than one display."

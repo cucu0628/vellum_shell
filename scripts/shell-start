@@ -3,32 +3,6 @@ set -euo pipefail
 
 shell_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
-# XDG_RUNTIME_DIR nelkul a daemon egy uid-suffixes /tmp utvonalra esik vissza,
-# amit a QML kliens nem tud kiszamolni. Ilyen munkamenetben mi jelolunk ki egy
-# kozos utvonalat mindkettonek.
-if [[ -z ${XDG_RUNTIME_DIR:-} && -z ${VELLUM_SOCKET:-} ]]; then
-  fallback_dir="/tmp/vellum-shell-$(id -u)"
-  install -d -m 700 "$fallback_dir"
-  VELLUM_SOCKET="$fallback_dir/vellum-shell.sock"
-  export VELLUM_SOCKET
-fi
-
-# A user manager a Hyprland elott indul, ezert a daemon elso peldanya meg nem
-# latja a kompozitor socketjet. Adjuk at a session valtozoit, majd inditsuk ujra
-# a backendet, mielott a shell kapcsolodni kezd hozza.
-import_vars=(DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP)
-# Nem `&&` egysoros: `set -e` alatt egy hamis teszt maga allitana meg a scriptet.
-if [[ -n ${VELLUM_SOCKET:-} ]]; then
-  import_vars+=(VELLUM_SOCKET)
-fi
-systemctl --user import-environment "${import_vars[@]}"
-
-# A daemon nem feltetele a shellnek: nelkule a felulet degradaltan, de elindul.
-# Ezert egy sikertelen restart nem allithatja meg ezt a scriptet.
-if ! systemctl --user restart vellum-shelld.service; then
-  echo "vellum: a backend nem indult el, a shell degradaltan indul" >&2
-fi
-
 # Megvarjuk, amig a Hyprland beallitja a kimeneteket, mielott feluleteket
 # hozunk letre: legyen legalabb egy monitor, es az elrendezes 300 ms-ig ne
 # valtozzon. Legfeljebb 5 masodpercig varunk; hyprctl vagy jq nelkul marad a
@@ -57,6 +31,41 @@ wait_for_outputs() {
 }
 
 wait_for_outputs
+
+# Az inditokepernyo a leheto legkorabban, de mar stabil kimenetekre: ha a
+# Hyprland meg atallitja a monitorokat, a kozben letrehozott layer-feluleteket
+# bezarja, es a splash nem latszik (ez ujrainditas utani elso belepesnel
+# elofordult). Kulon, konnyu peldany; a fo shell zarja le (`splash dismiss`),
+# es egy hibaja nem allithatja meg az indulast. VELLUM_SPLASH=0 kikapcsolja.
+if [[ ${VELLUM_SPLASH:-1} != 0 ]] && command -v quickshell >/dev/null 2>&1; then
+  quickshell --no-duplicate --daemonize --path "$shell_dir/SplashShell.qml" >/dev/null 2>&1 || true
+fi
+
+# XDG_RUNTIME_DIR nelkul a daemon egy uid-suffixes /tmp utvonalra esik vissza,
+# amit a QML kliens nem tud kiszamolni. Ilyen munkamenetben mi jelolunk ki egy
+# kozos utvonalat mindkettonek.
+if [[ -z ${XDG_RUNTIME_DIR:-} && -z ${VELLUM_SOCKET:-} ]]; then
+  fallback_dir="/tmp/vellum-shell-$(id -u)"
+  install -d -m 700 "$fallback_dir"
+  VELLUM_SOCKET="$fallback_dir/vellum-shell.sock"
+  export VELLUM_SOCKET
+fi
+
+# A user manager a Hyprland elott indul, ezert a daemon elso peldanya meg nem
+# latja a kompozitor socketjet. Adjuk at a session valtozoit, majd inditsuk ujra
+# a backendet, mielott a shell kapcsolodni kezd hozza.
+import_vars=(DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP)
+# Nem `&&` egysoros: `set -e` alatt egy hamis teszt maga allitana meg a scriptet.
+if [[ -n ${VELLUM_SOCKET:-} ]]; then
+  import_vars+=(VELLUM_SOCKET)
+fi
+systemctl --user import-environment "${import_vars[@]}"
+
+# A daemon nem feltetele a shellnek: nelkule a felulet degradaltan, de elindul.
+# Ezert egy sikertelen restart nem allithatja meg ezt a scriptet.
+if ! systemctl --user restart vellum-shelld.service; then
+  echo "vellum: a backend nem indult el, a shell degradaltan indul" >&2
+fi
 
 # Felugyelve fut: egy osszeomlas (kulonosen zarolt kepernyonel) utan a
 # shell-run ujrainditja.
