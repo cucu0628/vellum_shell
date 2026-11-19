@@ -12,12 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=066a142c2e">
+    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=dc2f53a525" defer></script>
+    <script src="/site.js?v=ce2a775e90" defer></script>
     <title>Using the shell · Vellum Shell guide</title>
     <meta name="description" content="The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/using.html">
@@ -85,15 +85,19 @@
 
     <div class="guide-layout">
         <aside class="guide-nav" aria-label="Guide">
-            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
-            <nav class="guide-nav-body">
-                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html" aria-current="page" class="on">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            <button class="guide-nav-toggle" type="button" aria-expanded="false" aria-controls="guide-contents">
+                <span><span class="guide-nav-toggle-num">3</span>Using the shell</span>
+                <span class="guide-nav-toggle-hint">Contents</span>
+            </button>
+            <nav class="guide-nav-body" id="guide-contents">
+                <p class="guide-nav-title"><a href="/guide/">The Vellum guide</a></p>
+                <p class="guide-nav-group">Get started</p><ol><li><a href="/guide/"><span class="num">1</span><span class="label">Introduction</span></a></li><li><a href="/guide/installation.html"><span class="num">2</span><span class="label">Installation</span></a></li></ol><p class="guide-nav-group">Using Vellum</p><ol><li class="on"><a href="/guide/using.html" aria-current="page"><span class="num">3<svg class="enso" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/><circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/></svg></span><span class="label">Using the shell</span></a><ol class="guide-sections"><li><a href="#default-keys">Default keys</a></li><li><a href="#the-bar">The bar</a></li><li><a href="#launcher">Launcher</a></li><li><a href="#media-dashboard">Media dashboard</a></li><li><a href="#notifications">Notifications</a></li><li><a href="#clipboard">Clipboard</a></li><li><a href="#screenshots">Screenshots</a></li><li><a href="#system-popups">System popups</a></li></ol></li><li><a href="/guide/appearance.html"><span class="num">4</span><span class="label">Themes and wallpapers</span></a></li><li><a href="/guide/settings.html"><span class="num">5</span><span class="label">Settings</span></a></li><li><a href="/guide/lock-screen.html"><span class="num">6</span><span class="label">Lock and login screen</span></a></li><li><a href="/guide/screensaver.html"><span class="num">7</span><span class="label">Screensaver</span></a></li></ol><p class="guide-nav-group">Reference</p><ol><li><a href="/guide/ipc.html"><span class="num">8</span><span class="label">IPC and keybindings</span></a></li><li><a href="/guide/architecture.html"><span class="num">9</span><span class="label">How it works</span></a></li><li><a href="/guide/development.html"><span class="num">10</span><span class="label">Development</span></a></li></ol>
             </nav>
         </aside>
 
         <main id="main" class="guide-main">
             <header class="guide-head">
-                <p class="eyebrow">Using Vellum</p>
+                <p class="guide-chapter" aria-label="Chapter 3 of 10">3</p>
                 <h1>Using the shell</h1>
                 <p class="guide-description">The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.</p>
             </header>
@@ -218,7 +222,7 @@
 <p>Rearrange, move or hide modules on the <strong>Top bar</strong> page of <a href="/guide/settings.html#top-bar">Settings</a>.</p>
 <p>Every overlay opens on the focused monitor and closes the others, so two surfaces never stay open on top of each other.</p>
 <h2 id="launcher">Launcher<a class="anchor" href="#launcher" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings" src="/media/shots/launcher.jpg?v=c91a59ed96" /></p>
+<figure><img loading="lazy" decoding="async" alt="The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings" src="/media/shots/launcher.jpg?v=c91a59ed96" /><figcaption>The launcher searching for &quot;fire&quot;: an emoji, Firefox and the firewall settings</figcaption></figure>
 <p>One prefix-free field searches applications, shell actions and emoji at once, and calculates anything that looks like a maths expression (with <code>qalc</code> installed).</p>
 <ul>
 <li><strong>Applications</strong> come from desktop entries and are ranked by frecency: how often and how recently you opened them.</li>
@@ -229,7 +233,11 @@
 </ul>
 <p>Desktop entries with <code>Terminal=true</code>, such as Neovim or btop, open in your default terminal instead of being started without a TTY. Choose the terminal on the <strong>Default apps</strong> page of Settings. It is stored as the first line of <code>~/.config/xdg-terminals.list</code>, the list <code>xdg-terminal-exec</code> reads; without one, Kitty is used.</p>
 <h2 id="media-dashboard">Media dashboard<a class="anchor" href="#media-dashboard" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The media dashboard: player, calendar, weather and system statistics" src="/media/shots/dashboard.jpg?v=f36b9bfe43" /></p>
+<figure><img loading="lazy" decoding="async" alt="The media dashboard: player, calendar, weather and system statistics" src="/media/shots/dashboard.jpg?v=f36b9bfe43" /><figcaption>The media dashboard: player, calendar, weather and system statistics</figcaption></figure>
+<div role="note" class="admonition tip">
+<p class="admonition-title">Hibiki</p>
+<p>The player in the screenshots is <a href="https://github.com/cucu0628/Hibiki">Hibiki</a>, a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.</p>
+</div>
 <p>Click the clock, or bind <code>media toggle</code>. The dashboard shows:</p>
 <ul>
 <li><strong>An album-art player</strong> for the active MPRIS player, with seeking, shuffle, repeat and the player's own volume. Players you never want to see can be hidden on the <strong>Top bar</strong> settings page.</li>
@@ -238,12 +246,8 @@
 <li><strong>System statistics</strong>: a CPU graph, memory and disk use, and uptime.</li>
 </ul>
 <p><code>media calendar</code> and <code>media weather</code> open the dashboard with that card already expanded.</p>
-<div class="admonition tip">
-<p class="admonition-title">Hibiki</p>
-<p>The player in the screenshots is <a href="https://github.com/cucu0628/Hibiki">Hibiki</a>, a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.</p>
-</div>
 <h2 id="notifications">Notifications<a class="anchor" href="#notifications" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="The notification centre grouped by application" src="/media/shots/notifications.jpg?v=f4293e9dbd" /></p>
+<figure><img loading="lazy" decoding="async" alt="The notification centre grouped by application" src="/media/shots/notifications.jpg?v=f4293e9dbd" /><figcaption>The notification centre grouped by application</figcaption></figure>
 <p>Vellum is the notification server, so no other daemon such as mako or dunst is needed.</p>
 <ul>
 <li><strong>Toasts</strong> appear in the top-right corner with their actions.</li>
@@ -253,7 +257,7 @@
 </ul>
 <p>User-provided text is always rendered as plain text, never as markup.</p>
 <h2 id="clipboard">Clipboard<a class="anchor" href="#clipboard" title="Link to this section">#</a></h2>
-<p><img loading="lazy" decoding="async" alt="Clipboard history with text and an image entry" src="/media/shots/clipboard.jpg?v=cabb488893" /></p>
+<figure><img loading="lazy" decoding="async" alt="Clipboard history with text and an image entry" src="/media/shots/clipboard.jpg?v=cabb488893" /><figcaption>Clipboard history with text and an image entry</figcaption></figure>
 <p>The backend records the clipboard over Wayland's data-control protocol, even while no panel is open. Open the history with <kbd>Super</kbd> + <kbd>V</kbd>.</p>
 <ul>
 <li>Text and images, with image previews.</li>
@@ -301,16 +305,11 @@
 <li><strong>About</strong>: a floating kitty window running Fastfetch with the theme's logo, rather than a QML panel that would re-render the same facts.</li>
 </ul>
             </article>
-            <nav class="pager" aria-label="Previous and next page">
-                <a class="pager-prev" href="/guide/installation.html"><small>Previous</small><span>Installation</span></a><a class="pager-next" href="/guide/appearance.html"><small>Next</small><span>Themes and wallpapers</span></a>
+            <nav class="pager" aria-label="Previous and next chapter">
+                <a class="pager-prev" href="/guide/installation.html" rel="prev"><small>Previous chapter</small><span><b>2</b>Installation</span></a><a class="pager-next" href="/guide/appearance.html" rel="next"><small>Next chapter</small><span><b>4</b>Themes and wallpapers</span></a>
             </nav>
             <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/using.md">Edit this page on GitHub</a>.</p>
         </main>
-
-        <aside class="guide-toc" aria-label="On this page">
-            <p class="guide-toc-title">On this page</p>
-            <ol class="toc-list"><li><a href="#default-keys">Default keys</a></li><li><a href="#the-bar">The bar</a></li><li><a href="#launcher">Launcher</a></li><li><a href="#media-dashboard">Media dashboard</a></li><li><a href="#notifications">Notifications</a></li><li><a href="#clipboard">Clipboard</a></li><li><a href="#screenshots">Screenshots</a></li><li><a href="#system-popups">System popups</a></li></ol>
-        </aside>
     </div>
 
     <footer class="footer">

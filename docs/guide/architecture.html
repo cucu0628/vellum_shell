@@ -12,12 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=066a142c2e">
+    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=dc2f53a525" defer></script>
+    <script src="/site.js?v=ce2a775e90" defer></script>
     <title>How it works · Vellum Shell guide</title>
     <meta name="description" content="The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/architecture.html">
@@ -85,15 +85,19 @@
 
     <div class="guide-layout">
         <aside class="guide-nav" aria-label="Guide">
-            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
-            <nav class="guide-nav-body">
-                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html" aria-current="page" class="on">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            <button class="guide-nav-toggle" type="button" aria-expanded="false" aria-controls="guide-contents">
+                <span><span class="guide-nav-toggle-num">9</span>How it works</span>
+                <span class="guide-nav-toggle-hint">Contents</span>
+            </button>
+            <nav class="guide-nav-body" id="guide-contents">
+                <p class="guide-nav-title"><a href="/guide/">The Vellum guide</a></p>
+                <p class="guide-nav-group">Get started</p><ol><li><a href="/guide/"><span class="num">1</span><span class="label">Introduction</span></a></li><li><a href="/guide/installation.html"><span class="num">2</span><span class="label">Installation</span></a></li></ol><p class="guide-nav-group">Using Vellum</p><ol><li><a href="/guide/using.html"><span class="num">3</span><span class="label">Using the shell</span></a></li><li><a href="/guide/appearance.html"><span class="num">4</span><span class="label">Themes and wallpapers</span></a></li><li><a href="/guide/settings.html"><span class="num">5</span><span class="label">Settings</span></a></li><li><a href="/guide/lock-screen.html"><span class="num">6</span><span class="label">Lock and login screen</span></a></li><li><a href="/guide/screensaver.html"><span class="num">7</span><span class="label">Screensaver</span></a></li></ol><p class="guide-nav-group">Reference</p><ol><li><a href="/guide/ipc.html"><span class="num">8</span><span class="label">IPC and keybindings</span></a></li><li class="on"><a href="/guide/architecture.html" aria-current="page"><span class="num">9<svg class="enso" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/><circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/></svg></span><span class="label">How it works</span></a><ol class="guide-sections"><li><a href="#two-processes">Two processes</a></li><li><a href="#the-shells-layers">The shell's layers</a></li><li><a href="#the-backend">The backend</a></li><li><a href="#graceful-degradation">Graceful degradation</a></li><li><a href="#repository-layout">Repository layout</a></li></ol></li><li><a href="/guide/development.html"><span class="num">10</span><span class="label">Development</span></a></li></ol>
             </nav>
         </aside>
 
         <main id="main" class="guide-main">
             <header class="guide-head">
-                <p class="eyebrow">Reference</p>
+                <p class="guide-chapter" aria-label="Chapter 9 of 10">9</p>
                 <h1>How it works</h1>
                 <p class="guide-description">The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.</p>
             </header>
@@ -268,16 +272,11 @@
 </code></pre>
 <p>The repository's <code>layout.md</code> documents every file, in Hungarian.</p>
             </article>
-            <nav class="pager" aria-label="Previous and next page">
-                <a class="pager-prev" href="/guide/ipc.html"><small>Previous</small><span>IPC and keybindings</span></a><a class="pager-next" href="/guide/development.html"><small>Next</small><span>Development</span></a>
+            <nav class="pager" aria-label="Previous and next chapter">
+                <a class="pager-prev" href="/guide/ipc.html" rel="prev"><small>Previous chapter</small><span><b>8</b>IPC and keybindings</span></a><a class="pager-next" href="/guide/development.html" rel="next"><small>Next chapter</small><span><b>10</b>Development</span></a>
             </nav>
             <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/architecture.md">Edit this page on GitHub</a>.</p>
         </main>
-
-        <aside class="guide-toc" aria-label="On this page">
-            <p class="guide-toc-title">On this page</p>
-            <ol class="toc-list"><li><a href="#two-processes">Two processes</a></li><li><a href="#the-shells-layers">The shell's layers</a><ol class="toc-sub"><li><a href="#one-popup-at-a-time">One popup at a time</a></li></ol></li><li><a href="#the-backend">The backend</a><ol class="toc-sub"><li><a href="#lazy-topics">Lazy topics</a></li><li><a href="#the-contract">The contract</a></li><li><a href="#theme-transactions">Theme transactions</a></li><li><a href="#display-transactions">Display transactions</a></li></ol></li><li><a href="#graceful-degradation">Graceful degradation</a></li><li><a href="#repository-layout">Repository layout</a></li></ol>
-        </aside>
     </div>
 
     <footer class="footer">

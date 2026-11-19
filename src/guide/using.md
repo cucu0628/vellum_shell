@@ -67,6 +67,9 @@ Desktop entries with `Terminal=true`, such as Neovim or btop, open in your defau
 
 ![The media dashboard: player, calendar, weather and system statistics](/media/shots/dashboard.jpg)
 
+!!! tip "Hibiki"
+    The player in the screenshots is [Hibiki](https://github.com/cucu0628/Hibiki), a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.
+
 Click the clock, or bind `media toggle`. The dashboard shows:
 
 - **An album-art player** for the active MPRIS player, with seeking, shuffle, repeat and the player's own volume. Players you never want to see can be hidden on the **Top bar** settings page.
@@ -75,9 +78,6 @@ Click the clock, or bind `media toggle`. The dashboard shows:
 - **System statistics**: a CPU graph, memory and disk use, and uptime.
 
 `media calendar` and `media weather` open the dashboard with that card already expanded.
-
-!!! tip "Hibiki"
-    The player in the screenshots is [Hibiki](https://github.com/cucu0628/Hibiki), a Qt 6 music player built to sit next to Vellum. It downloads YouTube videos and playlists as Opus audio, keeps a local library with cover art and playlists, speaks MPRIS so the dashboard, the bar and the media keys control it, and reads the active Vellum palette, so it changes colour with the shell.
 
 ## Notifications
 

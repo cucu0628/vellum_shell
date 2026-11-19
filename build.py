@@ -158,20 +158,48 @@ def parse_page(path: Path) -> tuple[dict[str, str], str]:
     return meta, text
 
 
-def toc_html(tokens: list[dict]) -> str:
-    items = []
-    for token in tokens:
-        children = "".join(
-            f'<li><a href="#{child["id"]}">{child["name"]}</a></li>'
-            for child in token.get("children", [])
-        )
-        sub = f'<ol class="toc-sub">{children}</ol>' if children else ""
-        items.append(f'<li><a href="#{token["id"]}">{token["name"]}</a>{sub}</li>')
-    return f'<ol class="toc-list">{"".join(items)}</ol>' if items else ""
+# The splash screen's ensō (features/splash/), drawn around the current chapter's numeral.
+ENSO = (
+    '<svg class="enso" viewBox="-20 -20 40 40" aria-hidden="true">'
+    '<circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/>'
+    '<circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/>'
+    "</svg>"
+)
+
+
+def sections_html(tokens: list[dict]) -> str:
+    """The current chapter's sections (h2 only), listed under it in the contents."""
+    items = "".join(f'<li><a href="#{t["id"]}">{t["name"]}</a></li>' for t in tokens)
+    return f'<ol class="guide-sections">{items}</ol>' if items else ""
+
+
+LONE_IMAGE = re.compile(r'<p>(<img alt="([^"]*)"[^>]*>)</p>')
+
+
+def figures(content: str) -> str:
+    """A paragraph holding only an image becomes a figure; its alt text is the caption."""
+    return LONE_IMAGE.sub(lambda m: f"<figure>{m.group(1)}<figcaption>{m.group(2)}</figcaption></figure>", content)
 
 
 def page_url(slug: str) -> str:
     return "/guide/" if slug == "index" else f"/guide/{slug}.html"
+
+
+def guide_pages() -> list[tuple[dict[str, str], str]]:
+    pages = [parse_page(p) for p in sorted((SRC / "guide").glob("*.md"))]
+    pages.sort(key=lambda page: float(page[0]["order"]))
+    return pages
+
+
+def guide_contents() -> str:
+    """The guide's chapters as a numbered list, for the front page."""
+    items = "".join(
+        f'<li><a href="{page_url(meta["slug"])}"><span class="num">{i}</span>'
+        f'<span class="title">{html.escape(meta["title"])}</span>'
+        f'<span class="text">{html.escape(meta["description"])}</span></a></li>'
+        for i, (meta, _) in enumerate(guide_pages(), start=1)
+    )
+    return f"<ol>{items}</ol>"
 
 
 def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) -> int:
@@ -180,24 +208,30 @@ def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) ->
     except ImportError:
         sys.exit("build.py needs Python-Markdown: python3 -m pip install --user markdown")
 
-    pages = [parse_page(p) for p in sorted((SRC / "guide").glob("*.md"))]
-    pages.sort(key=lambda page: float(page[0]["order"]))
+    pages = guide_pages()
     template = (SRC / "guide.template.html").read_text(encoding="utf-8")
 
     groups: dict[str, list[dict]] = {}
     for meta, _ in pages:
         groups.setdefault(meta["group"], []).append(meta)
 
-    def nav(current: str) -> str:
+    number = {meta["slug"]: i + 1 for i, (meta, _) in enumerate(pages)}
+
+    def nav(current: str, sections: str) -> str:
         blocks = []
         for group, metas in groups.items():
-            links = "".join(
-                f'<li><a href="{page_url(m["slug"])}"'
-                + (' aria-current="page" class="on"' if m["slug"] == current else "")
-                + f'>{html.escape(m.get("nav", m["title"]))}</a></li>'
-                for m in metas
-            )
-            blocks.append(f'<p class="guide-nav-group">{html.escape(group)}</p><ul>{links}</ul>')
+            links = []
+            for m in metas:
+                on = m["slug"] == current
+                links.append(
+                    f'<li{" class=\"on\"" if on else ""}><a href="{page_url(m["slug"])}"'
+                    + (' aria-current="page"' if on else "")
+                    + f'><span class="num">{number[m["slug"]]}{ENSO if on else ""}</span>'
+                    + f'<span class="label">{html.escape(m.get("nav", m["title"]))}</span></a>'
+                    + (sections if on else "")
+                    + "</li>"
+                )
+            blocks.append(f'<p class="guide-nav-group">{html.escape(group)}</p><ol>{"".join(links)}</ol>')
         return "".join(blocks)
 
     (out / "guide").mkdir(exist_ok=True)
@@ -209,17 +243,20 @@ def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) ->
         )
         content = md.convert(body)
         content = content.replace("<table>", '<div class="table-wrap"><table>').replace("</table>", "</table></div>")
-        content = content.replace("<img ", '<img loading="lazy" decoding="async" ')
+        content = figures(content).replace("<img ", '<img loading="lazy" decoding="async" ')
+        content = content.replace('<div class="admonition', '<div role="note" class="admonition')
         prev_link = next_link = ""
         if index > 0:
             p = pages[index - 1][0]
-            prev_link = f'<a class="pager-prev" href="{page_url(p["slug"])}"><small>Previous</small><span>{html.escape(p["title"])}</span></a>'
+            prev_link = (f'<a class="pager-prev" href="{page_url(p["slug"])}" rel="prev"><small>Previous chapter</small>'
+                         f'<span><b>{index}</b>{html.escape(p["title"])}</span></a>')
         if index + 1 < len(pages):
             n = pages[index + 1][0]
-            next_link = f'<a class="pager-next" href="{page_url(n["slug"])}"><small>Next</small><span>{html.escape(n["title"])}</span></a>'
+            next_link = (f'<a class="pager-next" href="{page_url(n["slug"])}" rel="next"><small>Next chapter</small>'
+                         f'<span><b>{index + 2}</b>{html.escape(n["title"])}</span></a>')
         page = template
         for key, value in {
-            "content": content, "toc": toc_html(md.toc_tokens), "nav": nav(meta["slug"]),
+            "content": content, "nav": nav(meta["slug"], sections_html(md.toc_tokens)),
             "pager": prev_link + next_link,
         }.items():
             page = page.replace(f"<!-- @{key} -->", value)
@@ -228,6 +265,8 @@ def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) ->
             "PAGE_TITLE": html.escape(meta["title"]),
             "PAGE_DESCRIPTION": html.escape(meta["description"]),
             "PAGE_GROUP": html.escape(meta["group"]),
+            "PAGE_NUMBER": str(index + 1),
+            "PAGE_COUNT": str(len(pages)),
             "PAGE_URL": page_url(meta["slug"]),
             "PAGE_SOURCE": f"{REPO_URL}/blob/gh-pages/src/guide/{meta['slug']}.md",
         })
@@ -296,6 +335,7 @@ def build(out: Path, ref: str, fetch: bool) -> None:
         "REPO_URL": REPO_URL,
         "DOMAIN": DOMAIN,
         "THEME_COUNT": str(len(themes)),
+        "GUIDE_CONTENTS": guide_contents(),
     }
 
     for entry in sorted(SRC.iterdir()):

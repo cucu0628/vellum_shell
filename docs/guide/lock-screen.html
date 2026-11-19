@@ -12,12 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=066a142c2e">
+    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=dc2f53a525" defer></script>
+    <script src="/site.js?v=ce2a775e90" defer></script>
     <title>Lock and login screen · Vellum Shell guide</title>
     <meta name="description" content="The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/lock-screen.html">
@@ -85,15 +85,19 @@
 
     <div class="guide-layout">
         <aside class="guide-nav" aria-label="Guide">
-            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
-            <nav class="guide-nav-body">
-                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html" aria-current="page" class="on">Lock and login screen</a></li><li><a href="/guide/screensaver.html">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            <button class="guide-nav-toggle" type="button" aria-expanded="false" aria-controls="guide-contents">
+                <span><span class="guide-nav-toggle-num">6</span>Lock and login screen</span>
+                <span class="guide-nav-toggle-hint">Contents</span>
+            </button>
+            <nav class="guide-nav-body" id="guide-contents">
+                <p class="guide-nav-title"><a href="/guide/">The Vellum guide</a></p>
+                <p class="guide-nav-group">Get started</p><ol><li><a href="/guide/"><span class="num">1</span><span class="label">Introduction</span></a></li><li><a href="/guide/installation.html"><span class="num">2</span><span class="label">Installation</span></a></li></ol><p class="guide-nav-group">Using Vellum</p><ol><li><a href="/guide/using.html"><span class="num">3</span><span class="label">Using the shell</span></a></li><li><a href="/guide/appearance.html"><span class="num">4</span><span class="label">Themes and wallpapers</span></a></li><li><a href="/guide/settings.html"><span class="num">5</span><span class="label">Settings</span></a></li><li class="on"><a href="/guide/lock-screen.html" aria-current="page"><span class="num">6<svg class="enso" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/><circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/></svg></span><span class="label">Lock and login screen</span></a><ol class="guide-sections"><li><a href="#the-lock-screen">The lock screen</a></li><li><a href="#locking-before-sleep">Locking before sleep</a></li><li><a href="#locking-when-idle">Locking when idle</a></li><li><a href="#if-the-shell-crashes-while-locked">If the shell crashes while locked</a></li><li><a href="#login-screen-greetd">Login screen (greetd)</a></li></ol></li><li><a href="/guide/screensaver.html"><span class="num">7</span><span class="label">Screensaver</span></a></li></ol><p class="guide-nav-group">Reference</p><ol><li><a href="/guide/ipc.html"><span class="num">8</span><span class="label">IPC and keybindings</span></a></li><li><a href="/guide/architecture.html"><span class="num">9</span><span class="label">How it works</span></a></li><li><a href="/guide/development.html"><span class="num">10</span><span class="label">Development</span></a></li></ol>
             </nav>
         </aside>
 
         <main id="main" class="guide-main">
             <header class="guide-head">
-                <p class="eyebrow">Using Vellum</p>
+                <p class="guide-chapter" aria-label="Chapter 6 of 10">6</p>
                 <h1>Lock and login screen</h1>
                 <p class="guide-description">The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.</p>
             </header>
@@ -171,21 +175,16 @@
 </table></div>
 <p><code>layout.conf</code> is data, not Lua: the root-owned <code>greeter/hyprland.lua</code> parses it line by line and drops anything that does not match the expected pattern, so a user-writable file cannot run code in the greeter. Outputs that are unplugged when the layout is captured keep their previous line.</p>
 <p>PAM uses greetd's own <code>/etc/pam.d/greetd</code>.</p>
-<div class="admonition warning">
+<div role="note" class="admonition warning">
 <p class="admonition-title">Test on a real boot</p>
 <p>Signing in, the power actions and the multi-monitor layout need a real greetd boot to test. The preview never authenticates or powers anything off.</p>
 </div>
             </article>
-            <nav class="pager" aria-label="Previous and next page">
-                <a class="pager-prev" href="/guide/settings.html"><small>Previous</small><span>Settings</span></a><a class="pager-next" href="/guide/screensaver.html"><small>Next</small><span>Screensaver</span></a>
+            <nav class="pager" aria-label="Previous and next chapter">
+                <a class="pager-prev" href="/guide/settings.html" rel="prev"><small>Previous chapter</small><span><b>5</b>Settings</span></a><a class="pager-next" href="/guide/screensaver.html" rel="next"><small>Next chapter</small><span><b>7</b>Screensaver</span></a>
             </nav>
             <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/lock-screen.md">Edit this page on GitHub</a>.</p>
         </main>
-
-        <aside class="guide-toc" aria-label="On this page">
-            <p class="guide-toc-title">On this page</p>
-            <ol class="toc-list"><li><a href="#the-lock-screen">The lock screen</a><ol class="toc-sub"><li><a href="#choosing-the-input-monitor">Choosing the input monitor</a></li><li><a href="#authentication">Authentication</a></li></ol></li><li><a href="#locking-before-sleep">Locking before sleep</a></li><li><a href="#locking-when-idle">Locking when idle</a></li><li><a href="#if-the-shell-crashes-while-locked">If the shell crashes while locked</a></li><li><a href="#login-screen-greetd">Login screen (greetd)</a><ol class="toc-sub"><li><a href="#installing-it">Installing it</a></li><li><a href="#what-the-greeter-reads">What the greeter reads</a></li></ol></li></ol>
-        </aside>
     </div>
 
     <footer class="footer">

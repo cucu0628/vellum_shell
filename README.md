@@ -6,7 +6,7 @@ shares no history with `main`; the shell itself never sees these files.
 ```text
 build.py                 Builds docs/ from src/ and the shell on origin/main
 src/
-├── index.html           Front page: video hero, tour, theme gallery, install
+├── index.html           Front page: title page, plates, theme gallery, install, contents
 ├── guide.template.html  Layout of every guide page (nav, contents, pager)
 ├── guide/*.md           The guide, one Markdown file per page, with front matter
 ├── media/               Screenshots and videos recorded from a real shell
@@ -32,6 +32,14 @@ The build reads two paths from `origin/main` with `git archive`:
 A new theme on `main` shows up in the switcher after the next build. Its
 screenshot for the gallery has to be recorded and added to `src/media/themes/`.
 
+## Layout
+
+Both the front page and the guide are set like a book, on one grid: a left
+margin for side headings (the guide's contents), the text column in the serif,
+and a right margin for notes and captions. Pictures are plates that take the
+text column and the right margin. The front page's last section lists the
+guide's chapters; `build.py` writes it from the guide's front matter.
+
 ## Guide pages
 
 Each `src/guide/<slug>.md` becomes `/guide/<slug>.html` (`index.md` is
@@ -49,6 +57,12 @@ order: 2                   # position in the sidebar and the pager
 
 Markdown supports tables, fenced code, `!!! note "Title"` admonitions and raw
 HTML (for `<figure>` and `<video>`).
+
+The page is laid out like a book: numbered chapters (from `order`), the text at
+a serif measure, and a right margin for annotations. On wide screens a note
+becomes a gloss in that margin, so place it right after the paragraph it
+belongs to, not at the end of a section. An image alone in its paragraph becomes
+a figure whose alt text is the caption; figures take the margin's width too.
 
 ## Media
 

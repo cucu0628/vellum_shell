@@ -38,6 +38,11 @@
         'dynamic-matugen': 'John Atkinson Grimshaw, Shipping on the Clyde'
     };
 
+    // The splash screen's ensō, as on the guide's current chapter.
+    var ENSO = '<svg class="enso" viewBox="-20 -20 40 40">'
+        + '<circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/>'
+        + '<circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/></svg>';
+
     // -- Theme menu in the top bar -------------------------------------------
 
     function initThemeMenu() {
@@ -116,65 +121,11 @@
         sync();
     }
 
-    // -- Reveal on scroll ------------------------------------------------------
-
-    function initReveal() {
-        var items = $$('.reveal');
-        if (!items.length) return;
-        if (reduceMotion || !window.IntersectionObserver) {
-            items.forEach(function (item) { item.classList.add('in'); });
-            return;
-        }
-        // Behind the loader nothing is seen yet: start once the paper opens.
-        if (document.documentElement.classList.contains('splash-on')) {
-            var started = false;
-            var start = function () {
-                if (started) return;
-                started = true;
-                observe(items);
-            };
-            document.addEventListener('vellum:splash-open', start);
-            setTimeout(start, 9000);
-        } else {
-            observe(items);
-        }
-    }
-
-    function observe(items) {
-        var observer = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (!entry.isIntersecting) return;
-                var siblings = $$('.reveal', entry.target.parentNode);
-                var delay = Math.max(0, siblings.indexOf(entry.target)) * 70;
-                entry.target.style.transitionDelay = Math.min(delay, 350) + 'ms';
-                entry.target.classList.add('in');
-                observer.unobserve(entry.target);
-            });
-        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-        items.forEach(function (item) { observer.observe(item); });
-    }
-
-    // -- Hero: tilt that flattens on scroll, caption that follows the video ----
+    // -- Hero: the caption follows the theme in the recording ------------------
 
     function initHero() {
-        var frame = $('.stage-frame');
-        if (!frame) return;
-
-        if (!reduceMotion) {
-            var ticking = false;
-            var update = function () {
-                ticking = false;
-                var rect = frame.getBoundingClientRect();
-                var progress = Math.min(1, Math.max(0, 1 - (rect.top - window.innerHeight * 0.18) / (window.innerHeight * 0.7)));
-                frame.style.setProperty('--tilt', (16 * (1 - progress)).toFixed(2) + 'deg');
-                frame.style.setProperty('--zoom', (0.94 + 0.06 * progress).toFixed(3));
-            };
-            window.addEventListener('scroll', function () {
-                if (!ticking) { ticking = true; requestAnimationFrame(update); }
-            }, { passive: true });
-            window.addEventListener('resize', update);
-            update();
-        }
+        var video = $('.stage-video');
+        if (!video) return;
 
         // The recording switched theme every 2.2 seconds, starting at 1.5 s.
         var timeline = [
@@ -182,7 +133,6 @@
             [8.1, 'catppuccin-mocha'], [10.3, 'gruvbox-material'], [12.5, 'sakura-blossom'],
             [14.7, 'monochrome'], [16.9, 'varnished-horizon'], [19.1, 'japanese-ink']
         ];
-        var video = $('.stage-video');
         var nameNode = $('.stage-theme');
         var paintingNode = $('.stage-painting');
         var caption = $('.stage-caption');
@@ -204,29 +154,6 @@
         else video.addEventListener('timeupdate', sync);
         sync();
         if (reduceMotion) video.pause();
-    }
-
-    // -- Marquee of real screenshots ------------------------------------------
-
-    function initMarquee() {
-        var track = $('[data-marquee]');
-        if (!track) return;
-        var list = V.themes.slice();
-        // Twice the same row, so the loop is seamless at -50%.
-        list.concat(list).forEach(function (theme, index) {
-            var figure = el('figure');
-            if (index >= list.length) figure.setAttribute('aria-hidden', 'true');
-            var img = el('img');
-            img.src = media('/media/themes/' + theme.id + '-sm.jpg');
-            img.width = 720;
-            img.height = 405;
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            img.alt = index < list.length ? 'Vellum in ' + theme.name : '';
-            figure.appendChild(img);
-            figure.appendChild(el('figcaption', '', theme.name));
-            track.appendChild(figure);
-        });
     }
 
     // -- Videos below the fold load and play only while visible ---------------
@@ -259,31 +186,6 @@
             });
         }, { rootMargin: '200px 0px', threshold: 0.25 });
         videos.forEach(function (video) { observer.observe(video); });
-    }
-
-    // -- Stats count up --------------------------------------------------------
-
-    function initStats() {
-        var values = $$('[data-count]');
-        if (!values.length || reduceMotion || !window.IntersectionObserver) return;
-        var observer = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (!entry.isIntersecting) return;
-                observer.unobserve(entry.target);
-                var node = entry.target;
-                var target = parseInt(node.dataset.count, 10);
-                if (!target) return;
-                var start = performance.now();
-                var step = function (now) {
-                    var t = Math.min(1, (now - start) / 1200);
-                    node.textContent = String(Math.round(target * (1 - Math.pow(1 - t, 3))));
-                    if (t < 1) requestAnimationFrame(step);
-                };
-                node.textContent = '0';
-                requestAnimationFrame(step);
-            });
-        }, { threshold: 0.6 });
-        values.forEach(function (node) { observer.observe(node); });
     }
 
     // -- Before/after slider ---------------------------------------------------
@@ -345,20 +247,14 @@
             item.type = 'button';
             item.setAttribute('role', 'option');
             item.dataset.id = theme.id;
-            var thumb = el('img');
-            thumb.src = media('/media/themes/' + theme.id + '-sm.jpg');
-            thumb.alt = '';
-            thumb.loading = 'lazy';
-            item.appendChild(thumb);
-            var label = el('span', '', theme.name);
-            var swatches = el('small');
-            ['accent', 'fg', 'muted', 'surface'].forEach(function (key) {
-                var swatch = el('i');
-                swatch.style.background = theme.colors[key];
-                swatches.appendChild(swatch);
-            });
-            label.appendChild(swatches);
-            item.appendChild(label);
+            var mark = el('span', 'gallery-mark');
+            mark.setAttribute('aria-hidden', 'true');
+            var dot = el('i');
+            dot.style.background = theme.colors.accent;
+            mark.appendChild(dot);
+            mark.insertAdjacentHTML('beforeend', ENSO);
+            item.appendChild(mark);
+            item.appendChild(el('span', '', theme.name));
             item.addEventListener('click', function () { V.commit(theme.id); });
             list.appendChild(item);
         });
@@ -387,18 +283,6 @@
         }
         onTheme(function (detail) { show(detail.id); });
         show(V.applied ? V.applied.id : V.themes[0].id);
-    }
-
-    // -- Cards follow the pointer --------------------------------------------
-
-    function initCards() {
-        $$('.card').forEach(function (card) {
-            card.addEventListener('pointermove', function (event) {
-                var rect = card.getBoundingClientRect();
-                card.style.setProperty('--mx', (event.clientX - rect.left) + 'px');
-                card.style.setProperty('--my', (event.clientY - rect.top) + 'px');
-            });
-        });
     }
 
     // -- Navigation state ------------------------------------------------------
@@ -440,23 +324,37 @@
             });
         }
 
+        // The current chapter's sections sit under it in the contents; mark the
+        // one being read: the last section heading above the reading line.
         var prose = $('.prose');
-        var toc = $('.guide-toc');
-        if (!prose || !toc || !window.IntersectionObserver) return;
+        var sections = $('.guide-sections');
+        if (!prose || !sections) return;
         var linkFor = {};
-        $$('a', toc).forEach(function (link) { linkFor[link.getAttribute('href').slice(1)] = link; });
+        $$('a', sections).forEach(function (link) { linkFor[link.getAttribute('href').slice(1)] = link; });
+        var headings = $$('h2[id]', prose).filter(function (heading) { return linkFor[heading.id]; });
+        if (!headings.length) return;
         var active = null;
-        var observer = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry) {
-                if (!entry.isIntersecting) return;
-                var link = linkFor[entry.target.id];
-                if (!link || link === active) return;
-                if (active) active.classList.remove('active');
-                active = link;
-                active.classList.add('active');
+        var pending = false;
+        function update() {
+            pending = false;
+            var current = null;
+            headings.forEach(function (heading) {
+                if (heading.getBoundingClientRect().top <= 140) current = heading;
             });
-        }, { rootMargin: '-72px 0px -70% 0px' });
-        $$('h2[id], h3[id]', prose).forEach(function (heading) { observer.observe(heading); });
+            // At the very end of the page the last section counts as reached.
+            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
+                current = headings[headings.length - 1];
+            }
+            var link = current ? linkFor[current.id] : null;
+            if (link === active) return;
+            if (active) { active.classList.remove('active'); active.removeAttribute('aria-current'); }
+            active = link;
+            if (active) { active.classList.add('active'); active.setAttribute('aria-current', 'location'); }
+        }
+        window.addEventListener('scroll', function () {
+            if (!pending) { pending = true; window.requestAnimationFrame(update); }
+        }, { passive: true });
+        update();
     }
 
     function initCopy() {
@@ -486,15 +384,11 @@
     }
 
     initThemeMenu();
-    initReveal();
     initHero();
-    initMarquee();
     initLazyVideos();
-    initStats();
     initCompare();
     initTabs();
     initGallery();
-    initCards();
     initNav();
     initGuide();
     initCopy();

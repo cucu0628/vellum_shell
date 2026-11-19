@@ -12,12 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=066a142c2e">
+    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=dc2f53a525" defer></script>
+    <script src="/site.js?v=ce2a775e90" defer></script>
     <title>Screensaver · Vellum Shell guide</title>
     <meta name="description" content="ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.">
     <link rel="canonical" href="https://vellum.asked.hu/guide/screensaver.html">
@@ -85,21 +85,25 @@
 
     <div class="guide-layout">
         <aside class="guide-nav" aria-label="Guide">
-            <button class="guide-nav-toggle" type="button" aria-expanded="false">Guide contents <span aria-hidden="true">▾</span></button>
-            <nav class="guide-nav-body">
-                <p class="guide-nav-group">Get started</p><ul><li><a href="/guide/">Introduction</a></li><li><a href="/guide/installation.html">Installation</a></li></ul><p class="guide-nav-group">Using Vellum</p><ul><li><a href="/guide/using.html">Using the shell</a></li><li><a href="/guide/appearance.html">Themes and wallpapers</a></li><li><a href="/guide/settings.html">Settings</a></li><li><a href="/guide/lock-screen.html">Lock and login screen</a></li><li><a href="/guide/screensaver.html" aria-current="page" class="on">Screensaver</a></li></ul><p class="guide-nav-group">Reference</p><ul><li><a href="/guide/ipc.html">IPC and keybindings</a></li><li><a href="/guide/architecture.html">How it works</a></li><li><a href="/guide/development.html">Development</a></li></ul>
+            <button class="guide-nav-toggle" type="button" aria-expanded="false" aria-controls="guide-contents">
+                <span><span class="guide-nav-toggle-num">7</span>Screensaver</span>
+                <span class="guide-nav-toggle-hint">Contents</span>
+            </button>
+            <nav class="guide-nav-body" id="guide-contents">
+                <p class="guide-nav-title"><a href="/guide/">The Vellum guide</a></p>
+                <p class="guide-nav-group">Get started</p><ol><li><a href="/guide/"><span class="num">1</span><span class="label">Introduction</span></a></li><li><a href="/guide/installation.html"><span class="num">2</span><span class="label">Installation</span></a></li></ol><p class="guide-nav-group">Using Vellum</p><ol><li><a href="/guide/using.html"><span class="num">3</span><span class="label">Using the shell</span></a></li><li><a href="/guide/appearance.html"><span class="num">4</span><span class="label">Themes and wallpapers</span></a></li><li><a href="/guide/settings.html"><span class="num">5</span><span class="label">Settings</span></a></li><li><a href="/guide/lock-screen.html"><span class="num">6</span><span class="label">Lock and login screen</span></a></li><li class="on"><a href="/guide/screensaver.html" aria-current="page"><span class="num">7<svg class="enso" viewBox="-20 -20 40 40" aria-hidden="true"><circle r="15.2" pathLength="360" stroke-dasharray="318 360" stroke-width="1.5" transform="rotate(-70)"/><circle r="16.6" pathLength="360" stroke-dasharray="290 360" stroke-width="0.6" transform="rotate(-64)"/></svg></span><span class="label">Screensaver</span></a><ol class="guide-sections"><li><a href="#scenes">Scenes</a></li><li><a href="#automatic-by-season">Automatic by season</a></li><li><a href="#how-it-is-drawn">How it is drawn</a></li></ol></li></ol><p class="guide-nav-group">Reference</p><ol><li><a href="/guide/ipc.html"><span class="num">8</span><span class="label">IPC and keybindings</span></a></li><li><a href="/guide/architecture.html"><span class="num">9</span><span class="label">How it works</span></a></li><li><a href="/guide/development.html"><span class="num">10</span><span class="label">Development</span></a></li></ol>
             </nav>
         </aside>
 
         <main id="main" class="guide-main">
             <header class="guide-head">
-                <p class="eyebrow">Using Vellum</p>
+                <p class="guide-chapter" aria-label="Chapter 7 of 10">7</p>
                 <h1>Screensaver</h1>
                 <p class="guide-description">ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.</p>
             </header>
             <article class="prose">
                 <p><strong>Settings → System → Screensaver after inactivity</strong> starts an ASCII animation on every monitor after 1 to 30 minutes without input. It is off by default.</p>
-<p><img loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII" src="/assets/screensaver/shapes.gif?v=510ab0914c" /></p>
+<figure><img loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII" src="/assets/screensaver/shapes.gif?v=510ab0914c" /><figcaption>Shapes: a morphing 3D form drawn in ASCII</figcaption></figure>
 <ul>
 <li>Any key press, click or mouse movement ends it, and that first input does not reach the application underneath.</li>
 <li>The mouse pointer is hidden while it runs. <code>scripts/screensaver-cursor</code> toggles Hyprland's <code>cursor:invisible</code> and restores the previous value afterwards; a small watcher started through Hyprland also restores it if the shell dies while the screensaver runs.</li>
@@ -180,7 +184,7 @@
 </tbody>
 </table></div>
 <p>Every scene except Orbit draws each monitor on its own. Orbit lays its scene over the rectangle that encloses all monitors, so the picture continues across the boundary:</p>
-<p><img loading="lazy" decoding="async" alt="Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other" src="/assets/screensaver/orbit.gif?v=64521c044d" /></p>
+<figure><img loading="lazy" decoding="async" alt="Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other" src="/assets/screensaver/orbit.gif?v=64521c044d" /><figcaption>Orbit across two monitors: the planet sits on the boundary and the comet crosses from one screen to the other</figcaption></figure>
 <p>The previews play about three times faster than real time.</p>
 <h2 id="automatic-by-season">Automatic by season<a class="anchor" href="#automatic-by-season" title="Link to this section">#</a></h2>
 <p><strong>Automatic by season</strong> chooses a scene when the screensaver starts. It never picks Orbit.</p>
@@ -239,16 +243,11 @@ scripts/theme-refresh     # restart the shell
 </code></pre>
 <p>A live reload keeps using the shaders Qt has already cached in the running process, so the restart is needed.</p>
             </article>
-            <nav class="pager" aria-label="Previous and next page">
-                <a class="pager-prev" href="/guide/lock-screen.html"><small>Previous</small><span>Lock and login screen</span></a><a class="pager-next" href="/guide/ipc.html"><small>Next</small><span>IPC and keybindings</span></a>
+            <nav class="pager" aria-label="Previous and next chapter">
+                <a class="pager-prev" href="/guide/lock-screen.html" rel="prev"><small>Previous chapter</small><span><b>6</b>Lock and login screen</span></a><a class="pager-next" href="/guide/ipc.html" rel="next"><small>Next chapter</small><span><b>8</b>IPC and keybindings</span></a>
             </nav>
             <p class="guide-edit">Something wrong or missing? <a href="https://github.com/cucu0628/vellum_shell/blob/gh-pages/src/guide/screensaver.md">Edit this page on GitHub</a>.</p>
         </main>
-
-        <aside class="guide-toc" aria-label="On this page">
-            <p class="guide-toc-title">On this page</p>
-            <ol class="toc-list"><li><a href="#scenes">Scenes</a></li><li><a href="#automatic-by-season">Automatic by season</a></li><li><a href="#how-it-is-drawn">How it is drawn</a></li></ol>
-        </aside>
     </div>
 
     <footer class="footer">
