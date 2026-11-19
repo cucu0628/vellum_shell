@@ -12,18 +12,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
+    <link rel="stylesheet" href="/style.css?v=bbcbbb0d60">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=ce2a775e90" defer></script>
+    <script src="/site.js?v=2e45baf58c" defer></script>
     <title>Vellum Shell</title>
     <meta name="description" content="An ink-inspired desktop shell for Hyprland, built on Quickshell and a small Rust daemon: bar, launcher, notifications, dashboard, lock screen, settings, and one palette across every application.">
     <link rel="canonical" href="https://vellum.asked.hu/">
     <meta property="og:title" content="Vellum Shell">
     <meta property="og:description" content="Your desktop, written in ink. A complete Hyprland shell with one palette across every app.">
     <meta property="og:url" content="https://vellum.asked.hu/">
+    <!-- The shell draws with the system serif and sans, Noto on Arch and Fedora. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap">
     <link rel="preload" as="image" href="/media/video/hero-themes.jpg?v=2f01d45831">
 </head>
 <body class="page-home">
@@ -55,6 +57,9 @@
             <p class="splash-greeting">Welcome</p>
         </div>
     </div>
+    <!-- The page is a Vellum session: the current theme's painting behind
+         everything, blurred like the lock screen does it. -->
+    <div class="wallpaper" aria-hidden="true" data-src="/media/themes/japanese-ink.jpg?v=2c03eb98d6"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
         <div class="topbar-inner">
@@ -84,250 +89,211 @@
         </div>
     </header>
 
-    <!-- The page is set on one grid, the guide's: a margin for side headings,
-         the text column, and a margin for notes and captions. -->
     <main id="main">
-        <!-- Title page --------------------------------------------------------- -->
-        <section class="folio hero">
-            <h1 class="display">Your desktop,<br>written in ink.</h1>
-            <div class="body">
-                <p class="lead">Vellum is a complete shell for Hyprland: bar, launcher, notifications, media dashboard, lock screen and a real settings app. One palette reaches every application you open.</p>
-                <p class="cta">
-                    <a class="btn" href="#install">Install Vellum</a>
-                    <a class="cta-link" href="/guide/">Read the guide</a>
-                </p>
+        <!-- Lock screen ---------------------------------------------------------- -->
+        <section class="lock">
+            <p class="lock-day">Vellum Shell</p>
+            <h1 class="lock-clock">Your desktop,<br>written in ink.</h1>
+            <p class="lock-date">A complete shell for Hyprland: bar, launcher, notifications, media dashboard, lock screen and a real settings app. One palette reaches every application you open.</p>
+            <p class="lock-user"><b>vellum</b> Hyprland 0.55 or newer on Arch Linux, CachyOS and Fedora</p>
+            <div class="lock-field">
+                <span class="lock-prompt" aria-hidden="true">$</span>
+                <code class="lock-command">git clone https://github.com/cucu0628/vellum_shell.git ~/.config/quickshell/vellum_shell</code>
+                <button class="lock-go" type="button" aria-label="Copy the clone command">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+                </button>
             </div>
-            <aside class="gloss">
-                <p>For Hyprland 0.55 or newer on Arch Linux, CachyOS and Fedora.</p>
-                <p>Written in QML on <a href="https://quickshell.outfoxxed.me/">Quickshell</a>, with a small Rust daemon behind it. Free software under the GPL&nbsp;3.</p>
-            </aside>
-
-            <figure class="plate stage">
-                <video class="stage-video" autoplay muted loop playsinline preload="auto" poster="/media/video/hero-themes.jpg?v=2f01d45831" aria-label="The Vellum media dashboard while the theme switches through ten palettes">
-                    <source src="/media/video/hero-themes.webm?v=2ed4a048f3" type="video/webm">
-                    <source src="/media/video/hero-themes.mp4?v=4a5fd0c710" type="video/mp4">
-                </video>
-                <figcaption class="stage-caption">
-                    <span class="stage-theme-line"><span class="stage-dot" aria-hidden="true"></span><span class="stage-theme">Japanese Ink</span></span>
-                    <span class="stage-painting">Frederic Edwin Church, Twilight in the Wilderness (1860)</span>
-                    <a class="stage-chip" href="https://github.com/cucu0628/Hibiki"><img src="/media/hibiki.svg?v=feeaa4e077" width="16" height="16" alt="">Now playing in Hibiki</a>
-                </figcaption>
-            </figure>
+            <p class="lock-hint"><span class="lock-hint-text">↵ copies</span><a href="/guide/installation.html">Installation guide</a><a href="/guide/">Read the guide</a></p>
         </section>
 
-        <!-- Plates -------------------------------------------------------------- -->
-        <div id="tour">
-            <section class="folio plate-section">
-                <p class="side">Appearance Studio</p>
-                <h2>Browse a theme and the whole desktop tries it on.</h2>
-                <div class="body">
-                    <p>Each card is a small desktop drawn in that palette. Moving through the carousel recolours the running shell in place; <kbd>Enter</kbd> writes the theme out to every application, <kbd>Esc</kbd> puts the old one back.</p>
-                    <p>Wallpapers sit in the same carousel, filtered by name, and a dynamic palette can be drawn from the wallpaper itself.</p>
-                </div>
-                <aside class="gloss">
-                    <p>One switch writes nine applications: GTK 3 and 4, Qt 6, kitty, btop, Neovim, Hyprland borders, Zen Browser, Fastfetch and the login screen.</p>
-                    <p><a href="/guide/appearance.html">Themes and wallpapers</a> in the guide.</p>
-                </aside>
-                <figure class="plate">
+        <!-- The shell ------------------------------------------------------------- -->
+        <section id="tour" class="sheet">
+            <header class="sheet-head">
+                <h2>The shell</h2>
+                <p>Everything a desktop environment would give a Hyprland session, in one visual language.</p>
+            </header>
+
+            <div class="panels">
+                <figure class="panel panel-wide stage">
+                    <div class="panel-head"><span>Ten palettes</span><span class="stage-caption"><i class="stage-dot" aria-hidden="true"></i><span class="stage-theme">Japanese Ink</span></span></div>
+                    <video class="stage-video" autoplay muted loop playsinline preload="auto" poster="/media/video/hero-themes.jpg?v=2f01d45831" aria-label="The Vellum media dashboard while the theme switches through ten palettes">
+                        <source src="/media/video/hero-themes.webm?v=2ed4a048f3" type="video/webm">
+                        <source src="/media/video/hero-themes.mp4?v=4a5fd0c710" type="video/mp4">
+                    </video>
+                    <figcaption class="panel-foot">
+                        <span class="stage-painting">Frederic Edwin Church, Twilight in the Wilderness (1860)</span>
+                        <a class="hibiki" href="https://github.com/cucu0628/Hibiki"><img src="/media/hibiki.svg?v=feeaa4e077" width="16" height="16" alt="">Now playing in Hibiki</a>
+                    </figcaption>
+                </figure>
+
+                <article class="panel panel-wide panel-split">
                     <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/studio-themes.jpg?v=5ac8152d5c" aria-label="The Appearance Studio: theme cards in a skewed carousel, each one previewed live on the whole shell">
                         <source data-src="/media/video/studio-themes.webm?v=fbcdb85810" type="video/webm">
                         <source data-src="/media/video/studio-themes.mp4?v=39d76773e8" type="video/mp4">
                     </video>
-                    <figcaption>Stepping through the carousel. Every card recolours the shell behind it.</figcaption>
-                </figure>
-            </section>
+                    <div class="panel-text">
+                        <div class="panel-head"><span>Appearance Studio</span><span>Launcher: Appearance</span></div>
+                        <h3>Browse a theme and the whole desktop tries it on.</h3>
+                        <p>Each card is a small desktop drawn in that palette. Moving through the carousel recolours the running shell in place, and one switch writes GTK, Qt, kitty, btop, Neovim, Hyprland, Zen Browser, Fastfetch and the login screen.</p>
+                        <p class="hints"><span><b>↵</b> apply</span><span><b>esc</b> revert</span><a href="/guide/appearance.html">Guide</a></p>
+                    </div>
+                </article>
 
-            <section class="folio plate-section">
-                <p class="side">Launcher</p>
-                <h2>One field for apps, actions, emoji and maths.</h2>
-                <div class="body">
-                    <p>No prefixes to remember. Applications are ranked by how often and how recently you open them, shell actions such as lock, screenshot or appearance sit next to them, and anything that looks like an expression is calculated.</p>
-                    <p>Type <code>&gt;</code> to search your projects under <code>~/Projects</code> instead. Terminal apps open in your default terminal, and guided installers add packages, AUR or COPR packages, web apps and terminal apps.</p>
-                </div>
-                <aside class="gloss">
-                    <p><a href="/guide/using.html#launcher">Using the launcher</a> in the guide.</p>
-                </aside>
-                <figure class="plate">
+                <article class="panel panel-half">
+                    <div class="panel-head"><span>Launcher</span><span>Super Space</span></div>
                     <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/launcher.jpg?v=d2aea57d06" aria-label="The launcher finding an emoji, screenshot and lock actions, and applications as letters are typed">
                         <source data-src="/media/video/launcher.webm?v=2c036cf5f3" type="video/webm">
                         <source data-src="/media/video/launcher.mp4?v=6887d7bde4" type="video/mp4">
                     </video>
-                    <figcaption>Results change with every letter: an emoji, shell actions, then applications.</figcaption>
-                </figure>
-            </section>
+                    <h3>Apps, actions, emoji and maths in one field.</h3>
+                    <p>No prefixes to remember. Apps are ranked by how often and how recently you open them; anything that looks like an expression is calculated.</p>
+                    <p class="hints"><span><b>&gt;</b> projects</span><span><b>tab</b> mode</span><a href="/guide/using.html#launcher">Guide</a></p>
+                </article>
 
-            <section class="folio plate-section">
-                <p class="side">Media dashboard</p>
-                <h2>The clock opens everything you glance at.</h2>
-                <div class="body">
-                    <p>An album-art player for any MPRIS app sits above a calendar with your Google Calendar events, Open-Meteo weather and a live system graph. The media keys follow the active player; <kbd>Ctrl</kbd> with the volume keys steps the player's own volume.</p>
-                </div>
-                <aside class="gloss">
-                    <a class="promo" href="https://github.com/cucu0628/Hibiki"><img src="/media/hibiki.svg?v=feeaa4e077" width="32" height="32" alt=""><span>Hibiki</span></a>
-                    <p>The player in these recordings: a Qt 6 music player that downloads from YouTube, keeps a local library with cover art, speaks MPRIS and takes its colours from your Vellum theme.</p>
-                </aside>
-                <figure class="plate">
+                <article class="panel panel-half">
+                    <div class="panel-head"><span>Dashboard</span><span>Click the clock</span></div>
                     <img src="/media/shots/dashboard.jpg?v=f36b9bfe43" width="1200" height="750" loading="lazy" decoding="async" alt="The media dashboard: album-art player, calendar, weather for Budapest and live CPU, memory and disk statistics">
-                    <figcaption>Player, calendar, weather and system statistics. <a href="/guide/using.html#media-dashboard">The dashboard</a> in the guide.</figcaption>
-                </figure>
-            </section>
+                    <h3>Everything you glance at, under the clock.</h3>
+                    <p>An album-art player for any MPRIS app above your Google Calendar events, Open-Meteo weather and a live system graph.</p>
+                    <p class="hints"><span><b>ctrl vol</b> player volume</span><a href="/guide/using.html#media-dashboard">Guide</a></p>
+                </article>
 
-            <section class="folio plate-section">
-                <p class="side">Notifications</p>
-                <h2>Grouped by app, kept across restarts.</h2>
-                <div class="body">
-                    <p>Vellum is the notification server. Toasts carry their actions, the centre groups per application with unread counts, and history and Do Not Disturb survive a shell restart.</p>
-                </div>
-                <aside class="gloss">
-                    <p><a href="/guide/using.html#notifications">Notifications</a> in the guide.</p>
-                </aside>
-                <figure class="plate plate-stack">
-                    <div class="plate-stack-images">
-                        <img src="/media/shots/notifications.jpg?v=f4293e9dbd" width="1200" height="750" loading="lazy" decoding="async" alt="The notification centre with notifications grouped by Mail, Appearance, Downloads and Calendar">
-                        <img class="plate-inset" src="/media/shots/toast.jpg?v=025068cfb9" width="960" height="400" loading="lazy" decoding="async" alt="A notification toast from Mail">
-                    </div>
-                    <figcaption>The notification centre, and a toast as it arrives.</figcaption>
-                </figure>
-            </section>
+                <article class="panel">
+                    <div class="panel-head"><span>Notifications</span><span>Super N</span></div>
+                    <img src="/media/shots/notifications.jpg?v=f4293e9dbd" width="1200" height="750" loading="lazy" decoding="async" alt="The notification centre with notifications grouped by Mail, Appearance, Downloads and Calendar">
+                    <h3>Grouped by app, kept across restarts.</h3>
+                    <p>Toasts carry their actions; history and Do Not Disturb survive a shell restart.</p>
+                    <p class="hints"><a href="/guide/using.html#notifications">Guide</a></p>
+                </article>
 
-            <section class="folio plate-section">
-                <p class="side">Clipboard</p>
-                <h2>History that remembers images, and forgets secrets.</h2>
-                <div class="body">
-                    <p>The backend records the clipboard over Wayland even while no panel is open: text and images, with previews and pinning. Anything a password manager marks as secret never touches the disk.</p>
-                </div>
-                <aside class="gloss">
-                    <p><a href="/guide/using.html#clipboard">Clipboard history</a> in the guide.</p>
-                </aside>
-                <figure class="plate">
+                <article class="panel">
+                    <div class="panel-head"><span>Clipboard</span><span>Super V</span></div>
                     <img src="/media/shots/clipboard.jpg?v=cabb488893" width="1200" height="750" loading="lazy" decoding="async" alt="Clipboard history with text entries and an image preview">
-                    <figcaption>Text and image entries, newest first.</figcaption>
-                </figure>
-            </section>
+                    <h3>Remembers images, forgets secrets.</h3>
+                    <p>Recorded over Wayland even with no panel open. Anything a password manager marks as secret never touches the disk.</p>
+                    <p class="hints"><a href="/guide/using.html#clipboard">Guide</a></p>
+                </article>
 
-            <section class="folio plate-section">
-                <p class="side">Lock and login</p>
-                <h2>The lock screen is the same ink as the desktop.</h2>
-                <div class="body">
-                    <p>Locking blurs your wallpaper behind a large serif clock instead of cutting to black. It covers every monitor, locks before the machine sleeps, and survives a shell crash. The same QML runs as a greetd login screen.</p>
-                </div>
-                <aside class="gloss">
-                    <p><a href="/guide/lock-screen.html">Lock and login screen</a> in the guide.</p>
-                </aside>
-                <figure class="plate">
+                <article class="panel">
+                    <div class="panel-head"><span>Lock screen</span><span>Super Shift L</span></div>
                     <video data-lazy-video muted loop playsinline preload="none" poster="/media/video/lock.jpg?v=2395934d9d" aria-label="Locking the screen: the desktop blurs into a large serif clock with a password field">
                         <source data-src="/media/video/lock.webm?v=e8b528cd18" type="video/webm">
                         <source data-src="/media/video/lock.mp4?v=783c8f9315" type="video/mp4">
                     </video>
-                    <figcaption>Locking: the desktop blurs into the clock.</figcaption>
-                </figure>
-            </section>
+                    <h3>The same ink as the desktop.</h3>
+                    <p>Blurs the wallpaper behind a serif clock on every monitor, survives a shell crash, and runs as a greetd login screen too.</p>
+                    <p class="hints"><span><b>esc</b> clears</span><a href="/guide/lock-screen.html">Guide</a></p>
+                </article>
+            </div>
+        </section>
 
-            <section class="folio plate-section">
-                <p class="side">Every application</p>
-                <h2>Switch the theme. Your terminal and editor follow.</h2>
-                <div class="body">
-                    <p>The backend writes every application palette in one transaction, so nothing is left half-switched. Drag across the picture: kitty and Neovim in Catppuccin Mocha on the left, in Japanese Ink on the right.</p>
-                </div>
-                <figure class="plate plate-full">
+        <!-- Every application ------------------------------------------------------ -->
+        <section class="sheet">
+            <header class="sheet-head">
+                <h2>One palette, everywhere</h2>
+                <p>The backend writes every application palette in one transaction, so nothing is left half-switched.</p>
+            </header>
+            <div class="panels">
+                <figure class="panel panel-wide">
+                    <div class="panel-head"><span>kitty and Neovim</span><span>Drag across</span></div>
                     <div class="compare" style="--split: 50%">
                         <img src="/media/shots/terminals-ink.jpg?v=78ad22aad9" width="1600" height="900" loading="lazy" decoding="async" alt="kitty and Neovim in Japanese Ink">
                         <img class="compare-top" src="/media/shots/terminals-catppuccin.jpg?v=27d1f84980" width="1600" height="900" loading="lazy" decoding="async" alt="kitty and Neovim in Catppuccin Mocha">
                         <span class="compare-handle" aria-hidden="true"></span>
                         <input class="compare-range" type="range" min="0" max="100" value="50" aria-label="Compare Catppuccin Mocha and Japanese Ink">
                     </div>
-                    <figcaption class="compare-caption"><span>Catppuccin Mocha</span><span>Japanese Ink</span></figcaption>
+                    <figcaption class="panel-foot"><span>Catppuccin Mocha</span><span>Japanese Ink</span></figcaption>
                 </figure>
-            </section>
 
-            <section class="folio plate-section">
-                <p class="side">Settings</p>
-                <h2>A real settings app, in a real window.</h2>
-                <div class="body">
-                    <p>Displays with a 12-second auto-revert, tiling and decoration, input, sound, the bar layout, default apps and services. It never edits your own Hyprland files: overrides live in their own generated modules.</p>
-                </div>
-                <aside class="gloss">
-                    <p><a href="/guide/settings.html">Every settings page</a> in the guide.</p>
-                </aside>
-                <figure class="plate">
-                    <div class="tabs" role="tablist" aria-label="Settings pages">
-                        <button role="tab" aria-selected="true" data-shot="display">Display</button>
-                        <button role="tab" aria-selected="false" data-shot="windows">Windows</button>
-                        <button role="tab" aria-selected="false" data-shot="input">Input</button>
-                        <button role="tab" aria-selected="false" data-shot="topbar">Top bar</button>
-                        <button role="tab" aria-selected="false" data-shot="defaultapps">Default apps</button>
-                        <button role="tab" aria-selected="false" data-shot="system">System</button>
+                <article class="panel panel-wide settings-panel">
+                    <div class="settings-side">
+                        <p class="settings-title"><svg class="logo" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 3.1C3.1 2.7 4.5 3.2 5.2 4.9L8.1 11.2 6.8 14.3C6.4 14.1 6.1 13.7 5.8 13L2.4 5.2C2.1 4.4 1.8 3.7 1.5 3.1ZM7.7 14.3C8.1 11.3 9.2 7.5 10.8 4.7 11.8 3 13.1 2.1 14.6 1.7 13.6 3.4 12.9 5.2 12.1 7.2L9.8 12.7C9.4 13.7 8.7 14.2 7.7 14.3Z"/></svg>Settings</p>
+                        <div class="tabs" role="tablist" aria-label="Settings pages" aria-orientation="vertical">
+                            <button role="tab" aria-selected="true" data-shot="display">Display</button>
+                            <button role="tab" aria-selected="false" data-shot="windows">Windows</button>
+                            <button role="tab" aria-selected="false" data-shot="input">Input</button>
+                            <button role="tab" aria-selected="false" data-shot="topbar">Top bar</button>
+                            <button role="tab" aria-selected="false" data-shot="defaultapps">Default apps</button>
+                            <button role="tab" aria-selected="false" data-shot="system">System</button>
+                        </div>
+                        <p class="settings-note">A real app in a real window. It never edits your own Hyprland files: overrides live in their own generated modules. <a href="/guide/settings.html">Every page</a></p>
                     </div>
                     <div class="tab-stage" role="tabpanel">
                         <img src="/media/shots/settings-display.jpg?v=80e2c65266" width="1200" height="800" loading="lazy" decoding="async" alt="Vellum Settings: Display page">
                     </div>
-                </figure>
-            </section>
-        </div>
-
-        <!-- Themes -------------------------------------------------------------- -->
-        <section id="themes" class="folio plate-section gallery">
-            <p class="side">Themes</p>
-            <h2>Pick a palette. This page wears it too.</h2>
-            <div class="body">
-                <p>Every palette is a short <code>theme.conf</code> in the repository. Choose one to see the shell in it, and the site switches with you, just like the Appearance Studio previews on your desktop.</p>
+                </article>
             </div>
-            <div class="gallery-list" role="listbox" aria-label="Themes"></div>
-            <figure class="plate gallery-stage">
+        </section>
+
+        <!-- Appearance Studio -------------------------------------------------------- -->
+        <section id="themes" class="sheet studio">
+            <header class="sheet-head">
+                <h2>Pick a palette</h2>
+                <p>Every palette is a short <code>theme.conf</code>. Choose one and this page wears it, wallpaper included.</p>
+            </header>
+            <figure class="studio-stage">
                 <img class="gallery-image" src="/media/themes/japanese-ink.jpg?v=2c03eb98d6" width="1600" height="900" alt="Vellum in the selected theme">
-                <figcaption><span class="gallery-name">Japanese Ink</span> <span class="gallery-painting"></span></figcaption>
+                <figcaption><span class="gallery-name">Japanese Ink</span><span class="gallery-painting"></span></figcaption>
             </figure>
+            <div class="studio-dock gallery-list" role="listbox" aria-label="Themes"></div>
         </section>
 
-        <!-- Screensaver ------------------------------------------------------- -->
-        <section id="screensaver" class="folio plate-section">
-            <p class="side">Screensaver</p>
-            <h2>ASCII scenes, drawn by fragment shaders.</h2>
-            <div class="body">
-                <p>After an idle time of your choice every monitor gets a scene, picked by hand or by season. It costs nothing until it starts and steps aside for the lock screen.</p>
-            </div>
-            <aside class="gloss">
-                <p>The previews play about three times faster than real time. <a href="/guide/screensaver.html">All nine scenes and the seasonal calendar</a> are in the guide.</p>
-            </aside>
+        <!-- Screensaver --------------------------------------------------------------- -->
+        <section id="screensaver" class="sheet saver-sheet">
+            <header class="sheet-head">
+                <h2>Screensaver</h2>
+                <p>ASCII scenes drawn by fragment shaders, picked by hand or by season. The previews run about three times faster than real time.</p>
+            </header>
             <div class="saver-grid">
-                <figure class="saver"><img src="/assets/screensaver/shapes.gif?v=510ab0914c" loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII"><figcaption><b>Shapes</b> in your theme's colours</figcaption></figure>
-                <figure class="saver"><img src="/assets/screensaver/christmas.gif?v=22c2c236b9" loading="lazy" decoding="async" alt="Christmas: a turning ASCII fir tree in falling snow"><figcaption><b>Christmas</b> 1–26 December</figcaption></figure>
-                <figure class="saver"><img src="/assets/screensaver/newyear.gif?v=fc96824247" loading="lazy" decoding="async" alt="New Year's Eve: ASCII fireworks over a city skyline"><figcaption><b>New Year's Eve</b> 27 December to 6 January</figcaption></figure>
-                <figure class="saver"><img src="/assets/screensaver/summer.gif?v=a1bbd48275" loading="lazy" decoding="async" alt="Summer: an ASCII sunset over the sea"><figcaption><b>Summer</b> June to August</figcaption></figure>
-                <figure class="saver"><img src="/assets/screensaver/autumn.gif?v=777dfc5f43" loading="lazy" decoding="async" alt="Autumn: a glowing carved pumpkin and falling leaves"><figcaption><b>Autumn</b> September to November</figcaption></figure>
-                <figure class="saver saver-wide"><img src="/assets/screensaver/orbit.gif?v=64521c044d" loading="lazy" decoding="async" alt="Orbit: one scene spanning two monitors, with a comet crossing from one screen to the other"><figcaption><b>Orbit</b> one picture across every monitor</figcaption></figure>
+                <figure class="saver"><figcaption class="panel-head"><span>Shapes</span><span>Your theme's colours</span></figcaption><img src="/assets/screensaver/shapes.gif?v=510ab0914c" loading="lazy" decoding="async" alt="Shapes: a morphing 3D form drawn in ASCII"></figure>
+                <figure class="saver"><figcaption class="panel-head"><span>Christmas</span><span>1–26 December</span></figcaption><img src="/assets/screensaver/christmas.gif?v=22c2c236b9" loading="lazy" decoding="async" alt="Christmas: a turning ASCII fir tree in falling snow"></figure>
+                <figure class="saver"><figcaption class="panel-head"><span>New Year</span><span>27 Dec – 6 Jan</span></figcaption><img src="/assets/screensaver/newyear.gif?v=fc96824247" loading="lazy" decoding="async" alt="New Year's Eve: ASCII fireworks over a city skyline"></figure>
+                <figure class="saver"><figcaption class="panel-head"><span>Summer</span><span>June – August</span></figcaption><img src="/assets/screensaver/summer.gif?v=a1bbd48275" loading="lazy" decoding="async" alt="Summer: an ASCII sunset over the sea"></figure>
+                <figure class="saver"><figcaption class="panel-head"><span>Autumn</span><span>September – November</span></figcaption><img src="/assets/screensaver/autumn.gif?v=777dfc5f43" loading="lazy" decoding="async" alt="Autumn: a glowing carved pumpkin and falling leaves"></figure>
+                <figure class="saver saver-wide"><figcaption class="panel-head"><span>Orbit</span><span>Across every monitor</span></figcaption><img src="/assets/screensaver/orbit.gif?v=64521c044d" loading="lazy" decoding="async" alt="Orbit: one scene spanning two monitors, with a comet crossing from one screen to the other"></figure>
             </div>
+            <p class="sheet-foot"><a href="/guide/screensaver.html">All nine scenes and the seasonal calendar</a></p>
         </section>
 
-        <!-- Install ------------------------------------------------------------- -->
-        <section id="install" class="folio plate-section install">
-            <p class="side">Install</p>
-            <h2>From clone to desktop in one script.</h2>
-            <div class="body">
-                <p>The setup checks every prerequisite first and stops before touching the system if something is missing. <code>--dry-run</code> prints the plan without changing anything, and <code>scripts/uninstall</code> takes it all out again.</p>
-                <div class="terminal" aria-label="Installation commands">
+        <!-- Install ---------------------------------------------------------------------- -->
+        <section id="install" class="sheet">
+            <header class="sheet-head">
+                <h2>Install</h2>
+                <p>From clone to desktop in one script.</p>
+            </header>
+            <div class="panels install-panels">
+                <article class="panel">
+                    <div class="panel-head"><span>Setup</span><span>Arch, CachyOS, Fedora</span></div>
+                    <h3>It checks first, then installs.</h3>
+                    <p>The setup checks every prerequisite and stops before touching the system if something is missing. <code>--dry-run</code> prints the plan without changing anything, and <code>scripts/uninstall</code> takes it all out again.</p>
+                    <p>Idle, the backend daemon holds about 7&nbsp;MB and uses no CPU: every state change arrives as an event.</p>
+                    <p class="install-actions"><a class="btn" href="/guide/installation.html">Installation guide</a></p>
+                </article>
+                <article class="panel terminal">
+                    <div class="panel-head"><span>kitty</span><span>~</span></div>
 <pre><code><span class="t-prompt">$</span> git clone https://github.com/cucu0628/vellum_shell.git \
     ~/.config/quickshell/vellum_shell
 <span class="t-prompt">$</span> cd ~/.config/quickshell/vellum_shell
 <span class="t-prompt">$</span> ./setup.sh --dry-run    <span class="t-comment"># see the plan first</span>
 <span class="t-prompt">$</span> ./setup.sh              <span class="t-comment"># install it</span>
 <span class="t-prompt">$</span> ./setup.sh --with-greeter   <span class="t-comment"># optional login screen</span></code></pre>
-                </div>
-                <p class="cta"><a class="btn" href="/guide/installation.html">Read the installation guide</a></p>
+                </article>
             </div>
-            <aside class="gloss">
-                <p>Arch Linux, CachyOS and Fedora with Hyprland 0.55 or newer, on Wayland.</p>
-                <p>Idle, the backend daemon holds about 7&nbsp;MB and uses no CPU: every state change arrives as an event, nothing is polled.</p>
-            </aside>
         </section>
 
-        <!-- The guide ------------------------------------------------------------ -->
-        <section class="folio plate-section contents-section">
-            <p class="side">The guide</p>
-            <h2>Everything else is written down.</h2>
-            <nav class="contents" aria-label="Guide chapters">
-                <ol><li><a href="/guide/"><span class="num">1</span><span class="title">Introduction</span><span class="text">What Vellum Shell is, what it replaces on a Hyprland desktop, and how the pieces fit together.</span></a></li><li><a href="/guide/installation.html"><span class="num">2</span><span class="title">Installation</span><span class="text">What Vellum needs, how the setup script installs it, the optional parts, and how to remove it cleanly.</span></a></li><li><a href="/guide/using.html"><span class="num">3</span><span class="title">Using the shell</span><span class="text">The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.</span></a></li><li><a href="/guide/appearance.html"><span class="num">4</span><span class="title">Themes and wallpapers</span><span class="text">The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.</span></a></li><li><a href="/guide/settings.html"><span class="num">5</span><span class="title">Settings</span><span class="text">The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.</span></a></li><li><a href="/guide/lock-screen.html"><span class="num">6</span><span class="title">Lock and login screen</span><span class="text">The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.</span></a></li><li><a href="/guide/screensaver.html"><span class="num">7</span><span class="title">Screensaver</span><span class="text">ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.</span></a></li><li><a href="/guide/ipc.html"><span class="num">8</span><span class="title">IPC and keybindings</span><span class="text">Every shell surface you can open or control from a keybinding or a script, and the backend&#x27;s command-line client.</span></a></li><li><a href="/guide/architecture.html"><span class="num">9</span><span class="title">How it works</span><span class="text">The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.</span></a></li><li><a href="/guide/development.html"><span class="num">10</span><span class="title">Development</span><span class="text">Running the checks, what the tests cover, and the rules that keep the shell consistent.</span></a></li></ol>
+        <!-- The guide, as the launcher ------------------------------------------------------ -->
+        <section id="guide" class="sheet launcher" aria-label="The guide">
+            <div class="launcher-search">
+                <label class="launcher-field">
+                    <span class="launcher-glyph" aria-hidden="true">⌕</span>
+                    <input type="search" placeholder="Search the guide" aria-label="Search the guide" autocomplete="off" spellcheck="false">
+                </label>
+                <span class="launcher-mode">Guide</span>
+            </div>
+            <nav class="launcher-results" aria-label="Guide chapters">
+                <ol><li><a class="row" href="/guide/"><span class="row-icon">1</span><span class="row-main"><span class="row-title">Introduction</span><span class="row-text">What Vellum Shell is, what it replaces on a Hyprland desktop, and how the pieces fit together.</span></span><span class="row-tag">Get started</span></a></li><li><a class="row" href="/guide/installation.html"><span class="row-icon">2</span><span class="row-main"><span class="row-title">Installation</span><span class="row-text">What Vellum needs, how the setup script installs it, the optional parts, and how to remove it cleanly.</span></span><span class="row-tag">Get started</span></a></li><li><a class="row" href="/guide/using.html"><span class="row-icon">3</span><span class="row-main"><span class="row-title">Using the shell</span><span class="row-text">The bar, the launcher, the media dashboard, notifications, clipboard, screenshots and the system popups, and the keys that open them.</span></span><span class="row-tag">Using Vellum</span></a></li><li><a class="row" href="/guide/appearance.html"><span class="row-icon">4</span><span class="row-main"><span class="row-title">Themes and wallpapers</span><span class="row-text">The Appearance Studio, how a theme is defined, the dynamic palette, and every file a theme switch writes.</span></span><span class="row-tag">Using Vellum</span></a></li><li><a class="row" href="/guide/settings.html"><span class="row-icon">5</span><span class="row-main"><span class="row-title">Settings</span><span class="row-text">The Settings application page by page, where Vellum keeps its state, and how to set up weather and Google Calendar.</span></span><span class="row-tag">Using Vellum</span></a></li><li><a class="row" href="/guide/lock-screen.html"><span class="row-icon">6</span><span class="row-main"><span class="row-title">Lock and login screen</span><span class="row-text">The multi-monitor Wayland lock screen, locking before sleep and after inactivity, crash recovery, and the greetd login screen.</span></span><span class="row-tag">Using Vellum</span></a></li><li><a class="row" href="/guide/screensaver.html"><span class="row-icon">7</span><span class="row-main"><span class="row-title">Screensaver</span><span class="row-text">ASCII scenes drawn by fragment shaders on every monitor, picked by hand or by season.</span></span><span class="row-tag">Using Vellum</span></a></li><li><a class="row" href="/guide/ipc.html"><span class="row-icon">8</span><span class="row-main"><span class="row-title">IPC and keybindings</span><span class="row-text">Every shell surface you can open or control from a keybinding or a script, and the backend&#x27;s command-line client.</span></span><span class="row-tag">Reference</span></a></li><li><a class="row" href="/guide/architecture.html"><span class="row-icon">9</span><span class="row-main"><span class="row-title">How it works</span><span class="row-text">The QML layers, the Rust daemon and its lazy topics, how the shell survives without the daemon, and where everything lives in the repository.</span></span><span class="row-tag">Reference</span></a></li><li><a class="row" href="/guide/development.html"><span class="row-icon">10</span><span class="row-main"><span class="row-title">Development</span><span class="row-text">Running the checks, what the tests cover, and the rules that keep the shell consistent.</span></span><span class="row-tag">Reference</span></a></li></ol>
             </nav>
+            <p class="launcher-foot"><span class="launcher-count">Guide</span><span class="hints"><span><b>↑↓</b> select</span><span><b>↵</b> open</span><span><b>esc</b> clear</span></span></p>
         </section>
     </main>
 

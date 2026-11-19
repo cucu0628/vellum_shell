@@ -13,16 +13,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=76b18a80b3">
+    <link rel="stylesheet" href="/style.css?v=bbcbbb0d60">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
     <script src="/themes.js?v=6a9450c0a1"></script>
     <script src="/theme.js?v=015323a10c"></script>
     <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=ce2a775e90" defer></script>
+    <script src="/site.js?v=2e45baf58c" defer></script>
     <title>Page not found · Vellum Shell</title>
     <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap">
 </head>
-<body class="page-404">
+<body class="page-home page-404">
     <!-- Betolto: a shell inditokepernyoje (features/splash/) a weben. Csak akkor
          latszik, ha a theme.js a <html>-re tette a `splash-on` osztalyt. -->
     <div class="splash" id="splash" aria-hidden="true">
@@ -51,6 +52,7 @@
             <p class="splash-greeting">Welcome</p>
         </div>
     </div>
+    <div class="wallpaper" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
         <div class="topbar-inner">
@@ -79,15 +81,13 @@
             </div>
         </div>
     </header>
-    <main id="main" class="folio hero">
-        <h1 class="display">Blank vellum</h1>
-        <div class="body">
-            <p class="lead">Nothing has been written on this page yet.</p>
-            <p class="cta">
-                <a class="btn" href="/">Back to the start</a>
-                <a class="cta-link" href="/guide/">Read the guide</a>
-            </p>
-        </div>
+    <main id="main">
+        <section class="lock">
+            <p class="lock-day">Page not found</p>
+            <h1 class="lock-clock">Blank vellum</h1>
+            <p class="lock-date">Nothing has been written on this page yet.</p>
+            <p class="lock-hint"><a href="/">Back to the start</a><a href="/guide/">Read the guide</a></p>
+        </section>
     </main>
     <footer class="footer">
         <div class="footer-inner">

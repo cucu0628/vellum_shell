@@ -6,7 +6,7 @@ shares no history with `main`; the shell itself never sees these files.
 ```text
 build.py                 Builds docs/ from src/ and the shell on origin/main
 src/
-├── index.html           Front page: title page, plates, theme gallery, install, contents
+├── index.html           Front page, drawn as a Vellum session
 ├── guide.template.html  Layout of every guide page (nav, contents, pager)
 ├── guide/*.md           The guide, one Markdown file per page, with front matter
 ├── media/               Screenshots and videos recorded from a real shell
@@ -32,13 +32,18 @@ The build reads two paths from `origin/main` with `git archive`:
 A new theme on `main` shows up in the switcher after the next build. Its
 screenshot for the gallery has to be recorded and added to `src/media/themes/`.
 
-## Layout
+## Front page
 
-Both the front page and the guide are set like a book, on one grid: a left
-margin for side headings (the guide's contents), the text column in the serif,
-and a right margin for notes and captions. Pictures are plates that take the
-text column and the right margin. The front page's last section lists the
-guide's chapters; `build.py` writes it from the guide's front matter.
+The front page is drawn the way the shell draws a desktop. The current theme's
+screenshot is the wallpaper, blurred behind everything like the lock screen
+blurs it, and it changes with the site theme. The top bar follows the shell's
+bar (sections as workspaces, the clock in the middle), the hero is the lock
+screen with the clone command in its field, and every section is a sheet of
+panels in the dashboard's style. The page uses Noto Serif and Noto Sans, the
+system fonts the shell draws with; the guide keeps its own book typography.
+
+The last section is the launcher: it lists the guide's chapters, which
+`build.py` writes from their front matter, and filters them as you type.
 
 ## Guide pages
 
