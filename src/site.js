@@ -586,7 +586,7 @@
             }, CYCLE);
         }
         // Any choice of theme elsewhere on the page ends the show.
-        ['.theme-menu', '.studio'].forEach(function (selector) {
+        ['.theme-menu', '#themes'].forEach(function (selector) {
             var node = $(selector);
             if (!node) return;
             node.addEventListener('pointerdown', stop);
@@ -601,6 +601,40 @@
         document.addEventListener('visibilitychange', schedule);
         document.addEventListener('vellum:splash-open', schedule);
         schedule();
+    }
+
+    // -- Sections rise into view once; the first screen straightens as it comes --
+
+    function initReveal() {
+        var items = $$('.reveal');
+        if (!items.length) return;
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            items.forEach(function (item) { item.classList.add('seen'); });
+            return;
+        }
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                entry.target.classList.add('seen');
+                observer.unobserve(entry.target);
+            });
+        }, { rootMargin: '0px 0px -12% 0px' });
+        items.forEach(function (item) { observer.observe(item); });
+
+        var tilt = $('.screen-tilt');
+        if (!tilt) return;
+        var pending = false;
+        function update() {
+            pending = false;
+            var box = tilt.getBoundingClientRect();
+            // 0 while the screen's top edge is at the bottom of the window, 1 once it nears the middle.
+            var seen = Math.max(0, Math.min(1, (window.innerHeight - box.top) / (window.innerHeight * 0.55)));
+            tilt.style.setProperty('--seen', seen.toFixed(3));
+        }
+        window.addEventListener('scroll', function () {
+            if (!pending) { pending = true; requestAnimationFrame(update); }
+        }, { passive: true });
+        update();
     }
 
     // -- The session around the page: bar clock, lock field ---------------------
@@ -639,59 +673,6 @@
                 }, function () {});
             });
         }
-    }
-
-    // -- The guide as a launcher: type to filter, arrows to pick, Enter to open --
-
-    function initLauncher() {
-        var input = $('.launcher-field input');
-        var rows = $$('.launcher-results .row');
-        var count = $('.launcher-count');
-        if (!input || !rows.length) return;
-        var list = rows[0].closest('ol');
-        var empty = el('p', 'launcher-empty', 'No chapter matches. Esc clears the search.');
-        empty.hidden = true;
-        list.parentNode.appendChild(empty);
-        var visible = rows.slice();
-        var selected = -1;
-
-        function select(index) {
-            rows.forEach(function (row) { row.classList.remove('selected'); });
-            selected = visible.length ? Math.max(0, Math.min(index, visible.length - 1)) : -1;
-            if (selected >= 0) visible[selected].classList.add('selected');
-        }
-        function filter() {
-            var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
-            visible = rows.filter(function (row) {
-                var text = row.textContent.toLowerCase();
-                var match = words.every(function (word) { return text.indexOf(word) >= 0; });
-                row.parentNode.hidden = !match;
-                return match;
-            });
-            empty.hidden = visible.length > 0;
-            count.textContent = words.length ? 'Guide · ' + visible.length : 'Guide';
-            select(words.length ? 0 : -1);
-        }
-        input.addEventListener('input', filter);
-        input.addEventListener('keydown', function (event) {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                select(selected + (event.key === 'ArrowDown' ? 1 : -1));
-                if (selected >= 0) visible[selected].scrollIntoView({ block: 'nearest' });
-            } else if (event.key === 'Enter') {
-                var target = visible[selected >= 0 ? selected : 0];
-                if (target) window.location.href = target.href;
-            } else if (event.key === 'Escape') {
-                input.value = '';
-                filter();
-            }
-        });
-        rows.forEach(function (row) {
-            row.addEventListener('mouseenter', function () {
-                var index = visible.indexOf(row);
-                if (index >= 0) select(index);
-            });
-        });
     }
 
     // -- Navigation state ------------------------------------------------------
@@ -799,9 +780,9 @@
     initTabs();
     initGallery();
     initWallpaper();
+    initReveal();
     initPalette();
     initSession();
-    initLauncher();
     initNav();
     initGuide();
     initCopy();

@@ -41,13 +41,17 @@ over the old painting like a drop of ink, a WebGL port of the shell's
 `core/shaders/wallpaper-ink.frag` with its timing (1100 ms, from the click), and
 the colours ease over 700 ms like `ThemeStore` does. On a first visit the card
 plays through the palettes until the visitor picks one; nothing is remembered
-until then. Scrolling past the lock screen blurs the painting into the desktop
-that the sheets of dashboard-style panels sit on. The top bar follows the
-shell's bar (sections as workspaces, the clock in the middle). The page uses Noto Serif and Noto Sans, the
-system fonts the shell draws with; the guide keeps its own book typography.
+until then. Scrolling past the lock screen blurs the painting into a quiet
+backdrop. The top bar follows the shell's bar (sections as workspaces, the
+clock in the middle).
 
-The last section is the launcher: it lists the guide's chapters, which
-`build.py` writes from their front matter, and filters them as you type.
+Below the lock screen the page reads as a website rather than a desktop: open
+sections with large serif headings under the lock screen's italic accent line,
+features as text beside the shell's own recordings framed as screens, and
+sections that rise into view as they scroll in. The guide's chapters at the
+end are cards that `build.py` writes from their front matter. The page uses
+Noto Serif and Noto Sans, the system fonts the shell draws with; the guide
+keeps its own book typography.
 
 ## Guide pages
 

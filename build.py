@@ -192,15 +192,16 @@ def guide_pages() -> list[tuple[dict[str, str], str]]:
 
 
 def guide_contents() -> str:
-    """The guide's chapters as launcher rows, for the front page."""
+    """The guide's chapters as cards, for the front page."""
     items = "".join(
-        f'<li><a class="row" href="{page_url(meta["slug"])}"><span class="row-icon">{i}</span>'
-        f'<span class="row-main"><span class="row-title">{html.escape(meta["title"])}</span>'
-        f'<span class="row-text">{html.escape(meta["description"])}</span></span>'
-        f'<span class="row-tag">{html.escape(meta["group"])}</span></a></li>'
+        f'<li><a class="chapter-card" href="{page_url(meta["slug"])}">'
+        f'<span class="chapter-card-num">{i:02d}</span>'
+        f'<span class="chapter-card-group">{html.escape(meta["group"])}</span>'
+        f'<span class="chapter-card-title">{html.escape(meta["title"])}</span>'
+        f'<span class="chapter-card-text">{html.escape(meta["description"])}</span></a></li>'
         for i, (meta, _) in enumerate(guide_pages(), start=1)
     )
-    return f"<ol>{items}</ol>"
+    return f'<ol class="chapter-cards">{items}</ol>'
 
 
 def render_guide(out: Path, partials: dict[str, str], values: dict[str, str]) -> int:
