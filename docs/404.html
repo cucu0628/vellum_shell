@@ -13,12 +13,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=bbcbbb0d60">
+    <link rel="stylesheet" href="/style.css?v=bc26cf74ee">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=6a9450c0a1"></script>
-    <script src="/theme.js?v=015323a10c"></script>
-    <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=2e45baf58c" defer></script>
+    <script src="/themes.js?v=196fb536bf"></script>
+    <script src="/theme.js?v=f6c12a406e"></script>
+    <script src="/splash.js?v=e5a5a3b6f5" defer></script>
+    <script src="/site.js?v=2025c5c56b" defer></script>
     <title>Page not found · Vellum Shell</title>
     <meta name="robots" content="noindex">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap">
@@ -52,7 +52,10 @@
             <p class="splash-greeting">Welcome</p>
         </div>
     </div>
-    <div class="wallpaper" aria-hidden="true"></div>
+    <div class="wallpaper" aria-hidden="true">
+        <div class="wallpaper-stage"><div class="wallpaper-paint"></div><canvas class="wallpaper-ink"></canvas></div>
+        <div class="wallpaper-desk"><i></i><i></i></div>
+    </div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
         <div class="topbar-inner">
@@ -83,10 +86,12 @@
     </header>
     <main id="main">
         <section class="lock">
-            <p class="lock-day">Page not found</p>
-            <h1 class="lock-clock">Blank vellum</h1>
-            <p class="lock-date">Nothing has been written on this page yet.</p>
-            <p class="lock-hint"><a href="/">Back to the start</a><a href="/guide/">Read the guide</a></p>
+            <div class="lock-main">
+                <p class="lock-day">Page not found</p>
+                <h1 class="lock-clock">Blank vellum</h1>
+                <p class="lock-date">Nothing has been written on this page yet.</p>
+                <p class="lock-hint"><a href="/">Back to the start</a><a href="/guide/">Read the guide</a></p>
+            </div>
         </section>
     </main>
     <footer class="footer">

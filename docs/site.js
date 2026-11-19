@@ -300,20 +300,313 @@
         show(V.applied ? V.applied.id : V.themes[0].id);
     }
 
-    // -- The session around the page: wallpaper, bar clock, lock field -----------
+    // -- The wallpaper: core/shaders/wallpaper-ink.frag, ported to WebGL 1 -------
+    // A new painting spreads over the old one like a drop of ink: an irregular
+    // front (fbm noise) with a darker wet rim that dries as it settles.
+
+    function createInk(canvas) {
+        var gl = null;
+        try { gl = canvas.getContext('webgl', { antialias: false, depth: false, alpha: false }); } catch (e) { gl = null; }
+        if (!gl) return null;
+        var fragment = [
+            '#ifdef GL_FRAGMENT_PRECISION_HIGH',
+            'precision highp float;',
+            '#else',
+            'precision mediump float;',
+            '#endif',
+            'uniform vec2 resolution, origin;',
+            'uniform float progress, seed, fromAspect, toAspect;',
+            'uniform sampler2D fromTexture, toTexture;',
+            'const float NOISE_AMOUNT = 0.22;',
+            'const float FIBRE_AMOUNT = 0.02;',
+            'const float FEATHER = 0.035;',
+            'const float RIM_WIDTH = 0.09;',
+            'float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }',
+            'float valueNoise(vec2 p) {',
+            '    vec2 i = floor(p); vec2 f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);',
+            '    return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);',
+            '}',
+            'float fbm(vec2 p) {',
+            '    float sum = 0.0; float amplitude = 0.5;',
+            '    for (int octave = 0; octave < 5; octave++) { sum += amplitude * valueNoise(p); p = p * 2.03 + vec2(17.1, 9.2); amplitude *= 0.5; }',
+            '    return sum;',
+            '}',
+            'vec2 cover(vec2 uv, float aspect, float imageAspect, float scale) {',
+            '    vec2 centered = (uv - 0.5) / scale;',
+            '    if (imageAspect > aspect) centered.x *= aspect / imageAspect; else centered.y *= imageAspect / aspect;',
+            '    return centered + 0.5;',
+            '}',
+            'void main() {',
+            '    vec2 uv = vec2(gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);',
+            '    float aspect = resolution.x / resolution.y;',
+            '    vec2 scaleVec = vec2(aspect, 1.0);',
+            '    vec2 corner = max(origin, 1.0 - origin) * scaleVec;',
+            '    float dist = length((uv - origin) * scaleVec) / length(corner);',
+            '    float grain = fbm(uv * scaleVec * 3.2 + seed * 7.13);',
+            '    float fibre = fbm(uv * scaleVec * 14.0 - seed * 3.7);',
+            '    float shaped = dist + (grain - 0.5) * NOISE_AMOUNT * 2.0 + (fibre - 0.5) * FIBRE_AMOUNT * 2.0;',
+            '    float margin = NOISE_AMOUNT + FIBRE_AMOUNT + FEATHER;',
+            '    float front = mix(-margin, 1.0 + margin, progress);',
+            '    float reveal = 1.0 - smoothstep(front - FEATHER, front + FEATHER, shaped);',
+            '    vec4 fromColor = texture2D(fromTexture, cover(uv, aspect, fromAspect, 1.0 + 0.02 * progress));',
+            '    vec4 toColor = texture2D(toTexture, cover(uv, aspect, toAspect, 1.035 - 0.035 * progress));',
+            '    float behind = clamp((front - shaped) / RIM_WIDTH, 0.0, 1.0);',
+            '    float rim = reveal * (1.0 - behind) * (1.0 - progress * progress);',
+            '    toColor.rgb *= 1.0 - 0.28 * rim;',
+            '    gl_FragColor = vec4(mix(fromColor.rgb, toColor.rgb, reveal), 1.0);',
+            '}'
+        ].join('\n');
+        function compile(type, source) {
+            var shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null;
+        }
+        var vs = compile(gl.VERTEX_SHADER, 'attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }');
+        var fs = compile(gl.FRAGMENT_SHADER, fragment);
+        if (!vs || !fs) return null;
+        var program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+        gl.useProgram(program);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        var position = gl.getAttribLocation(program, 'p');
+        gl.enableVertexAttribArray(position);
+        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        var u = {};
+        ['resolution', 'origin', 'progress', 'seed', 'fromAspect', 'toAspect', 'fromTexture', 'toTexture'].forEach(function (key) {
+            u[key] = gl.getUniformLocation(program, key);
+        });
+        gl.uniform1i(u.fromTexture, 0);
+        gl.uniform1i(u.toTexture, 1);
+        var textures = [gl.createTexture(), gl.createTexture()];
+        textures.forEach(function (texture) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        });
+        function upload(unit, image) {
+            gl.activeTexture(gl.TEXTURE0 + unit);
+            gl.bindTexture(gl.TEXTURE_2D, textures[unit]);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+        }
+        return {
+            start: function (from, to, origin) {
+                // The edges are soft anyway: no more than 1.5 device pixels per CSS pixel.
+                var scale = Math.min(window.devicePixelRatio || 1, 1.5);
+                canvas.width = Math.round(canvas.clientWidth * scale) || 1;
+                canvas.height = Math.round(canvas.clientHeight * scale) || 1;
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                gl.uniform2f(u.resolution, canvas.width, canvas.height);
+                gl.uniform2f(u.origin, origin[0], origin[1]);
+                gl.uniform1f(u.seed, Math.random() * 100);
+                upload(0, from);
+                upload(1, to);
+                gl.uniform1f(u.fromAspect, from.naturalWidth / from.naturalHeight);
+                gl.uniform1f(u.toAspect, to.naturalWidth / to.naturalHeight);
+            },
+            draw: function (progress) {
+                gl.uniform1f(u.progress, progress);
+                gl.drawArrays(gl.TRIANGLES, 0, 3);
+            }
+        };
+    }
+
+    // The shell's timing: 1100 ms, InOutSine, from just below the centre unless
+    // a click says where the drop fell.
+    var INK_DURATION = 1100;
+    var inkOrigin = null;
+
+    function initWallpaper() {
+        var wallpaper = $('.wallpaper');
+        if (!wallpaper) return;
+        var paint = $('.wallpaper-paint', wallpaper);
+        var canvas = $('.wallpaper-ink', wallpaper);
+        var desk = $$('.wallpaper-desk i', wallpaper);
+        var ink = reduceMotion ? null : createInk(canvas);
+        var images = {};
+        var shown = null;      // the image on the wall
+        var wanted = null;     // the theme asked for last
+        var frame = 0;
+        var deskIndex = 0;
+
+        document.addEventListener('pointerdown', function (event) {
+            inkOrigin = [event.clientX / window.innerWidth, event.clientY / window.innerHeight];
+        }, true);
+
+        function load(id) {
+            if (!images[id]) {
+                images[id] = new Promise(function (resolve, reject) {
+                    var image = new Image();
+                    image.decoding = 'async';
+                    image.onload = function () {
+                        (image.decode ? image.decode() : Promise.resolve()).then(function () { resolve(image); }, function () { resolve(image); });
+                    };
+                    image.onerror = reject;
+                    image.src = media('/media/wallpapers/' + id + '.jpg');
+                });
+            }
+            return images[id];
+        }
+        function hang(image) {
+            var url = 'url("' + image.src + '")';
+            paint.style.backgroundImage = url;
+            deskIndex ^= 1;
+            desk[deskIndex].style.backgroundImage = url;
+            desk[deskIndex].classList.add('on');
+            desk[deskIndex ^ 1].classList.remove('on');
+            shown = image;
+        }
+        function spread(from, to, origin) {
+            cancelAnimationFrame(frame);
+            ink.start(from, to, origin);
+            ink.draw(0);
+            canvas.classList.add('inking');
+            var began = performance.now();
+            function step(now) {
+                var t = Math.min(1, (now - began) / INK_DURATION);
+                ink.draw(-(Math.cos(Math.PI * t) - 1) / 2);
+                if (t < 1) { frame = requestAnimationFrame(step); return; }
+                hang(to);
+                // One more frame, so the plain background is painted before the canvas goes.
+                frame = requestAnimationFrame(function () { canvas.classList.remove('inking'); });
+            }
+            frame = requestAnimationFrame(step);
+        }
+        function show(id) {
+            if (id === wanted) return;
+            wanted = id;
+            var origin = inkOrigin || [0.5, 0.56];
+            inkOrigin = null;
+            load(id).then(function (image) {
+                if (wanted !== id || image === shown) return;
+                var unlocked = parseFloat(document.documentElement.style.getPropertyValue('--unlock')) >= 1;
+                if (!shown || !ink || unlocked || document.hidden) hang(image);
+                else spread(shown, image, origin);
+            }, function () {});
+        }
+        onTheme(function (detail) { show(detail.id); });
+        if (V.applied) show(V.applied.id);
+
+        // Scrolling past the lock screen unlocks it: the painting blurs into the desktop.
+        var lock = $('.lock');
+        if (!lock || document.body.classList.contains('page-404')) return;
+        var pending = false;
+        function unlock() {
+            pending = false;
+            var progress = Math.max(0, Math.min(1, window.scrollY / (lock.offsetHeight * 0.7)));
+            document.documentElement.style.setProperty('--unlock', progress.toFixed(3));
+        }
+        window.addEventListener('scroll', function () {
+            if (!pending) { pending = true; requestAnimationFrame(unlock); }
+        }, { passive: true });
+        window.addEventListener('resize', unlock);
+        unlock();
+    }
+
+    // -- The lock screen's palette card: pick one, or watch them all go by -------
+
+    function initPalette() {
+        var card = $('.lock-palette');
+        var group = $('.lock-swatches');
+        if (!card || !group) return;
+        var nameNode = $('.lock-palette-name', card);
+        var paintingNode = $('.lock-painting', card);
+        var CYCLE = 6500;
+        var buttons = V.themes.map(function (theme) {
+            var button = el('button', 'lock-swatch');
+            button.type = 'button';
+            button.dataset.id = theme.id;
+            button.setAttribute('role', 'radio');
+            button.setAttribute('aria-label', theme.name);
+            button.title = theme.name;
+            button.style.setProperty('--sw-bg', theme.colors.bgDark);
+            button.style.setProperty('--sw-surface', theme.colors.surface);
+            button.style.setProperty('--sw-accent', theme.colors.accent);
+            button.addEventListener('click', function () { stop(); V.commit(theme.id); });
+            group.appendChild(button);
+            return button;
+        });
+        group.addEventListener('keydown', function (event) {
+            var step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+            if (!step) return;
+            event.preventDefault();
+            var index = buttons.indexOf(document.activeElement);
+            var next = buttons[(index + step + buttons.length) % buttons.length];
+            next.focus();
+            next.click();
+        });
+        function sync(id) {
+            var theme = V.byId(id);
+            if (!theme) return;
+            nameNode.textContent = theme.name;
+            paintingNode.textContent = PAINTINGS[id] || '';
+            buttons.forEach(function (button) {
+                var on = button.dataset.id === id;
+                button.setAttribute('aria-checked', on ? 'true' : 'false');
+                button.tabIndex = on ? 0 : -1;
+            });
+        }
+        onTheme(function (detail) { sync(detail.id); });
+        if (V.applied) sync(V.applied.id);
+
+        // A first visit plays through the palettes, like the Appearance Studio's
+        // live preview: shown, never remembered. A choice, a remembered theme or
+        // a ?theme= preview keeps the page still.
+        var chosen = false;
+        try { chosen = !!localStorage.getItem('vellum-site-theme'); } catch (e) { chosen = true; }
+        if (chosen || reduceMotion || /[?&]theme=/.test(window.location.search)) return;
+        card.style.setProperty('--cycle', CYCLE + 'ms');
+        var timer = 0;
+        var playing = true;
+        var visible = true;
+        function stop() {
+            playing = false;
+            clearTimeout(timer);
+            card.classList.remove('playing');
+        }
+        function schedule() {
+            clearTimeout(timer);
+            card.classList.remove('playing');
+            if (!playing || !visible || document.hidden || document.documentElement.classList.contains('splash-on')) return;
+            void card.offsetWidth;  // restart the timer bar
+            card.classList.add('playing');
+            timer = setTimeout(function () {
+                var index = V.themes.indexOf(V.applied);
+                var next = buttons[(index + 1) % buttons.length];
+                var box = next.getBoundingClientRect();
+                inkOrigin = [(box.left + box.width / 2) / window.innerWidth, (box.top + box.height / 2) / window.innerHeight];
+                V.apply(next.dataset.id);
+                schedule();
+            }, CYCLE);
+        }
+        // Any choice of theme elsewhere on the page ends the show.
+        ['.theme-menu', '.studio'].forEach(function (selector) {
+            var node = $(selector);
+            if (!node) return;
+            node.addEventListener('pointerdown', stop);
+            node.addEventListener('keydown', stop);
+        });
+        if ('IntersectionObserver' in window) {
+            new IntersectionObserver(function (entries) {
+                visible = entries[0].isIntersecting;
+                schedule();
+            }, { threshold: 0.5 }).observe(card);
+        }
+        document.addEventListener('visibilitychange', schedule);
+        document.addEventListener('vellum:splash-open', schedule);
+        schedule();
+    }
+
+    // -- The session around the page: bar clock, lock field ---------------------
 
     function initSession() {
         if (!document.body.classList.contains('page-home')) return;
-
-        // The wallpaper is the painting of the theme on show, as on the desktop.
-        var wallpaper = $('.wallpaper');
-        if (wallpaper) {
-            var paint = function (id) {
-                wallpaper.style.backgroundImage = 'url("' + media('/media/themes/' + id + '.jpg') + '")';
-            };
-            onTheme(function (detail) { paint(detail.id); });
-            if (V.applied) paint(V.applied.id);
-        }
 
         // The bar's clock: weekday and time, in the visitor's own locale.
         var inner = $('.topbar-inner');
@@ -505,6 +798,8 @@
     initCompare();
     initTabs();
     initGallery();
+    initWallpaper();
+    initPalette();
     initSession();
     initLauncher();
     initNav();

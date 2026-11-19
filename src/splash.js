@@ -306,12 +306,21 @@
     // itt a lapot.
     var waits = [];
     if (document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
-    var poster = document.querySelector('.stage video[poster]');
-    if (poster) {
+    // A cimlapon a tema festmenye a hatterkep: a papir arra szakad fel.
+    var heroImage = null;
+    if (document.querySelector('.wallpaper') && root.dataset.theme) {
+        var wallpaperUrl = '/media/wallpapers/' + root.dataset.theme + '.jpg';
+        var versions = window.VELLUM_MEDIA || {};
+        heroImage = versions[wallpaperUrl] ? wallpaperUrl + '?v=' + versions[wallpaperUrl] : wallpaperUrl;
+    } else {
+        var poster = document.querySelector('.stage video[poster]');
+        if (poster) heroImage = poster.getAttribute('poster');
+    }
+    if (heroImage) {
         waits.push(new Promise(function (resolve) {
             var image = new Image();
             image.onload = image.onerror = resolve;
-            image.src = poster.getAttribute('poster');
+            image.src = heroImage;
         }));
     }
     Promise.all(waits).then(function () { ready = true; }, function () { ready = true; });

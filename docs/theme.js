@@ -95,7 +95,7 @@
         if (applied && applied.id !== theme.id) {
             root.classList.add('theme-fade');
             clearTimeout(apply.timer);
-            apply.timer = setTimeout(function () { root.classList.remove('theme-fade'); }, 420);
+            apply.timer = setTimeout(function () { root.classList.remove('theme-fade'); }, 760);
         }
         applied = theme;
         root.dataset.theme = theme.id;

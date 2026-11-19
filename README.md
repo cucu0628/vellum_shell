@@ -34,12 +34,16 @@ screenshot for the gallery has to be recorded and added to `src/media/themes/`.
 
 ## Front page
 
-The front page is drawn the way the shell draws a desktop. The current theme's
-screenshot is the wallpaper, blurred behind everything like the lock screen
-blurs it, and it changes with the site theme. The top bar follows the shell's
-bar (sections as workspaces, the clock in the middle), the hero is the lock
-screen with the clone command in its field, and every section is a sheet of
-panels in the dashboard's style. The page uses Noto Serif and Noto Sans, the
+The front page is drawn the way the shell draws a desktop. The hero is the lock
+screen over the current theme's painting (`src/media/wallpapers/`), with the
+clone command in its field and a palette card beside it. A new theme spreads
+over the old painting like a drop of ink, a WebGL port of the shell's
+`core/shaders/wallpaper-ink.frag` with its timing (1100 ms, from the click), and
+the colours ease over 700 ms like `ThemeStore` does. On a first visit the card
+plays through the palettes until the visitor picks one; nothing is remembered
+until then. Scrolling past the lock screen blurs the painting into the desktop
+that the sheets of dashboard-style panels sit on. The top bar follows the
+shell's bar (sections as workspaces, the clock in the middle). The page uses Noto Serif and Noto Sans, the
 system fonts the shell draws with; the guide keeps its own book typography.
 
 The last section is the launcher: it lists the guide's chapters, which
@@ -76,7 +80,8 @@ a headless KWin (`kwin_wayland --virtual`) running a nested Hyprland with its
 own runtime directory, session bus and no system bus, a copy of the repository,
 and a backend started with `VELLUM_SHELL_DIR`, `VELLUM_GREETER_DIR` and
 `VELLUM_NO_SIDE_EFFECTS`. Frames were taken with `grim` and encoded to VP9 WebM
-and H.264 MP4. The wallpapers are public-domain paintings. The player is a stand-in that
+and H.264 MP4. The wallpapers are public-domain paintings; `media/wallpapers/`
+holds them bare, 2000 px wide, one per theme, for the front page. The player is a stand-in that
 announces itself over MPRIS exactly like [Hibiki](https://github.com/cucu0628/Hibiki),
 with a track and cover from its library; the notifications are made up.
 

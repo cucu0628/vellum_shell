@@ -322,5 +322,15 @@ window.VELLUM_MEDIA = {
  "/media/video/studio-themes.webm": "fbcdb85810",
  "/media/video/studio-wallpapers.jpg": "5a6a1ccfee",
  "/media/video/studio-wallpapers.mp4": "c51d709f94",
- "/media/video/studio-wallpapers.webm": "9006ffa977"
+ "/media/video/studio-wallpapers.webm": "9006ffa977",
+ "/media/wallpapers/catppuccin-mocha.jpg": "514346f625",
+ "/media/wallpapers/dynamic-matugen.jpg": "64d7a3c5ea",
+ "/media/wallpapers/gruvbox-material.jpg": "057f69c6a2",
+ "/media/wallpapers/japanese-ink.jpg": "82b1b541fc",
+ "/media/wallpapers/kanagawa-wave.jpg": "eae811ad92",
+ "/media/wallpapers/monochrome.jpg": "17937b8b26",
+ "/media/wallpapers/rose-pine.jpg": "582a0d29cb",
+ "/media/wallpapers/sakura-blossom.jpg": "783ea72c5e",
+ "/media/wallpapers/tokyo-night.jpg": "bd8c27df4a",
+ "/media/wallpapers/varnished-horizon.jpg": "340e8388eb"
 };

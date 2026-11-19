@@ -12,12 +12,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&display=swap">
-    <link rel="stylesheet" href="/style.css?v=bbcbbb0d60">
+    <link rel="stylesheet" href="/style.css?v=bc26cf74ee">
     <!-- A paletta meg festes elott: nincs villanas az alapertelmezett temaval. -->
-    <script src="/themes.js?v=6a9450c0a1"></script>
-    <script src="/theme.js?v=015323a10c"></script>
-    <script src="/splash.js?v=2b46be2938" defer></script>
-    <script src="/site.js?v=2e45baf58c" defer></script>
+    <script src="/themes.js?v=196fb536bf"></script>
+    <script src="/theme.js?v=f6c12a406e"></script>
+    <script src="/splash.js?v=e5a5a3b6f5" defer></script>
+    <script src="/site.js?v=2025c5c56b" defer></script>
     <title>Vellum Shell</title>
     <meta name="description" content="An ink-inspired desktop shell for Hyprland, built on Quickshell and a small Rust daemon: bar, launcher, notifications, dashboard, lock screen, settings, and one palette across every application.">
     <link rel="canonical" href="https://vellum.asked.hu/">
@@ -26,7 +26,6 @@
     <meta property="og:url" content="https://vellum.asked.hu/">
     <!-- The shell draws with the system serif and sans, Noto on Arch and Fedora. -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap">
-    <link rel="preload" as="image" href="/media/video/hero-themes.jpg?v=2f01d45831">
 </head>
 <body class="page-home">
     <!-- Betolto: a shell inditokepernyoje (features/splash/) a weben. Csak akkor
@@ -58,8 +57,13 @@
         </div>
     </div>
     <!-- The page is a Vellum session: the current theme's painting behind
-         everything, blurred like the lock screen does it. -->
-    <div class="wallpaper" aria-hidden="true" data-src="/media/themes/japanese-ink.jpg?v=2c03eb98d6"></div>
+         everything. A new one spreads like a drop of ink (the shell's
+         wallpaper-ink.frag in WebGL); scrolling past the lock screen blurs it
+         into the desktop the sheets sit on. -->
+    <div class="wallpaper" aria-hidden="true">
+        <div class="wallpaper-stage"><div class="wallpaper-paint"></div><canvas class="wallpaper-ink"></canvas></div>
+        <div class="wallpaper-desk"><i></i><i></i></div>
+    </div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
         <div class="topbar-inner">
@@ -92,18 +96,27 @@
     <main id="main">
         <!-- Lock screen ---------------------------------------------------------- -->
         <section class="lock">
-            <p class="lock-day">Vellum Shell</p>
-            <h1 class="lock-clock">Your desktop,<br>written in ink.</h1>
-            <p class="lock-date">A complete shell for Hyprland: bar, launcher, notifications, media dashboard, lock screen and a real settings app. One palette reaches every application you open.</p>
-            <p class="lock-user"><b>vellum</b> Hyprland 0.55 or newer on Arch Linux, CachyOS and Fedora</p>
-            <div class="lock-field">
-                <span class="lock-prompt" aria-hidden="true">$</span>
-                <code class="lock-command">git clone https://github.com/cucu0628/vellum_shell.git ~/.config/quickshell/vellum_shell</code>
-                <button class="lock-go" type="button" aria-label="Copy the clone command">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-                </button>
+            <div class="lock-main">
+                <p class="lock-day">Vellum Shell</p>
+                <h1 class="lock-clock">Your desktop,<br>written in ink.</h1>
+                <p class="lock-date">A complete shell for Hyprland: bar, launcher, notifications, media dashboard, lock screen and a real settings app. One palette reaches every application you open.</p>
+                <p class="lock-user"><b>vellum</b> Hyprland 0.55 or newer on Arch Linux, CachyOS and Fedora</p>
+                <div class="lock-field">
+                    <span class="lock-prompt" aria-hidden="true">$</span>
+                    <code class="lock-command">git clone https://github.com/cucu0628/vellum_shell.git ~/.config/quickshell/vellum_shell</code>
+                    <button class="lock-go" type="button" aria-label="Copy the clone command">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+                <p class="lock-hint"><span class="lock-hint-text">↵ copies</span><a href="/guide/installation.html">Installation guide</a><a href="/guide/">Read the guide</a></p>
             </div>
-            <p class="lock-hint"><span class="lock-hint-text">↵ copies</span><a href="/guide/installation.html">Installation guide</a><a href="/guide/">Read the guide</a></p>
+            <aside class="lock-palette" aria-labelledby="lock-palette-label">
+                <div class="panel-head"><span id="lock-palette-label">Palette</span><span class="lock-palette-name">Japanese Ink</span></div>
+                <div class="lock-swatches" role="radiogroup" aria-labelledby="lock-palette-label"></div>
+                <p class="lock-painting">Frederic Edwin Church, Twilight in the Wilderness (1860)</p>
+                <i class="lock-timer" aria-hidden="true"></i>
+            </aside>
+            <p class="lock-scroll" aria-hidden="true">scroll to unlock</p>
         </section>
 
         <!-- The shell ------------------------------------------------------------- -->

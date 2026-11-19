@@ -61,9 +61,11 @@ html {
     html { scroll-behavior: smooth; }
 }
 
+/* Colours ease into a new theme over 700 ms, as the shell's ThemeStore does. */
 html.theme-fade *, html.theme-fade *::before, html.theme-fade *::after {
-    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease,
-        fill 0.4s ease, stroke 0.4s ease, box-shadow 0.4s ease !important;
+    --ease: cubic-bezier(0.65, 0, 0.35, 1);
+    transition: background-color 0.7s var(--ease), color 0.7s var(--ease), border-color 0.7s var(--ease),
+        fill 0.7s var(--ease), stroke 0.7s var(--ease), box-shadow 0.7s var(--ease) !important;
 }
 
 body {
@@ -265,14 +267,42 @@ body.page-home {
 body.page-home::after { display: none; }
 html:has(body.page-home) { --topbar: 44px; background: var(--bg-darker); }
 
-.wallpaper {
-    position: fixed;
+/* The wallpaper: the painting itself on the lock screen, then, as the page
+   scrolls past it (--unlock, set by site.js), the blurred desktop the sheets
+   sit on. Two blurred layers cross-fade, so a theme picked further down
+   changes the desktop too. */
+.wallpaper { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--bg-darker); }
+.wallpaper-stage { position: absolute; inset: 0; }
+.wallpaper-paint, .wallpaper-ink { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wallpaper-paint { background: center / cover no-repeat; }
+.wallpaper-ink { display: block; opacity: 0; }
+.wallpaper-ink.inking { opacity: 1; }
+/* The lock screen's shade: dark where the text sits, the painting clear on the right. */
+.wallpaper-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgb(0 0 0 / 0.66) 0%, rgb(0 0 0 / 0.44) 40%, rgb(0 0 0 / 0) 72%),
+        linear-gradient(0deg, rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0) 45%),
+        linear-gradient(180deg, rgb(0 0 0 / 0.3) 0%, rgb(0 0 0 / 0) 30%);
+}
+.wallpaper-desk { position: absolute; inset: 0; opacity: var(--unlock, 0); }
+.wallpaper-desk i {
+    position: absolute;
     inset: -48px;
-    z-index: -1;
     background: var(--bg-darker) center / cover no-repeat;
     filter: blur(36px) saturate(1.15) brightness(0.6);
+    opacity: 0;
     transform: scale(1.06);
+    transition: opacity 0.9s ease;
 }
+.wallpaper-desk i.on { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+    /* A slow drift, so the painting reads as a living desktop, not a photo. */
+    .wallpaper-stage { animation: drift 48s ease-in-out infinite alternate; }
+}
+@keyframes drift { from { transform: scale(1.01); } to { transform: scale(1.07) translate(-1%, -0.6%); } }
 
 /* The shell's bar: workspaces on the left, the clock in the middle. */
 .page-home .topbar { background: var(--bg-dark); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -302,20 +332,24 @@ html:has(body.page-home) { --topbar: 44px; background: var(--bg-darker); }
 /* -- Lock screen ------------------------------------------------------- */
 
 .lock {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: end;
+    gap: 48px;
     min-height: calc(100svh - var(--topbar));
     max-width: calc(var(--page) + 2 * var(--gutter));
     margin: 0 auto;
-    padding: 96px var(--gutter) 12vh;
+    padding: 96px var(--gutter) 14vh;
 }
+/* The lock screen gives way as the page scrolls. */
+.lock-main, .lock-palette { opacity: calc(1 - 1.4 * var(--unlock, 0)); transform: translateY(calc(-64px * var(--unlock, 0))); }
 .lock-day { margin: 0 0 12px; color: var(--accent-text); font-family: var(--serif); font-size: clamp(22px, 2.4vw, 30px); font-style: italic; line-height: 1.2; }
 .lock-clock {
     margin: 0;
     color: var(--fg-bright);
     font-family: var(--serif);
-    font-size: clamp(54px, 9.4vw, 136px);
+    font-size: clamp(52px, 7.6vw, 120px);
     font-weight: 400;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -370,6 +404,77 @@ html:has(body.page-home) { --topbar: 44px; background: var(--bg-darker); }
 .lock-hint-text { margin-right: auto; color: var(--muted-text); font-family: var(--mono); font-size: 11px; }
 .lock-hint a { display: inline-flex; align-items: center; min-height: 28px; color: var(--fg-light); font-size: 13px; text-decoration: none; }
 .lock-hint a:hover { color: var(--fg-bright); text-decoration: underline; }
+
+/* The wallpaper card: every palette, with the painting it was made for. */
+.lock-palette {
+    position: relative;
+    overflow: hidden;
+    padding: 12px 16px 16px;
+    border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg) 72%, transparent);
+    backdrop-filter: blur(16px) saturate(1.2);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+html:not(.js) .lock-palette { display: none; }
+.lock-palette .panel-head { margin-bottom: 12px; }
+.lock-palette-name { color: var(--fg-bright); font-weight: 500; }
+.lock-swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.lock-swatch {
+    position: relative;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--sw-bg) 0 50%, var(--sw-surface) 50% 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+/* The accent as a drop of ink in the corner of each palette. */
+.lock-swatch::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sw-accent);
+}
+.lock-swatch:hover { transform: translateY(-2px); }
+.lock-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.lock-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.lock-painting { margin: 12px 0 0; color: var(--muted-text); font-family: var(--serif); font-size: 12px; font-style: italic; line-height: 1.5; }
+/* While the palettes play by themselves: time until the next one. */
+.lock-timer { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent); opacity: 0; transform: scaleX(0); transform-origin: left; }
+.lock-palette.playing .lock-timer { opacity: 0.8; animation: timer var(--cycle, 6s) linear forwards; }
+@keyframes timer { to { transform: scaleX(1); } }
+
+.lock-scroll {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    margin: 0;
+    color: var(--fg-light);
+    font-family: var(--mono);
+    font-size: 11px;
+    opacity: calc(0.8 - 2 * var(--unlock, 0));
+    transform: translateX(-50%);
+}
+.lock-scroll::after { content: ""; display: block; width: 7px; height: 7px; margin: 8px auto 0; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+
+/* The lock screen fades in once the loader has torn open, like the shell's. */
+@media (prefers-reduced-motion: no-preference) {
+    html:not(.splash-on) .lock-main > *, html:not(.splash-on) .lock-palette { animation: lock-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+    html:not(.splash-on) .lock-main > :nth-child(2) { animation-delay: 0.08s; }
+    html:not(.splash-on) .lock-main > :nth-child(3) { animation-delay: 0.2s; }
+    html:not(.splash-on) .lock-main > :nth-child(n+4) { animation-delay: 0.28s; }
+    html:not(.splash-on) .lock-palette { animation-delay: 0.4s; }
+    html:not(.splash-on) .lock-scroll { animation: nudge 2.4s ease-in-out 1.6s infinite; }
+}
+@keyframes lock-in { from { opacity: 0; filter: blur(8px); transform: translateY(24px); } }
+@keyframes nudge { 50% { translate: 0 6px; } }
 
 /* -- Sheets and panels -------------------------------------------------- */
 
@@ -605,7 +710,7 @@ html:not(.js) .launcher-foot .hints { display: none; }
 
 /* -- 404: the lock screen with nothing on it ------------------------------ */
 
-.page-404 .lock { min-height: calc(100svh - var(--topbar) - 200px); }
+.page-404 .lock { grid-template-columns: minmax(0, 1fr); min-height: calc(100svh - var(--topbar) - 200px); }
 
 /* -- Code blocks ------------------------------------------------------ */
 
@@ -903,6 +1008,9 @@ pre { margin: 0; overflow-x: auto; color: var(--fg-light); font-size: 13px; line
 
 @media (max-width: 960px) {
     .bar-clock { display: none; }
+    .lock { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+    .lock-palette { max-width: 560px; }
+    .lock-scroll { display: none; }
     .panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .panel, .panel-half, .install-panels .panel { grid-column: auto; }
     .panel-wide { grid-column: 1 / -1; }
@@ -948,7 +1056,7 @@ pre { margin: 0; overflow-x: auto; color: var(--fg-light); font-size: 13px; line
     .topnav a:not([data-section="guide"]) { display: none; }
     .topnav { margin-left: 0; }
     .theme-button-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lock { padding-bottom: 64px; }
+    .lock { padding-bottom: 48px; }
     .lock-date { font-size: 15px; }
     .sheet { padding: 12px; border-radius: 14px; }
     .panels, .saver-grid { grid-template-columns: minmax(0, 1fr); }
