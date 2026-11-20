@@ -186,9 +186,14 @@ fn required_bool(params: &Value, name: &str) -> Result<bool> {
 }
 
 fn scan_wifi() -> Result<Value> {
+    // Wi-Fi kartya nelkul (pl. asztali gep Etherneten) a panel elrejti a
+    // Wi-Fi reszt; a radio ilyenkor is "enabled"-et jelez.
+    let available = run_nmcli(&["-t", "-f", "TYPE", "device"], None)
+        .map(|output| has_wifi_device(&output))
+        .unwrap_or(true);
     let radio = run_nmcli(&["-t", "-f", "WIFI", "general"], None)?;
     let enabled = radio.trim() == "enabled";
-    let networks = if enabled {
+    let networks = if enabled && available {
         let output = run_nmcli(
             &[
                 "-t",
@@ -208,7 +213,11 @@ fn scan_wifi() -> Result<Value> {
     } else {
         Vec::new()
     };
-    Ok(json!({ "wifiEnabled": enabled, "networks": networks }))
+    Ok(json!({ "wifiAvailable": available, "wifiEnabled": enabled, "networks": networks }))
+}
+
+fn has_wifi_device(output: &str) -> bool {
+    output.lines().any(|line| line.trim() == "wifi")
 }
 
 fn run_nmcli(args: &[&str], input: Option<&str>) -> Result<String> {
@@ -349,6 +358,13 @@ async fn read_state(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_wifi_hardware_from_device_types() {
+        assert!(has_wifi_device("ethernet\nwifi\nloopback\n"));
+        assert!(!has_wifi_device("ethernet\nloopback\n"));
+        assert!(!has_wifi_device("wifi-p2p\n"));
+    }
 
     #[test]
     fn parses_escaped_fields_and_keeps_the_strongest_access_point() {

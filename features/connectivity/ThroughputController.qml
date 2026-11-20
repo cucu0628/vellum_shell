@@ -12,6 +12,11 @@ Item {
     property string device: ""
     property real downRate: 0
     property real upRate: 0
+    // Az utolso `historyLength` masodperc mintai (B/s), a legujabb a vegen.
+    // A panel forgalomsavja ebbol rajzol.
+    readonly property int historyLength: 48
+    property var downHistory: []
+    property var upHistory: []
     property bool sampled: false
     property double lastRx: -1
     property double lastTx: -1
@@ -28,6 +33,14 @@ Item {
         downRate = 0
         upRate = 0
         sampled = false
+        downHistory = []
+        upHistory = []
+    }
+
+    function pushSample(list, value) {
+        var next = list.slice(Math.max(0, list.length - historyLength + 1))
+        next.push(value)
+        return next
     }
 
     function format(rate) {
@@ -63,6 +76,8 @@ Item {
                 downRate = Math.max(0, (rx - lastRx) / seconds)
                 upRate = Math.max(0, (tx - lastTx) / seconds)
                 sampled = true
+                downHistory = pushSample(downHistory, downRate)
+                upHistory = pushSample(upHistory, upRate)
             }
             lastRx = rx
             lastTx = tx

@@ -74,7 +74,7 @@ Item {
                 anchors.right: groupUnread.left
                 anchors.rightMargin: 6
                 anchors.verticalCenter: parent.verticalCenter
-                text: (group.groupData ? group.groupData.appName : "") + "  ·  " + group.entries.length
+                text: (group.groupData ? group.groupData.appName : "") + " (" + group.entries.length + ")"
                 color: group.panelFg
                 font.pixelSize: 11
                 font.weight: Font.Medium

@@ -10,6 +10,8 @@ Item {
     property var statusController: null
     property bool active: false
     property bool wifiEnabled: true
+    // Van-e Wi-Fi kartya. A regebbi daemon nem kuldi: akkor marad true.
+    property bool wifiAvailable: true
     property bool scanning: false
     property bool radioBusy: false
     property bool connecting: false
@@ -39,6 +41,7 @@ Item {
                 errorMessage = errorText(error, "Could not scan Wi-Fi networks");
                 return;
             }
+            wifiAvailable = result.wifiAvailable !== false;
             wifiEnabled = result.wifiEnabled === true;
             networks = result.networks || [];
             errorMessage = "";

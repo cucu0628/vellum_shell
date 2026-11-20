@@ -66,13 +66,7 @@ PanelWindow {
         return text === "" ? "" : text.charAt(0).toUpperCase() + text.slice(1)
     }
 
-    // DashPanel: fejlec es margok (50) + limitenkent 50, koztuk 12.
-    function providerHeight(provider) {
-        var count = Math.min(2, (provider.limits || []).length)
-        return 50 + (count > 0 ? count * 50 + (count - 1) * 12 : 32)
-    }
-
-    readonly property real panelContentHeight: 126 + providerHeight(claude) + providerHeight(codex)
+    readonly property real panelContentHeight: panelColumn.implicitHeight + 32
 
     onOpenedChanged: if (opened) refresh(false)
     visible: opened || sheet.reveal > 0
@@ -111,15 +105,18 @@ PanelWindow {
             MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
 
             Column {
-                anchors.fill: parent
+                id: panelColumn
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 anchors.margins: 16
-                spacing: 12
 
                 SharedUi.PopupHeader {
                     width: parent.width
                     theme: aiWindow.theme
                     title: "AI Allowances"
-                    subtitle: refreshing ? "Updating provider limits…" : "Subscription windows and reset times"
+                    subtitle: refreshing ? "Updating provider limits…" : ""
                     trailingWidth: 76
 
                     SharedUi.HeaderChip {
@@ -133,175 +130,214 @@ PanelWindow {
                     }
                 }
 
+                Item {
+                    width: 1
+                    height: 8
+                }
+
+                // Szolgaltatonkent egy szakasz kartya nelkul: a nev es a csomag
+                // egy sorban, alatta a ket limit merceje; koztuk hajszalvonal.
                 Repeater {
                     model: 2
-                    delegate: SharedUi.DashPanel {
+                    delegate: Column {
                         id: providerCard
 
                         required property int index
                         readonly property var provider: index === 0 ? aiWindow.claude : aiWindow.codex
                         width: parent.width
-                        height: aiWindow.providerHeight(provider)
-                        theme: aiWindow.theme
-                        title: providerCard.provider.name.toUpperCase()
-                        trailing: aiWindow.planText(providerCard.provider.plan)
+                        spacing: 12
+                        topPadding: index > 0 ? 12 : 0
 
-                        Column {
+                        SharedUi.GroupDivider {
                             width: parent.width
-                            spacing: 12
+                            height: 1
+                            visible: providerCard.index > 0
+                            theme: aiWindow.theme
+                        }
 
-                            Repeater {
-                                model: (providerCard.provider.limits || []).slice(0, 2)
-                                delegate: Column {
-                                    id: usageRow
+                        Item {
+                            width: parent.width
+                            height: 20
 
-                                    required property var modelData
-                                    property real displayedRemaining: 0
-                                    property bool initialized: false
-                                    readonly property int segmentCount: 18
-                                    readonly property real targetRemaining: Math.max(0, Math.min(1, Number(modelData.remaining) || 0))
-                                    width: parent.width
-                                    height: 50
-                                    spacing: 4
-
-                                    Component.onCompleted: {
-                                        initialized = true
-                                        fillAnimation.restart()
-                                    }
-                                    onTargetRemainingChanged: {
-                                        if (initialized)
-                                            fillAnimation.restart()
-                                    }
-
-                                    SequentialAnimation {
-                                        id: fillAnimation
-
-                                        PauseAnimation { duration: 100 }
-                                        NumberAnimation {
-                                            target: usageRow
-                                            property: "displayedRemaining"
-                                            from: 0
-                                            to: usageRow.targetRemaining
-                                            duration: 720
-                                            easing.type: Easing.OutCubic
-                                        }
-                                    }
-
-                                    Item {
-                                        width: parent.width
-                                        height: 20
-
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: remainingRow.left
-                                            anchors.rightMargin: 12
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: usageRow.modelData.label || "Limit"
-                                            textFormat: Text.PlainText
-                                            color: panelFg
-                                            font.pixelSize: 12
-                                            elide: Text.ElideRight
-                                        }
-
-                                        Row {
-                                            id: remainingRow
-
-                                            anchors.right: parent.right
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            spacing: 4
-
-                                            Text {
-                                                anchors.baseline: leftLabel.baseline
-                                                text: percent(usageRow.modelData.remaining) + "%"
-                                                color: panelFg
-                                                font.family: "serif"
-                                                font.pixelSize: 16
-                                                font.weight: Font.Medium
-                                                font.features: { "tnum": 1 }
-                                            }
-
-                                            Text {
-                                                id: leftLabel
-
-                                                anchors.verticalCenter: parent.verticalCenter
-                                                text: "left"
-                                                color: mutedFg
-                                                font.pixelSize: 10
-                                            }
-                                        }
-                                    }
-
-                                    Row {
-                                        id: usageRuler
-
-                                        width: parent.width
-                                        height: 8
-                                        spacing: 3
-
-                                        Repeater {
-                                            model: usageRow.segmentCount
-
-                                            Rectangle {
-                                                required property int index
-
-                                                width: (usageRuler.width - usageRuler.spacing * (usageRow.segmentCount - 1)) / usageRow.segmentCount
-                                                height: index % 6 === 5 ? 8 : 6
-                                                radius: 1.5
-                                                anchors.bottom: parent.bottom
-                                                color: panelAccent
-                                                opacity: usageRow.displayedRemaining * usageRow.segmentCount >= index + 1 ? 0.92 : 0.14
-
-                                                Behavior on opacity {
-                                                    NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Item {
-                                        width: parent.width
-                                        height: 14
-
-                                        Text {
-                                            id: usedText
-
-                                            anchors.left: parent.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "Used " + percent(usageRow.modelData.used) + "%"
-                                            color: mutedFg
-                                            font.pixelSize: 10
-                                        }
-
-                                        Text {
-                                            anchors.left: usedText.right
-                                            anchors.leftMargin: 12
-                                            anchors.right: parent.right
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: resetText(usageRow.modelData.resetsAt)
-                                            color: mutedFg
-                                            horizontalAlignment: Text.AlignRight
-                                            font.pixelSize: 10
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-                                }
+                            Text {
+                                anchors.left: parent.left
+                                anchors.right: planText.left
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: providerCard.provider.name
+                                textFormat: Text.PlainText
+                                color: panelFg
+                                font.pixelSize: 13
+                                font.weight: Font.Medium
+                                elide: Text.ElideRight
                             }
 
                             Text {
-                                width: parent.width
-                                height: 32
-                                visible: !providerCard.provider.limits || providerCard.provider.limits.length === 0
-                                text: providerCard.provider.status || "No limit data returned"
+                                id: planText
+
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: aiWindow.planText(providerCard.provider.plan)
                                 textFormat: Text.PlainText
                                 color: mutedFg
-                                verticalAlignment: Text.AlignVCenter
                                 font.pixelSize: 11
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: 2
-                                elide: Text.ElideRight
                             }
                         }
+
+                        Repeater {
+                            model: (providerCard.provider.limits || []).slice(0, 2)
+                            delegate: Column {
+                                id: usageRow
+
+                                required property var modelData
+                                property real displayedRemaining: 0
+                                property bool initialized: false
+                                readonly property int segmentCount: 18
+                                readonly property real targetRemaining: Math.max(0, Math.min(1, Number(modelData.remaining) || 0))
+                                width: parent.width
+                                height: 50
+                                spacing: 4
+
+                                Component.onCompleted: {
+                                    initialized = true
+                                    fillAnimation.restart()
+                                }
+                                onTargetRemainingChanged: {
+                                    if (initialized)
+                                        fillAnimation.restart()
+                                }
+
+                                SequentialAnimation {
+                                    id: fillAnimation
+
+                                    PauseAnimation { duration: 100 }
+                                    NumberAnimation {
+                                        target: usageRow
+                                        property: "displayedRemaining"
+                                        from: 0
+                                        to: usageRow.targetRemaining
+                                        duration: 720
+                                        easing.type: Easing.OutCubic
+                                    }
+                                }
+
+                                Item {
+                                    width: parent.width
+                                    height: 20
+
+                                    Text {
+                                        anchors.left: parent.left
+                                        anchors.right: remainingRow.left
+                                        anchors.rightMargin: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: usageRow.modelData.label || "Limit"
+                                        textFormat: Text.PlainText
+                                        color: panelFg
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Row {
+                                        id: remainingRow
+
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 4
+
+                                        Text {
+                                            anchors.baseline: leftLabel.baseline
+                                            text: percent(usageRow.modelData.remaining) + "%"
+                                            color: panelFg
+                                            font.family: "serif"
+                                            font.pixelSize: 16
+                                            font.weight: Font.Medium
+                                            font.features: { "tnum": 1 }
+                                        }
+
+                                        Text {
+                                            id: leftLabel
+
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: "left"
+                                            color: mutedFg
+                                            font.pixelSize: 10
+                                        }
+                                    }
+                                }
+
+                                Row {
+                                    id: usageRuler
+
+                                    width: parent.width
+                                    height: 8
+                                    spacing: 3
+
+                                    Repeater {
+                                        model: usageRow.segmentCount
+
+                                        Rectangle {
+                                            required property int index
+
+                                            width: (usageRuler.width - usageRuler.spacing * (usageRow.segmentCount - 1)) / usageRow.segmentCount
+                                            height: index % 6 === 5 ? 8 : 6
+                                            radius: 1.5
+                                            anchors.bottom: parent.bottom
+                                            color: panelAccent
+                                            opacity: usageRow.displayedRemaining * usageRow.segmentCount >= index + 1 ? 0.92 : 0.14
+
+                                            Behavior on opacity {
+                                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Item {
+                                    width: parent.width
+                                    height: 14
+
+                                    Text {
+                                        id: usedText
+
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Used " + percent(usageRow.modelData.used) + "%"
+                                        color: mutedFg
+                                        font.pixelSize: 10
+                                    }
+
+                                    Text {
+                                        anchors.left: usedText.right
+                                        anchors.leftMargin: 12
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: resetText(usageRow.modelData.resetsAt)
+                                        color: mutedFg
+                                        horizontalAlignment: Text.AlignRight
+                                        font.pixelSize: 10
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: parent.width
+                            visible: !providerCard.provider.limits || providerCard.provider.limits.length === 0
+                            text: providerCard.provider.status || "No limit data returned"
+                            textFormat: Text.PlainText
+                            color: mutedFg
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
                     }
+                }
+
+                SharedUi.GroupDivider {
+                    width: parent.width
+                    theme: aiWindow.theme
                 }
 
                 Text {
@@ -309,7 +345,6 @@ PanelWindow {
                     height: 14
                     text: "Values are reported by Anthropic and the Codex app server."
                     color: mutedFg
-                    horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: 10
                     elide: Text.ElideRight
                 }

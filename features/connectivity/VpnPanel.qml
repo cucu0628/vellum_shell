@@ -28,9 +28,12 @@ Item {
     readonly property bool planKnown: controller ? controller.planKnown : false
     readonly property string errorMessage: controller ? controller.errorMessage : ""
     readonly property var countries: controller ? controller.countries : []
-    // Allapotkartya, fo gomb, szakaszcim es a kill switch sor (212) + a lista
-    // vagy a tajekoztato szoveg.
-    readonly property int preferredHeight: 212 + (locationSelection ? 240 : 68)
+    // Allapotsor (44); CLI-vel a fo gomb (8 + 36), ket elvalaszto (2 x 25),
+    // a kill switch sor (32), kozottuk az orszaglista (36 + 240) vagy a
+    // tajekoztato mondat (36), alul a hibasor.
+    readonly property int preferredHeight: !cliAvailable
+        ? 44
+        : 44 + 44 + 50 + 32 + (locationSelection ? 276 : 36) + (errorMessage !== "" ? 18 : 0)
     readonly property var visibleCountries: {
         if (countryFilter === "")
             return countries;
@@ -91,24 +94,23 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: 12
 
-        SharedUi.StatusCard {
+        SharedUi.StatusRow {
             width: parent.width
             theme: vpnPanel.theme
             active: connected
             glyph: connected ? "󰦝" : "󰦜"
             title: !cliAvailable
-                ? "protonvpn CLI not found"
+                ? "Proton VPN CLI not installed"
                 : (busy
                     ? (action === "connect" ? "Connecting…" : "Disconnecting…")
-                    : (connected ? (location !== "" ? location : server) : "Traffic is not tunnelled"))
+                    : (connected ? (location !== "" ? location : server) : "Not connected"))
             subtitle: {
                 if (!cliAvailable)
-                    return "Install proton-vpn-cli to control the VPN here";
+                    return "Install proton-vpn-cli to connect from here";
 
                 if (!connected)
-                    return "Quick connect picks the fastest server";
+                    return busy ? "" : "Traffic leaves without a tunnel";
 
                 var parts = [];
                 // The title already shows the server name
@@ -120,157 +122,163 @@ Item {
                     parts.push(protocol);
 
                 if (load !== "")
-                    parts.push("Load " + load);
+                    parts.push("load " + load);
 
                 if (publicIp !== "")
                     parts.push(publicIp);
 
                 if (parts.length > 0)
-                    return parts.join("  ·  ");
+                    return parts.join(", ");
 
                 // The CLI reports nothing about tunnels the
                 // Proton app brought up on its own.
-                return checking ? "Reading server details…" : "Connected outside the CLI  ·  no details";
+                return checking ? "Reading server details…" : "Connected outside the CLI, no details";
             }
+        }
+
+        Item {
+            width: 1
+            height: 8
+            visible: cliAvailable
         }
 
         // Csatlakozas kiemelt (akcentes) gomb, bontas csendes, telt gomb.
         SharedUi.HeaderChip {
             width: parent.width
             height: 36
+            visible: cliAvailable
             theme: vpnPanel.theme
             emphasized: !connected
             filled: connected
-            enabled: cliAvailable && !busy
+            enabled: !busy
             label: busy
                 ? (action === "connect" ? "Connecting…" : "Disconnecting…")
                 : (connected ? "Disconnect" : "Quick connect")
             onClicked: primaryAction()
         }
 
-        SharedUi.SectionBar {
+        SharedUi.GroupDivider {
             width: parent.width
+            visible: cliAvailable
             theme: vpnPanel.theme
-            title: locationSelection ? "COUNTRIES" : "SERVER"
-            detail: locationSelection ? String(countries.length) : (checking ? "Updating…" : "")
+        }
 
-            SharedUi.HeaderChip {
-                theme: vpnPanel.theme
-                label: "Refresh"
-                accessibleName: qsTr("Refresh VPN status")
-                onClicked: refresh()
+        // Ingyenes csomagnal nincs orszagvalasztas: egy mondat mondja el, miert.
+        Text {
+            width: parent.width
+            height: 36
+            visible: cliAvailable && !locationSelection
+            verticalAlignment: Text.AlignVCenter
+            text: planKnown
+                ? "The free plan connects to the fastest free server. Choosing a country needs VPN Plus."
+                : "Reading plan details…"
+            color: mutedFg
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
+        }
+
+        Column {
+            width: parent.width
+            height: 276
+            visible: cliAvailable && locationSelection
+            spacing: 8
+
+            SharedUi.SearchField {
+                id: filterInput
+
+                width: parent.width
+                height: 36
+                inputVerticalPadding: 8
+                placeholder: qsTr("Search %1 countries").arg(countries.length)
+                foreground: panelFg
+                accent: panelAccent
+                muted: mutedFg
+                surface: inkBg
+                onTextEdited: (text) => vpnPanel.countryFilter = text
+                onKeyPressed: (event) => {
+                    if (event.key === Qt.Key_Escape && filterInput.text !== "") {
+                        filterInput.text = "";
+                        event.accepted = true;
+                    }
+                }
             }
 
-            SharedUi.HeaderChip {
-                theme: vpnPanel.theme
-                label: "Open app"
-                accessibleName: qsTr("Open the Proton VPN app")
-                onClicked: openProtonApp()
+            Flickable {
+                width: parent.width
+                height: parent.height - 44
+                contentHeight: countryColumn.height
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                Column {
+                    id: countryColumn
+
+                    width: parent.width
+                    spacing: 2
+
+                    Repeater {
+                        model: visibleCountries
+
+                        SharedUi.ListRow {
+                            required property var modelData
+
+                            width: countryColumn.width
+                            height: 44
+                            theme: vpnPanel.theme
+                            glyph: modelData.code
+                            glyphFamily: "monospace"
+                            glyphSize: 10
+                            title: modelData.name
+                            trailing: "Connect"
+                            enabled: !vpnPanel.busy
+                            accessibleName: qsTr("Connect to %1").arg(modelData.name)
+                            onClicked: vpnPanel.controller.connectCountry(modelData.code)
+                        }
+
+                    }
+
+                }
+
             }
 
         }
 
-        Item {
+        SharedUi.GroupDivider {
             width: parent.width
-            height: parent.height - 212 - (errorLine.visible ? 26 : 0)
-
-            Text {
-                anchors.centerIn: parent
-                width: parent.width - 32
-                visible: !locationSelection
-                text: !cliAvailable
-                    ? "The protonvpn command is missing. Install the proton-vpn-cli package to connect from here."
-                    : (planKnown
-                        ? "Free plan: Proton picks the fastest free server automatically. Location selection needs VPN Plus."
-                        : "Reading plan details…")
-                color: mutedFg
-                font.pixelSize: 12
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
-
-            Column {
-                anchors.fill: parent
-                visible: locationSelection
-                spacing: 8
-
-                SharedUi.SearchField {
-                    id: filterInput
-
-                    width: parent.width
-                    height: 36
-                    inputVerticalPadding: 8
-                    placeholder: "Search country"
-                    foreground: panelFg
-                    accent: panelAccent
-                    muted: mutedFg
-                    surface: inkBg
-                    onTextEdited: (text) => vpnPanel.countryFilter = text
-                    onKeyPressed: (event) => {
-                        if (event.key === Qt.Key_Escape && filterInput.text !== "") {
-                            filterInput.text = "";
-                            event.accepted = true;
-                        }
-                    }
-                }
-
-                Flickable {
-                    width: parent.width
-                    height: parent.height - 44
-                    contentHeight: countryColumn.height
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    Column {
-                        id: countryColumn
-
-                        width: parent.width
-                        spacing: 2
-
-                        Repeater {
-                            model: visibleCountries
-
-                            SharedUi.ListRow {
-                                required property var modelData
-
-                                width: countryColumn.width
-                                height: 44
-                                theme: vpnPanel.theme
-                                glyph: modelData.code
-                                glyphFamily: "monospace"
-                                glyphSize: 10
-                                title: modelData.name
-                                trailing: "Connect"
-                                enabled: !vpnPanel.busy
-                                accessibleName: qsTr("Connect to %1").arg(modelData.name)
-                                onClicked: vpnPanel.controller.connectCountry(modelData.code)
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-
+            visible: cliAvailable
+            theme: vpnPanel.theme
         }
 
         // `protonvpn config set` is broken in the CLI (it always reports an
         // unexpected error), so this only reports the value the CLI hands back.
         Item {
             width: parent.width
-            height: 28
+            height: 32
+            visible: cliAvailable
 
-            Text {
+            Column {
                 anchors.left: parent.left
                 anchors.right: killSwitchValue.left
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Kill switch  ·  change it in the Proton app"
-                color: mutedFg
-                font.pixelSize: 10
-                elide: Text.ElideRight
+                spacing: 2
+
+                Text {
+                    text: "Kill switch"
+                    color: panelFg
+                    font.pixelSize: 12
+                }
+
+                Text {
+                    width: parent.width
+                    text: "Change it in the Proton app"
+                    color: mutedFg
+                    font.pixelSize: 10
+                    elide: Text.ElideRight
+                }
+
             }
 
             Text {
@@ -280,7 +288,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: killSwitch === "" ? "…" : (killSwitch === "off" ? "Off" : killSwitch.charAt(0).toUpperCase() + killSwitch.slice(1))
                 color: killSwitchOn ? panelAccent : mutedFg
-                font.pixelSize: 11
+                font.pixelSize: 12
                 font.weight: killSwitchOn ? Font.Medium : Font.Normal
             }
 
@@ -290,8 +298,9 @@ Item {
             id: errorLine
 
             width: parent.width
-            height: 14
-            visible: errorMessage !== ""
+            height: 18
+            visible: cliAvailable && errorMessage !== ""
+            verticalAlignment: Text.AlignBottom
             text: errorMessage
             textFormat: Text.PlainText
             color: panelAccent

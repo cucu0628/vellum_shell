@@ -361,7 +361,9 @@ PanelWindow {
                         width: parent.width
                         visible: audioWindow.currentInput !== null
 
-                        Divider {
+                        SharedUi.GroupDivider {
+                            width: parent.width
+                            theme: audioWindow.theme
                         }
 
                         AudioUi.DeviceRow {
@@ -393,7 +395,9 @@ PanelWindow {
                         width: parent.width
                         visible: audioWindow.playbackStreams.length > 0
 
-                        Divider {
+                        SharedUi.GroupDivider {
+                            width: parent.width
+                            theme: audioWindow.theme
                         }
 
                         // ScriptModel: a PipeWire-csomopontok azonossag szerint
@@ -426,20 +430,6 @@ PanelWindow {
                 easing.type: Easing.OutCubic
             }
 
-        }
-
-    }
-
-    // A csoportok kozti hajszalvonal, 12 px levegovel mindket oldalan.
-    component Divider: Item {
-        width: parent ? parent.width : 0
-        height: 25
-
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width
-            height: 1
-            color: Qt.rgba(audioWindow.panelFg.r, audioWindow.panelFg.g, audioWindow.panelFg.b, 0.08)
         }
 
     }
