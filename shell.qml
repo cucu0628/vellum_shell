@@ -190,7 +190,10 @@ ShellRoot {
 
     Core.CavaController {
         id: cavaController
-        active: shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing
+        // A hangpanel fo csuszkaja is a spektrumot mutatja: amig nyitva van,
+        // akkor is fut, ha nem az aktiv MPRIS-lejatszo szol (pl. egy bongeszo).
+        active: (shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing)
+            || audioPopup.opened
     }
 
     Component.onCompleted: {
@@ -398,6 +401,7 @@ ShellRoot {
             AudioFeature.AudioPopup {
                 theme: shellRoot.shellTheme
                 barHeight: shellRoot.barHeight
+                cavaSpectrum: cavaController.spectrum
                 screen: audioPopup.screen
                 onAdvancedRequested: popupCoordinator.openSettingsPage("sound")
             }

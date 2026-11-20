@@ -1,62 +1,84 @@
 import "." as AudioUi
 import QtQuick
+import Quickshell.Widgets
 import "../../ui" as SharedUi
 
-// Egy alkalmazas hangja, ugyanabban a sorformaban, mint a tobbi panel listai:
-// csempe (kattintasra nemit), nev es mit jatszik, jobbra a sajat csuszka.
-// Felvetelnel csak azt mutatja, ki hasznalja a mikrofont.
-Rectangle {
+// Egy lejatszo alkalmazas hangja: balra az alkalmazas sajat ikonja (kattintasra
+// nemit, mint a panel minden csempeje), mellette a neve es hogy mit jatszik,
+// jobbra a sajat csuszka. Ikon nelkul a nev kezdobetuje all a csempen.
+Item {
     id: streamRow
 
     property var controller: null
     property var node: null
-    property bool input: false
 
-    readonly property bool muted: node && node.audio && node.audio.muted
     readonly property var theme: controller ? controller.theme : null
-    readonly property string fg: controller ? controller.panelFg : "#f1e7d0"
-    readonly property string mutedColor: controller ? controller.mutedFg : "#9f8f7c"
-    readonly property string accent: controller ? controller.panelAccent : "#d7472f"
+    readonly property bool muted: node && node.audio && node.audio.muted
+    readonly property color fg: controller ? controller.panelFg : "#e8ddc7"
+    readonly property color mutedColor: controller ? controller.mutedFg : "#958b7a"
     readonly property string title: controller ? controller.nodeTitle(node) : ""
-    readonly property string detail: input
-        ? qsTr("Recording")
-        : (controller ? controller.nodeSubtitle(node) : "")
+    readonly property string detail: controller ? controller.nodeSubtitle(node) : ""
+    readonly property string iconSource: controller ? controller.streamIcon(node) : ""
 
-    height: 52
-    radius: 8
-    color: streamHover.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
-    Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
+    implicitHeight: 44
 
     MouseArea {
-        id: streamHover
-
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
-        hoverEnabled: true
         onWheel: (wheel) => {
-            if (streamRow.controller && !streamRow.input) streamRow.controller.wheelVolume(streamRow.node, wheel)
+            if (streamRow.controller) streamRow.controller.wheelVolume(streamRow.node, wheel)
         }
     }
 
     Rectangle {
         id: tile
 
-        x: 10
         anchors.verticalCenter: parent.verticalCenter
         width: 32
         height: 32
         radius: 8
-        color: iconMouse.containsMouse ? Qt.lighter(controller ? controller.inkBg : "#1b1613", 1.25) : (controller ? controller.inkBg : "#1b1613")
+        color: iconMouse.containsMouse
+            ? Qt.lighter(controller ? controller.inkBg : "#191b16", 1.25)
+            : (streamRow.iconSource !== "" ? "transparent" : (controller ? controller.inkBg : "#191b16"))
         Behavior on color { ColorAnimation { duration: 110 } }
+
+        IconImage {
+            anchors.centerIn: parent
+            implicitSize: 24
+            visible: streamRow.iconSource !== ""
+            source: streamRow.iconSource
+            asynchronous: true
+            opacity: streamRow.muted ? 0.35 : 1
+            Behavior on opacity { NumberAnimation { duration: 140 } }
+        }
 
         Text {
             anchors.centerIn: parent
-            text: streamRow.input
-                ? (streamRow.muted ? "󰍭" : "󰍬")
-                : (streamRow.muted ? "󰖁" : "󰕾")
+            visible: streamRow.iconSource === ""
+            text: streamRow.title !== "" ? streamRow.title.charAt(0).toUpperCase() : "?"
             color: streamRow.muted ? streamRow.mutedColor : streamRow.fg
-            font.family: "Symbols Nerd Font Mono"
-            font.pixelSize: 16
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+        }
+
+        // Nemitott alkalmazasnal az ikon sarkan egy kis athuzott hangszoro.
+        Rectangle {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: -2
+            width: 16
+            height: 16
+            radius: 8
+            visible: streamRow.muted
+            color: controller ? controller.panelBg : "#11130f"
+
+            Text {
+                anchors.centerIn: parent
+                text: "󰖁"
+                color: streamRow.mutedColor
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: 11
+            }
         }
 
         SharedUi.Pressable {
@@ -75,15 +97,16 @@ Rectangle {
 
         anchors.left: tile.right
         anchors.leftMargin: 12
+        anchors.right: slider.left
+        anchors.rightMargin: 16
         anchors.verticalCenter: parent.verticalCenter
-        width: streamRow.input ? parent.width - x - 12 : Math.min(150, (parent.width - x) * 0.4)
         spacing: 2
 
         Text {
             width: parent.width
             text: streamRow.title
             textFormat: Text.PlainText
-            color: streamRow.fg
+            color: streamRow.muted ? streamRow.mutedColor : streamRow.fg
             font.pixelSize: 13
             elide: Text.ElideRight
         }
@@ -92,34 +115,33 @@ Rectangle {
             width: parent.width
             text: streamRow.detail
             textFormat: Text.PlainText
-            color: streamRow.input ? streamRow.accent : streamRow.mutedColor
+            color: streamRow.mutedColor
             font.pixelSize: 10
             elide: Text.ElideRight
-            visible: text !== "" && text !== streamRow.title
+            visible: text !== "" && text.toLowerCase() !== streamRow.title.toLowerCase()
         }
     }
 
     AudioUi.VolumeBar {
-        anchors.left: label.right
-        anchors.leftMargin: 16
+        id: slider
+
         anchors.right: percentText.left
         anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        visible: !streamRow.input
+        width: 88
         controller: streamRow.controller
         node: streamRow.node
+        accessibleName: qsTr("%1 volume").arg(streamRow.title)
     }
 
     Text {
         id: percentText
 
         anchors.right: parent.right
-        anchors.rightMargin: 12
         anchors.verticalCenter: parent.verticalCenter
-        width: 36
+        width: 32
         horizontalAlignment: Text.AlignRight
-        visible: !streamRow.input
-        text: (streamRow.controller ? streamRow.controller.percent(streamRow.node) : 0) + "%"
+        text: streamRow.muted ? qsTr("Off") : (streamRow.controller ? streamRow.controller.percent(streamRow.node) : 0) + "%"
         color: streamRow.mutedColor
         font.pixelSize: 11
         font.features: { "tnum": 1 }
