@@ -194,7 +194,9 @@ PanelWindow {
                         muted: clipboardWindow.mutedFg
                         surface: clipboardWindow.inkBg
                         opened: clipboardWindow.opened
-                        placeholder: "Search clipboard..."
+                        prominent: true
+                        indicator: "󰍉"
+                        placeholder: "Search clipboard"
                         onTextEdited: (text) => {
                             return clipboardWindow.query = text;
                         }
@@ -220,8 +222,8 @@ PanelWindow {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: mutedFg
-                    opacity: 0.14
+                    color: panelFg
+                    opacity: 0.08
                 }
 
                 // A lista kitolti, ami a fejresz es a labsor kozott marad.
@@ -254,21 +256,16 @@ PanelWindow {
 
                         delegate: ClipboardUi.ClipboardResultRow {
                             width: resultsList.width - (resultsList.interactive ? 8 : 0)
+                            theme: clipboardWindow.theme
                             entry: modelData
                             controller: clipboardController
                             resultIndex: index
                             selected: index === selectedIndex
-                            panelBg: clipboardWindow.panelBg
-                            panelFg: clipboardWindow.panelFg
-                            panelAccent: clipboardWindow.panelAccent
-                            mutedFg: clipboardWindow.mutedFg
-                            inkBg: clipboardWindow.inkBg
-                            onHovered: (rowIndex) => {
-                                if (!suppressHoverSelection)
-                                    selectedIndex = rowIndex;
-
+                            hoverSelectionEnabled: !suppressHoverSelection
+                            onHoverRequested: (rowIndex) => {
+                                selectedIndex = rowIndex;
                             }
-                            onActivated: (rowIndex) => {
+                            onActivationRequested: (rowIndex) => {
                                 suppressHoverSelection = false;
                                 selectedIndex = rowIndex;
                                 activateSelected();

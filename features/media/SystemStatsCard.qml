@@ -62,8 +62,7 @@ SharedUi.DashPanel {
                 anchors.verticalCenter: parent.verticalCenter
                 text: meter.label
                 color: card.muted
-                font.pixelSize: 10
-                font.letterSpacing: 1
+                font.pixelSize: 11
             }
 
             Text {
@@ -91,7 +90,7 @@ SharedUi.DashPanel {
         }
     }
 
-    title: "SYSTEM"
+    title: qsTr("System")
     trailing: uptimeText(uptimeSeconds)
 
     Column {
@@ -100,35 +99,51 @@ SharedUi.DashPanel {
         anchors.top: parent.top
         spacing: 14
 
-        Column {
+        // A CPU az utolso percre, ugyanabban a lekerekitett savban, mint a
+        // halozati forgalom: bal felul a mostani ertek, jobb felul a skala
+        // teteje. A skala legalabb 25%-ig er, kulonben egy ures gepen a zaj is
+        // csucsnak latszana.
+        Rectangle {
             width: parent.width
-            spacing: 6
+            // A sav tolti ki, ami a ket csik utan marad: igy nincs ures resz a
+            // szekcio aljan. (2 x 14: terkoz, 2 x 24: csikok.)
+            height: Math.max(56, card.bodyHeight - 28 - 48)
+            radius: 8
+            color: card.surface
 
-            Item {
-                width: parent.width
-                height: 14
+            Row {
+                x: 10
+                y: 8
+                spacing: 6
 
                 Text {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.baseline: cpuValue.baseline
                     text: "CPU"
                     color: card.muted
-                    font.pixelSize: 10
-                    font.letterSpacing: 1
+                    font.pixelSize: 11
                 }
 
                 Text {
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
+                    id: cpuValue
+
                     text: card.cpuUsage + "%"
                     color: card.cpuUsage >= card.warnAt ? card.warning : card.foreground
-                    font.pixelSize: 11
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
                     font.features: { "tnum": 1 }
                 }
             }
 
-            // Az utolso perc. A skala legalabb 25%-ig er, kulonben egy ures
-            // gepen a zaj is csucsnak latszana; a felso ertek a sarokban all.
+            Text {
+                anchors.right: parent.right
+                anchors.rightMargin: 10
+                y: 10
+                text: qsTr("max %1%").arg(chart.ceiling)
+                color: card.muted
+                font.pixelSize: 9
+                font.features: { "tnum": 1 }
+            }
+
             Item {
                 id: chart
 
@@ -138,27 +153,13 @@ SharedUi.DashPanel {
                     return Math.min(100, Math.max(25, Math.ceil(peak / 25) * 25))
                 }
 
-                width: parent.width
-                // A grafikon tolti ki, ami a ket csik utan marad: igy nincs ures
-                // resz a kartya aljan. (14 + 6: CPU-sor, 2 x 14: terkoz, 2 x 24: csikok.)
-                height: Math.max(48, card.bodyHeight - 20 - 28 - 48)
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.07)
-                }
-
-                Text {
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    text: chart.ceiling + "%"
-                    color: card.muted
-                    font.pixelSize: 9
-                    opacity: 0.8
-                }
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
+                anchors.bottomMargin: 4
+                height: parent.height - 32
 
                 Canvas {
                     id: sparkline
@@ -211,14 +212,14 @@ SharedUi.DashPanel {
 
         Meter {
             width: parent.width
-            label: "RAM"
+            label: qsTr("Memory")
             percent: card.ramUsage
             valueText: card.amount(card.ramUsedGib, card.ramTotalGib, card.ramUsage)
         }
 
         Meter {
             width: parent.width
-            label: "DISK"
+            label: qsTr("Disk")
             percent: card.diskUsage
             valueText: card.amount(card.diskUsedGib, card.diskTotalGib, card.diskUsage)
         }

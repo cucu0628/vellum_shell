@@ -19,24 +19,34 @@ PanelWindow {
     readonly property string panelAccent: theme ? theme.accent : "#b7372f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#191b16"
-    readonly property string errorColor: "#d7472f"
-    readonly property color lineBg: Qt.rgba(1, 1, 1, 0.055)
-    readonly property color frameColor: failed ? errorColor : panelAccent
+    readonly property string warningFg: theme && theme.warning ? theme.warning : "#c9693f"
+    // A Wi-Fi jelszokero parja: alapbol halvany perem, hibanal figyelmezteto.
+    readonly property color frameColor: failed ? warningFg : Qt.rgba(1, 1, 1, 0.08)
+    // A polkit sajat kerdese ("Password: "), mondatszeruen, kettospont nelkul.
+    readonly property string promptText: {
+        var prompt = flow && flow.inputPrompt ? flow.inputPrompt.trim().replace(/:$/, "") : ""
+        return prompt !== "" ? prompt : qsTr("Password")
+    }
 
     function focusInput() {
-        if (opened && flow && flow.isResponseRequired) responseInput.forceActiveFocus()
+        if (opened && flow && flow.isResponseRequired) responseInput.forceInputFocus()
+    }
+
+    function clearResponse() {
+        response = ""
+        responseInput.text = ""
     }
 
     function submit() {
         if (!flow || !flow.isResponseRequired || response === "") return
         var value = response
-        response = ""
+        clearResponse()
         flow.submit(value)
     }
 
     function cancel() {
         if (flow) flow.cancelAuthenticationRequest()
-        response = ""
+        clearResponse()
     }
 
     visible: opened
@@ -51,7 +61,7 @@ PanelWindow {
         id: agent
 
         onAuthenticationRequestStarted: {
-            window.response = ""
+            window.clearResponse()
             if (window.screenProvider) window.screen = window.screenProvider()
             focusTimer.restart()
         }
@@ -63,7 +73,8 @@ PanelWindow {
         ignoreUnknownSignals: true
 
         function onAuthenticationFailed() {
-            window.response = ""
+            window.clearResponse()
+            shakeAnimation.restart()
             focusTimer.restart()
         }
 
@@ -74,7 +85,7 @@ PanelWindow {
 
     onOpenedChanged: {
         if (opened) focusTimer.restart()
-        else response = ""
+        else clearResponse()
     }
 
     Timer {
@@ -97,15 +108,26 @@ PanelWindow {
 
     Item {
         id: content
+
         anchors.centerIn: parent
-        width: Math.min(560, window.width - 36)
-        height: Math.min(body.implicitHeight + 32, window.height - 36)
+        width: Math.min(440, window.width - 32)
+        height: Math.min(body.implicitHeight + 32, window.height - 32)
         focus: window.opened
+        // Rossz jelszonal a lap megrazza magat, mint a zarolo kepernyo mezoje.
+        transform: Translate { id: shake; x: 0 }
 
         Keys.onEscapePressed: window.cancel()
 
+        SequentialAnimation {
+            id: shakeAnimation
+
+            NumberAnimation { target: shake; property: "x"; to: -8; duration: 50; easing.type: Easing.OutQuad }
+            NumberAnimation { target: shake; property: "x"; to: 8; duration: 75; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: shake; property: "x"; to: -5; duration: 65; easing.type: Easing.InOutQuad }
+            NumberAnimation { target: shake; property: "x"; to: 0; duration: 90; easing.type: Easing.OutCubic }
+        }
+
         SharedUi.PopupFrame {
-            id: card
             anchors.fill: parent
             theme: window.theme
             attached: false
@@ -115,233 +137,122 @@ PanelWindow {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: mouse => mouse.accepted = true
+                onClicked: (mouse) => mouse.accepted = true
             }
 
             Column {
                 id: body
+
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: 16
                 spacing: 12
 
+                // Kulon "REQUIRED" jelveny nelkul: az alcim a kert polkit
+                // muvelet azonositoja, hibanal pedig maga a hiba.
                 SharedUi.PopupHeader {
                     width: parent.width
                     theme: window.theme
-                    title: "Authorization"
-                    subtitle: window.failed ? "Authentication failed" : "Polkit agent"
-                    trailingWidth: 92
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.bottomMargin: 6
-                        color: window.inkBg
-                        border.color: window.frameColor
-                        border.width: 1
-
-                        Behavior on border.color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-
-                        Text {
-                            textFormat: Text.PlainText
-                            anchors.centerIn: parent
-                            text: window.failed ? "DENIED" : "REQUIRED"
-                            color: window.frameColor
-                            font.pixelSize: 9
-                            font.bold: true
-                            font.letterSpacing: 1
-                        }
-                    }
+                    title: qsTr("Authorization")
+                    subtitle: window.failed
+                        ? qsTr("Wrong password, try again")
+                        : (window.flow && window.flow.actionId !== "" ? window.flow.actionId : qsTr("Polkit agent"))
                 }
 
+                // Mit akar a rendszer -- a polkit sajat mondata, ez a lenyeg.
                 Text {
-                    textFormat: Text.PlainText
                     width: parent.width
                     text: window.flow ? window.flow.message : ""
+                    textFormat: Text.PlainText
                     color: window.panelFg
-                    font.pixelSize: 14
+                    font.pixelSize: 13
                     wrapMode: Text.Wrap
                 }
 
-                Text {
-                    textFormat: Text.PlainText
-                    width: parent.width
-                    visible: window.flow && window.flow.actionId !== ""
-                    text: window.flow ? window.flow.actionId : ""
-                    color: window.mutedFg
-                    font.family: "monospace"
-                    font.pixelSize: 9
-                    elide: Text.ElideMiddle
-                }
-
+                // Tobb lehetseges fiok eseten (pl. tobb admin): ugyanaz a sor,
+                // mint a lenyilo panelek eszkozlistai.
                 Column {
                     id: identityBlock
+
                     width: parent.width
                     visible: window.flow && window.flow.identities.length > 1
-                    spacing: 6
+                    spacing: 4
 
-                    Text {
-                        textFormat: Text.PlainText
-                        text: "AUTHENTICATE AS"
-                        color: window.panelAccent
-                        font.pixelSize: 10
-                        font.letterSpacing: 1.5
-                        font.bold: true
+                    SharedUi.SectionBar {
+                        width: parent.width
+                        theme: window.theme
+                        sentenceCase: true
+                        title: qsTr("Authenticate as")
                     }
 
                     Repeater {
                         model: window.flow ? window.flow.identities : []
 
-                        Rectangle {
-                            id: identityRow
+                        SharedUi.ListRow {
                             required property var modelData
-                            readonly property bool current: window.flow && window.flow.selectedIdentity === modelData
 
                             width: identityBlock.width
-                            height: 40
-                            radius: 0
-                            color: identityRow.current || identityMouse.containsMouse ? window.inkBg : "transparent"
-                            border.color: identityRow.current ? window.panelAccent : "transparent"
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
-
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: 3
-                                color: window.panelAccent
-                                opacity: identityRow.current ? 1 : 0.35
-                            }
-
-                            Column {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 13
-                                anchors.right: parent.right
-                                anchors.rightMargin: 12
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
-
-                                Text {
-                                    textFormat: Text.PlainText
-                                    width: parent.width
-                                    text: identityRow.modelData.displayName
-                                    color: identityRow.current ? window.panelAccent : window.panelFg
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    textFormat: Text.PlainText
-                                    width: parent.width
-                                    text: identityRow.modelData.string
-                                    color: window.mutedFg
-                                    font.pixelSize: 10
-                                    elide: Text.ElideRight
-                                }
-                            }
-
-                            MouseArea {
-                                id: identityMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    window.response = ""
-                                    window.flow.selectedIdentity = identityRow.modelData
-                                    focusTimer.restart()
-                                }
+                            implicitHeight: 48
+                            theme: window.theme
+                            glyph: "󰀄"
+                            title: modelData.displayName
+                            subtitle: modelData.string
+                            active: window.flow && window.flow.selectedIdentity === modelData
+                            onClicked: {
+                                window.clearResponse()
+                                window.flow.selectedIdentity = modelData
+                                focusTimer.restart()
                             }
                         }
                     }
                 }
 
-                Rectangle {
+                SharedUi.SearchField {
+                    id: responseInput
+
                     width: parent.width
-                    height: 50
                     visible: window.flow && window.flow.isResponseRequired
-                    radius: 0
-                    color: window.inkBg
-                    border.color: window.failed
-                        ? window.errorColor
-                        : (responseInput.activeFocus ? window.panelAccent : window.lineBg)
-                    border.width: 1
-                    Behavior on border.color { ColorAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        width: 3
-                        color: window.frameColor
-                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    }
-
-                    Text {
-                        textFormat: Text.PlainText
-                        anchors.left: parent.left
-                        anchors.leftMargin: 20
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "󰌾"
-                        color: window.frameColor
-                        font.family: "Symbols Nerd Font Mono"
-                        font.pixelSize: 15
-                        Behavior on color { ColorAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                    }
-
-                    TextInput {
-                        id: responseInput
-                        anchors.left: parent.left
-                        anchors.leftMargin: 52
-                        anchors.right: parent.right
-                        anchors.rightMargin: 16
-                        anchors.verticalCenter: parent.verticalCenter
-                        height: parent.height - 10
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: window.panelFg
-                        font.pixelSize: 14
-                        echoMode: window.flow && window.flow.responseVisible ? TextInput.Normal : TextInput.Password
-                        inputMethodHints: window.flow && window.flow.responseVisible ? Qt.ImhNone : Qt.ImhSensitiveData
-                        text: window.response
-                        onTextChanged: window.response = text
-                        onAccepted: window.submit()
-
-                        Text {
-                            textFormat: Text.PlainText
-                            anchors.fill: parent
-                            visible: parent.text === ""
-                            text: window.flow && window.flow.inputPrompt !== "" ? window.flow.inputPrompt.toUpperCase() : "PASSWORD"
-                            color: window.mutedFg
-                            opacity: 0.5
-                            font.pixelSize: 10
-                            font.letterSpacing: 4
-                            verticalAlignment: Text.AlignVCenter
+                    opened: window.opened
+                    indicator: "󰌾"
+                    placeholder: window.promptText
+                    echoMode: window.flow && window.flow.responseVisible ? TextInput.Normal : TextInput.Password
+                    foreground: window.panelFg
+                    accent: window.failed ? window.warningFg : window.panelAccent
+                    muted: window.mutedFg
+                    surface: window.inkBg
+                    onTextEdited: (text) => window.response = text
+                    onKeyPressed: (event) => {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            window.submit()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Escape) {
+                            window.cancel()
+                            event.accepted = true
                         }
                     }
                 }
 
                 Text {
-                    textFormat: Text.PlainText
                     width: parent.width
                     visible: window.flow && window.flow.supplementaryMessage !== ""
                     text: window.flow ? window.flow.supplementaryMessage : ""
-                    color: window.flow && window.flow.supplementaryIsError ? window.errorColor : window.mutedFg
+                    textFormat: Text.PlainText
+                    color: window.flow && window.flow.supplementaryIsError ? window.warningFg : window.mutedFg
                     font.pixelSize: 11
                     wrapMode: Text.Wrap
                 }
 
                 Item {
                     width: parent.width
-                    height: 30
+                    height: 32
 
                     Text {
-                        textFormat: Text.PlainText
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "ESC  cancel      ↵  submit"
+                        text: "Esc cancel   ↵ authenticate"
+                        textFormat: Text.PlainText
                         color: window.mutedFg
-                        opacity: 0.72
                         font.family: "monospace"
                         font.pixelSize: 9
                     }
@@ -349,67 +260,20 @@ PanelWindow {
                     Row {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
+                        spacing: 8
 
-                        Rectangle {
-                            width: 96
-                            height: 30
-                            radius: 0
-                            color: cancelMouse.containsMouse ? window.inkBg : "transparent"
-                            border.color: window.mutedFg
-                            border.width: 1
-
-                            Text {
-                                textFormat: Text.PlainText
-                                anchors.centerIn: parent
-                                text: "CANCEL"
-                                color: window.mutedFg
-                                font.pixelSize: 10
-                                font.bold: true
-                                font.letterSpacing: 1
-                            }
-
-                            MouseArea {
-                                id: cancelMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: window.cancel()
-                            }
+                        SharedUi.ActionButton {
+                            theme: window.theme
+                            label: qsTr("Cancel")
+                            onClicked: window.cancel()
                         }
 
-                        Rectangle {
-                            width: 126
-                            height: 30
-                            radius: 0
-                            opacity: window.response !== "" ? 1 : 0.45
-                            color: submitMouse.containsMouse && window.response !== ""
-                                ? window.panelAccent
-                                : window.inkBg
-                            border.color: window.panelAccent
-                            border.width: 1
-                            Behavior on color { ColorAnimation { duration: 120; easing.type: Easing.OutCubic } }
-
-                            Text {
-                                textFormat: Text.PlainText
-                                anchors.centerIn: parent
-                                text: "AUTHENTICATE"
-                                color: submitMouse.containsMouse && window.response !== ""
-                                    ? window.panelBg
-                                    : window.panelAccent
-                                font.pixelSize: 10
-                                font.bold: true
-                                font.letterSpacing: 1
-                            }
-
-                            MouseArea {
-                                id: submitMouse
-                                anchors.fill: parent
-                                enabled: window.response !== ""
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: window.submit()
-                            }
+                        SharedUi.ActionButton {
+                            theme: window.theme
+                            primary: true
+                            enabled: window.response !== ""
+                            label: qsTr("Authenticate")
+                            onClicked: window.submit()
                         }
                     }
                 }

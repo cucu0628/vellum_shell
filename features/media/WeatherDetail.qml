@@ -89,8 +89,7 @@ SharedUi.DashPanel {
         return high > low ? { "low": low, "high": high } : { "low": 0, "high": 1 }
     }
 
-    title: "WEATHER"
-    trailing: location
+    title: location !== "" ? location : qsTr("Weather")
     closable: true
 
     Row {

@@ -118,7 +118,8 @@ SharedUi.DashPanel {
         selected = startOfDay(today)
     }
 
-    title: "CALENDAR"
+    // A mai nap a jobb oldali oszlop teteje; a fejlecben csak a het szama all.
+    title: ""
     trailing: qsTr("Week %1").arg(isoWeek(today))
     closable: true
 

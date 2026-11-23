@@ -34,8 +34,7 @@ SharedUi.DashPanel {
     readonly property var today: forecast.length > 0 ? bounds(forecast[0]) : null
     readonly property var upcoming: forecast.slice(1, 5)
 
-    title: "WEATHER"
-    trailing: location
+    title: location !== "" ? location : qsTr("Weather")
 
     Row {
         id: now

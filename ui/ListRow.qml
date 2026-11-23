@@ -12,6 +12,12 @@ Rectangle {
     // A jel betukeszlete; orszagkodhoz pl. monospace.
     property string glyphFamily: "Symbols Nerd Font Mono"
     property int glyphSize: 16
+    // Kep a jel helyett (alkalmazasikon, vagolap-elonezet). Amig nem toltodik
+    // be, vagy ha nem sikerul, a jel marad a tartalek.
+    property string iconSource: ""
+    // true: sajat formaju ikon (alkalmazas), csempe-hatter nelkul, majdnem
+    // teljes meretben; false: kivagott elonezet a csempen, 3 px paszpartuval.
+    property bool iconBare: false
     property string title: ""
     property string subtitle: ""
     property int subtitleElide: Text.ElideRight
@@ -36,6 +42,7 @@ Rectangle {
     readonly property color accentColor: accent
     readonly property bool hovered: row.interactive && pressable.containsMouse
     readonly property bool emphasized: row.hovered || row.active || row.selected || pressable.activeFocus
+    readonly property bool iconShown: iconImage.visible
 
     signal clicked(var event)
 
@@ -67,11 +74,27 @@ Rectangle {
         width: 32
         height: 32
         radius: 8
-        color: row.active ? Qt.rgba(row.accentColor.r, row.accentColor.g, row.accentColor.b, 0.16) : row.surface
+        color: row.active
+            ? Qt.rgba(row.accentColor.r, row.accentColor.g, row.accentColor.b, 0.16)
+            : (row.iconBare && row.iconShown ? "transparent" : row.surface)
         Behavior on color { ColorAnimation { duration: 110; easing.type: Easing.OutCubic } }
+
+        Image {
+            id: iconImage
+
+            anchors.fill: parent
+            anchors.margins: row.iconBare ? 2 : 3
+            source: row.iconSource
+            asynchronous: true
+            mipmap: true
+            sourceSize: Qt.size(64, 64)
+            fillMode: row.iconBare ? Image.PreserveAspectFit : Image.PreserveAspectCrop
+            visible: source !== "" && status === Image.Ready
+        }
 
         Text {
             anchors.centerIn: parent
+            visible: !iconImage.visible
             text: row.glyph
             color: row.active ? row.accent : row.foreground
             font.family: row.glyphFamily

@@ -9,10 +9,14 @@
 //!
 //! Ha a compositor jelzi, hogy a forras alkalmazas kilepett es a vagolap
 //! kiurult, a legutobbi bejegyzest a daemon maga kinalja fel tovabb. A Hyprland
-//! (0.56) ezt a jelzest a data-control eszkozoknek nem kuldi el, ott ez az ag
-//! nem fut le; a teljes megoldas az lenne, ha a daemon minden masolaskor
-//! atvenne a vagolapot az osszes formatummal -- ez viszont pl. a fajlkezelok
-//! masolasat ronthatja el, ezert szandekosan nincs benne.
+//! ezt akkor is jelzi, amikor egy alkalmazas uj masolas elott eldobja a regi
+//! forrasat (ures kivalasztas, rogton utana az uj). Ezert a visszaallitas var
+//! egy kicsit, es csak akkor fut le, ha azota nem erkezett uj kivalasztas --
+//! kulonben a regi bejegyzes felulirna a friss masolast.
+//!
+//! A teljes megoldas az lenne, ha a daemon minden masolaskor atvenne a
+//! vagolapot az osszes formatummal -- ez viszont pl. a fajlkezelok masolasat
+//! ronthatja el, ezert szandekosan nincs benne.
 
 mod store;
 mod wayland;
@@ -22,9 +26,15 @@ use anyhow::Result;
 use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use store::{Added, Kind, PinError, Store};
 use tokio::sync::mpsc;
 use wayland::{Command, Control, TEXT_MIMES, WatchEvent};
+
+/// Ennyit varunk kiurult vagolap utan, mielott a legutobbi bejegyzest
+/// visszaallitanank. Ha kozben uj masolas jon, a visszaallitas elmarad; ennyi
+/// ido alatt a legutobbi tartalom kiolvasasa is befejezodik.
+const RESTORE_DELAY: Duration = Duration::from_millis(150);
 
 pub struct Clipboard {
     store: Arc<Mutex<Store>>,
@@ -71,8 +81,9 @@ impl Clipboard {
         .await?
     }
 
-    /// Egy tarolt bejegyzes visszatetele a vagolapra.
-    async fn copy(&self, id: u64) -> Result<()> {
+    /// Egy tarolt bejegyzes visszatetele a vagolapra. `only_if_generation`
+    /// eseten csak akkor, ha a vagolap azota nem valtozott (lasd [`Command`]).
+    async fn copy(&self, id: u64, only_if_generation: Option<u64>) -> Result<()> {
         let (kind, mime, data) = self
             .with_store(move |store| -> Result<_> {
                 let entry = store
@@ -91,7 +102,7 @@ impl Clipboard {
             self.control.lock().ok().and_then(|control| control.clone()).ok_or_else(|| {
                 ModuleError::failed("a vagolap nem erheto el (nincs Wayland-kapcsolat)")
             })?;
-        control.send(Command::SetSelection { mimes, data: Arc::new(data) })
+        control.send(Command::SetSelection { mimes, data: Arc::new(data), only_if_generation })
     }
 
     fn id_param(params: &Value) -> Result<u64> {
@@ -175,13 +186,15 @@ impl Module for Clipboard {
                         Err(err) => tracing::warn!(%err, "a vagolap tartalma nem tarolhato"),
                     }
                 }
-                WatchEvent::Cleared => {
-                    // A legutobbi bejegyzest kinaljuk fel tovabb.
+                WatchEvent::Cleared { generation } => {
+                    // A legutobbi bejegyzest kinaljuk fel tovabb -- de csak ha
+                    // a kiurulast nem kovette rogton egy uj masolas.
+                    tokio::time::sleep(RESTORE_DELAY).await;
                     let newest = self
                         .with_store(|store| store.entries().first().map(|entry| entry.id))
                         .await?;
                     if let Some(id) = newest
-                        && let Err(err) = self.copy(id).await
+                        && let Err(err) = self.copy(id, Some(generation)).await
                     {
                         tracing::debug!(%err, "a vagolap nem allithato vissza");
                     }
@@ -204,7 +217,7 @@ impl Module for Clipboard {
             "history" => return Ok(self.snapshot()),
             "copy" => {
                 let id = Self::id_param(&params)?;
-                self.copy(id).await?;
+                self.copy(id, None).await?;
                 json!({ "copied": id })
             }
             "delete" => {

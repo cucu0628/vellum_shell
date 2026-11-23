@@ -1,7 +1,9 @@
 import QtQuick
 
-// Egy csendes, keret nelkuli szekcio a dashboardon: halvany felulet, egy
-// visszafogott cim, es semmi mas -- a tartalom adja a hangsulyt.
+// Egy szekcio a dashboardon, kartya nelkul: kozvetlenul a panel hatteren all,
+// a szomszedait hajszalvonal valasztja el (a szulo rajzolja). Mondatszeru cim
+// valodi tartalommal (telepules, "System"), jobbra egy metaadat. Kattinthato
+// szekcio hoverre halvany alapot kap.
 Rectangle {
     id: panel
 
@@ -27,9 +29,12 @@ Rectangle {
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
     readonly property real bodyHeight: body.height
 
-    // Ugyanaz a kerekites, mint a dashboard lejatszosavjan.
+    readonly property color foregroundColor: foreground
+
     radius: 10
-    color: clickable && cardMouse.containsMouse ? Qt.lighter(surface, 1.12) : surface
+    color: clickable && cardMouse.containsMouse
+        ? Qt.rgba(foregroundColor.r, foregroundColor.g, foregroundColor.b, 0.04)
+        : "transparent"
     clip: true
 
     Behavior on color { ColorAnimation { duration: 120; easing.type: Easing.OutCubic } }
@@ -54,26 +59,33 @@ Rectangle {
         anchors.leftMargin: 16
         anchors.rightMargin: 16
         anchors.topMargin: 12
-        height: 16
+        height: visible ? 20 : 0
         visible: panel.title !== "" || panel.trailing !== "" || panel.closable
 
         Text {
             anchors.left: parent.left
+            anchors.right: trailingText.visible ? trailingText.left : parent.right
+            anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             text: panel.title
-            color: panel.muted
-            font.pixelSize: 10
-            font.letterSpacing: 1
-            font.weight: Font.DemiBold
+            textFormat: Text.PlainText
+            color: panel.foreground
+            font.pixelSize: 13
+            font.weight: Font.Medium
+            elide: Text.ElideRight
         }
 
         Text {
+            id: trailingText
+
             anchors.right: headAction.visible ? headAction.left : parent.right
             anchors.rightMargin: headAction.visible ? 8 : 0
             anchors.verticalCenter: parent.verticalCenter
             text: panel.trailing
+            textFormat: Text.PlainText
             color: panel.muted
             font.pixelSize: 10
+            font.features: { "tnum": 1 }
             visible: panel.trailing !== ""
         }
 
@@ -118,11 +130,11 @@ Rectangle {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: head.bottom
+        anchors.top: head.visible ? head.bottom : parent.top
         anchors.bottom: parent.bottom
         anchors.leftMargin: 16
         anchors.rightMargin: 16
-        anchors.topMargin: panel.contentSpacing
+        anchors.topMargin: head.visible ? panel.contentSpacing : 12
         anchors.bottomMargin: 12
     }
 }
