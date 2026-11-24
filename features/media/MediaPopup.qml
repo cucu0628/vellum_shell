@@ -143,7 +143,7 @@ PanelWindow {
                     width: parent.width
                     // A kinagyitott nezet a sajat tartalmahoz igazodik: a naptar
                     // racsa magasabb, az idojaras alacsonyabb.
-                    height: !expanded ? 250 : (mediaPopup.expandedCard === "calendar" ? (calendarController.connected ? 360 : 330) : 268)
+                    height: !expanded ? 250 : (mediaPopup.expandedCard === "calendar" ? (calendarController.connected ? 364 : 334) : 272)
                     focus: expanded
                     Keys.onEscapePressed: mediaPopup.expandedCard = ""
 
@@ -152,11 +152,13 @@ PanelWindow {
                     Row {
                         id: cards
 
-                        readonly property real share: width - spacing * 2
+                        // Ket elvalaszto oszlop (25 px, kozepen hajszalvonal) a
+                        // harom szekcio kozott; a maradek oszlik el.
+                        readonly property real share: width - 50
 
                         width: parent.width
                         height: 250
-                        spacing: 12
+                        spacing: 0
                         opacity: cardsArea.expanded ? 0 : 1
                         visible: opacity > 0
                         scale: cardsArea.expanded ? 0.97 : 1
@@ -179,6 +181,9 @@ PanelWindow {
                             onMonthChangeRequested: (delta) => mediaPopup.changeCalendarMonth(delta)
                         }
 
+                        ColumnRule {
+                        }
+
                         MediaUi.WeatherSummaryCard {
                             width: Math.round(cards.share * 0.33)
                             height: parent.height
@@ -189,6 +194,9 @@ PanelWindow {
                             forecast: weatherController.forecast
                             clickable: true
                             onClicked: mediaPopup.expandedCard = "weather"
+                        }
+
+                        ColumnRule {
                         }
 
                         MediaUi.SystemStatsCard {
@@ -284,4 +292,20 @@ PanelWindow {
         }
     }
 
+
+    // Fuggoleges hajszalvonal a dashboard szekcioi kozott.
+    component ColumnRule: Item {
+        width: 25
+        height: 250
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 16
+            width: 1
+            height: parent.height - 32
+            color: mediaPopup.theme
+                ? Qt.rgba(mediaPopup.theme.foreground.r, mediaPopup.theme.foreground.g, mediaPopup.theme.foreground.b, 0.08)
+                : Qt.rgba(1, 1, 1, 0.08)
+        }
+    }
 }

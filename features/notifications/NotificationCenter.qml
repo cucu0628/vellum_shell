@@ -96,65 +96,69 @@ Item {
                     width: parent.width
                     spacing: 10
 
+                    // A darabszam a cim alatt, a muveletek a fejlec jobb szelen:
+                    // nincs kulon szakaszsav a lista folott.
                     SharedUi.PopupHeader {
                         width: parent.width
                         theme: center.theme
                         title: "Notifications"
-                        trailingWidth: 84
+                        subtitle: center.history.length === 0
+                            ? ""
+                            : center.history.length + (center.history.length === 1 ? " notification" : " notifications")
+                                + (center.groups.length > 1 && center.groups.length !== center.history.length
+                                    ? " from " + center.groups.length + " apps"
+                                    : "")
+                        trailingWidth: headerActions.implicitWidth
 
-                        SharedUi.HeaderChip {
-                            anchors.fill: parent
-                            anchors.bottomMargin: 6
-                            theme: center.theme
-                            label: "Silence"
-                            checkable: true
-                            checked: center.dnd
-                            accessibleName: center.dnd ? qsTr("Turn do not disturb off") : qsTr("Turn do not disturb on")
-                            onClicked: center.dndToggleRequested()
-                        }
+                        Row {
+                            id: headerActions
 
-                    }
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            height: 28
+                            spacing: 2
 
-                    // Ures listanal az "All quiet" sor mondja el ugyanezt.
-                    SharedUi.SectionBar {
-                        width: parent.width
-                        height: visible ? implicitHeight : 0
-                        visible: center.history.length > 0
-                        theme: center.theme
-                        title: "RECENT"
-                        detail: center.history.length
-                            + (center.groups.length > 0 && center.groups.length !== center.history.length
-                                ? "  ·  " + center.groups.length + (center.groups.length === 1 ? " app" : " apps")
-                                : "")
+                            SharedUi.HeaderChip {
+                                visible: center.hasGroupedApps
+                                theme: center.theme
+                                label: center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")
+                                accessibleName: center.allGroupsExpanded ? qsTr("Collapse all groups") : qsTr("Expand all groups")
+                                onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
+                            }
 
-                        SharedUi.HeaderChip {
-                            visible: center.hasGroupedApps
-                            theme: center.theme
-                            label: center.allGroupsExpanded ? qsTr("Collapse") : qsTr("Expand")
-                            accessibleName: center.allGroupsExpanded ? qsTr("Collapse all groups") : qsTr("Expand all groups")
-                            onClicked: center.groupsExpandRequested(!center.allGroupsExpanded)
-                        }
+                            SharedUi.HeaderChip {
+                                visible: center.history.length > 0
+                                theme: center.theme
+                                label: qsTr("Clear all")
+                                accessibleName: qsTr("Clear all notifications")
+                                onClicked: center.clearRequested()
+                            }
 
-                        SharedUi.HeaderChip {
-                            theme: center.theme
-                            label: qsTr("Clear all")
-                            accessibleName: qsTr("Clear all notifications")
-                            onClicked: center.clearRequested()
+                            SharedUi.HeaderChip {
+                                theme: center.theme
+                                label: "Silence"
+                                checkable: true
+                                checked: center.dnd
+                                accessibleName: center.dnd ? qsTr("Turn do not disturb off") : qsTr("Turn do not disturb on")
+                                onClicked: center.dndToggleRequested()
+                            }
+
                         }
 
                     }
 
                     Rectangle {
                         width: parent.width
-                        height: center.history.length === 0 ? 52 : 0
+                        height: center.history.length === 0 ? 44 : 0
                         visible: center.history.length === 0
                         color: "transparent"
                         border.color: "transparent"
                         border.width: 0
 
                         Row {
-                            anchors.centerIn: parent
-                            spacing: 9
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -166,7 +170,7 @@ Item {
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: "All quiet"
+                                text: center.dnd ? "All quiet. New notifications stay silent." : "All quiet"
                                 color: center.mutedFg
                                 font.pixelSize: 12
                             }

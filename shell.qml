@@ -14,6 +14,7 @@ import "features/launcher" as LauncherFeature
 import "features/lock" as LockFeature
 import "features/media" as MediaFeature
 import "features/settings" as SettingsFeature
+import "features/splash" as SplashFeature
 import "features/bluetooth" as BluetoothFeature
 import "features/connectivity" as ConnectivityFeature
 import "features/notifications" as NotificationFeature
@@ -111,8 +112,16 @@ ShellRoot {
         id: wallpaperStore
         backend: shellRoot.shellBackend
         shellDir: shellRoot.shellDir
+        settings: shellRoot.shellSettings
         screens: shellRoot.uniqueScreens
         onDoubleClicked: (targetScreen) => popupCoordinator.setThemeSwitcherOpen(true, "wallpaper", targetScreen)
+    }
+
+    // A munkamenet eleji inditokepernyot (SplashShell.qml) az elso kesz
+    // hatterkep zarja le.
+    SplashFeature.SplashHandoff {
+        shellDir: shellRoot.shellDir
+        desktopReady: wallpaperStore.settled
     }
 
     Core.WorkspaceController {
@@ -181,7 +190,10 @@ ShellRoot {
 
     Core.CavaController {
         id: cavaController
-        active: shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing
+        // A hangpanel fo csuszkaja is a spektrumot mutatja: amig nyitva van,
+        // akkor is fut, ha nem az aktiv MPRIS-lejatszo szol (pl. egy bongeszo).
+        active: (shellRoot.activePlayer && shellRoot.activePlayer.playbackState === MprisPlaybackState.Playing)
+            || audioPopup.opened
     }
 
     Component.onCompleted: {
@@ -389,6 +401,7 @@ ShellRoot {
             AudioFeature.AudioPopup {
                 theme: shellRoot.shellTheme
                 barHeight: shellRoot.barHeight
+                cavaSpectrum: cavaController.spectrum
                 screen: audioPopup.screen
                 onAdvancedRequested: popupCoordinator.openSettingsPage("sound")
             }

@@ -28,8 +28,13 @@ PanelWindow {
     readonly property string panelAccent: theme ? theme.accent : "#b7372f"
     readonly property string mutedFg: theme && theme.muted ? theme.muted : "#958b7a"
     readonly property string inkBg: theme && theme.surface ? theme.surface : "#191b16"
-    // Fejlec (34), allapotkartya (72), szakaszcim (28) es a kozok.
-    readonly property int fixedHeight: 170 + (pairingBusy ? 84 : 0) + (errorMessage !== "" ? 26 : 0)
+    readonly property bool showDevices: adapterAvailable && adapterEnabled
+    readonly property int listHeight: Math.max(64, Math.min(deviceList.length, 6) * 56)
+    // Fejlec alcimmel (44); bekapcsolva a csoportcim (12 + 28 + 12) es a lista,
+    // alatta a parositas es a hibasor.
+    readonly property int contentHeight: 44 + (showDevices ? 52 + listHeight : 0)
+        + (pairingBusy ? 84 : 0) + (errorMessage !== "" ? 26 : 0)
+    readonly property int connectedCount: statusController ? statusController.connectedDevices.length : 0
 
     readonly property var adapter: statusController ? statusController.adapter : null
     readonly property bool adapterAvailable: statusController ? statusController.available : false
@@ -68,7 +73,7 @@ PanelWindow {
         if (!device) return ""
         if (device.pairing) return "Pairing..."
         if (device.connected) {
-            if (device.batteryAvailable) return "Connected  ·  Battery " + Math.round(device.battery * 100) + "%"
+            if (device.batteryAvailable) return "Connected, battery " + Math.round(device.battery * 100) + "%"
             return "Connected"
         }
         if (device.paired || device.bonded) return "Paired"
@@ -293,8 +298,7 @@ PanelWindow {
         // A sav aljahoz tapad: a panel a savbol nyilik le, nem lebeg alatta.
         y: bluetoothWindow.barHeight
         width: Math.min(420, parent.width - 20)
-        height: Math.min(parent.height - bluetoothWindow.barHeight - 12,
-            32 + bluetoothWindow.fixedHeight + Math.max(112, Math.min(deviceList.length, 6) * 56))
+        height: Math.min(parent.height - bluetoothWindow.barHeight - 12, 36 + bluetoothWindow.contentHeight)
         clip: true
 
         Behavior on height { NumberAnimation { duration: 210; easing.type: Easing.OutCubic } }
@@ -314,81 +318,81 @@ PanelWindow {
                 anchors.margins: 16
                 spacing: 12
 
+                // Az alcim az egyetlen allapotsor: ki/be, kapcsolodott eszkozok
+                // szama, kereses. A kapcsolodott eszkoz maga a lista tetejen all.
                 SharedUi.PopupHeader {
                     width: parent.width
                     theme: bluetoothWindow.theme
                     title: "Bluetooth"
-                    trailingWidth: 64
+                    subtitle: !adapterAvailable
+                        ? "No adapter found"
+                        : (!adapterEnabled
+                            ? "Turned off"
+                            : (discovering
+                                ? "Scanning nearby…"
+                                : (connectedCount > 0 ? connectedCount + " connected" : "Nothing connected")))
+                    trailingWidth: 132
 
-                    SharedUi.HeaderChip {
-                        anchors.fill: parent
-                        anchors.bottomMargin: 6
-                        enabled: bluetoothWindow.adapterAvailable
-                        theme: bluetoothWindow.theme
-                        label: "On"
-                        checkable: true
-                        checked: bluetoothWindow.adapterEnabled
-                        accessibleName: bluetoothWindow.adapterEnabled ? qsTr("Turn Bluetooth off") : qsTr("Turn Bluetooth on")
-                        onClicked: toggleAdapter()
+                    Row {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 28
+                        spacing: 2
+
+                        SharedUi.HeaderChip {
+                            theme: bluetoothWindow.theme
+                            label: "Settings"
+                            accessibleName: qsTr("Open Bluetooth settings")
+                            onClicked: openAdvancedSettings()
+                        }
+
+                        SharedUi.HeaderChip {
+                            enabled: bluetoothWindow.adapterAvailable
+                            theme: bluetoothWindow.theme
+                            label: "On"
+                            checkable: true
+                            checked: bluetoothWindow.adapterEnabled
+                            accessibleName: bluetoothWindow.adapterEnabled ? qsTr("Turn Bluetooth off") : qsTr("Turn Bluetooth on")
+                            onClicked: toggleAdapter()
+                        }
                     }
-                }
-
-                SharedUi.StatusCard {
-                    width: parent.width
-                    theme: bluetoothWindow.theme
-                    active: statusController && statusController.connected
-                    glyph: !adapterEnabled ? "󰂲" : (primaryDevice ? deviceIcon(primaryDevice) : "󰂯")
-                    title: !adapterAvailable
-                        ? "No adapter detected"
-                        : (!adapterEnabled ? "Bluetooth is off" : (primaryDevice ? deviceName(primaryDevice) : "No device connected"))
-                    subtitle: primaryDevice
-                        ? primaryDevice.address + (primaryDevice.batteryAvailable ? "  ·  Battery " + Math.round(primaryDevice.battery * 100) + "%" : "")
-                        : (adapterEnabled ? "Ready to connect" : "")
                 }
 
                 SharedUi.SectionBar {
                     width: parent.width
+                    visible: bluetoothWindow.showDevices
                     theme: bluetoothWindow.theme
-                    title: "DEVICES"
-                    detail: adapterEnabled ? String(deviceList.length) : ""
+                    sentenceCase: true
+                    title: "Devices"
+                    detail: deviceList.length > 0 ? String(deviceList.length) : ""
 
                     SharedUi.HeaderChip {
                         theme: bluetoothWindow.theme
                         label: discovering ? "Stop scan" : "Scan"
                         checked: discovering
-                        enabled: bluetoothWindow.adapterEnabled
                         accessibleName: discovering ? qsTr("Stop scanning for devices") : qsTr("Scan for devices")
                         onClicked: toggleScan()
-                    }
-
-                    SharedUi.HeaderChip {
-                        theme: bluetoothWindow.theme
-                        label: "Settings"
-                        accessibleName: qsTr("Open Bluetooth settings")
-                        onClicked: openAdvancedSettings()
                     }
                 }
 
                 Item {
                     width: parent.width
-                    height: parent.height - bluetoothWindow.fixedHeight
+                    height: bluetoothWindow.listHeight
+                    visible: bluetoothWindow.showDevices
 
                     Text {
-                        anchors.centerIn: parent
-                        width: parent.width - 32
-                        visible: !adapterEnabled || deviceList.length === 0
-                        text: !adapterAvailable
-                            ? "No Bluetooth adapter found."
-                            : (!adapterEnabled ? "Turn on Bluetooth to see devices." : "No devices found. Try scanning again.")
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        visible: deviceList.length === 0
+                        text: discovering ? "Looking for devices in pairing mode…" : "No devices yet. Scan to find one nearby."
                         color: mutedFg
                         font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
                     }
 
                     Flickable {
                         anchors.fill: parent
-                        visible: adapterEnabled && deviceList.length > 0
+                        visible: deviceList.length > 0
                         contentHeight: deviceColumn.height
                         clip: true
                         boundsBehavior: Flickable.StopAtBounds

@@ -60,6 +60,9 @@ fn vars(palette: &Palette) -> Vars {
         palette.color_opt(&["MAGENTA"]).unwrap_or_else(|| color::mix(&accent, &background, 35));
 
     let primary = color::mix(&accent, &background, 45);
+    // A menuk hover-hattere a panel hatterebol szarmazik: a SURFACE sok
+    // palettaban megegyezik a LIGHTER_BACKGROUND-dal, igy a hover lathatatlan.
+    let menu_hover = color::mix(&accent, &lighter_background, 22);
     let url_color = color::mix(&muted, &foreground, 75);
     let identity_pink = color::mix(&accent, &foreground, 55);
 
@@ -81,6 +84,7 @@ fn vars(palette: &Palette) -> Vars {
     vars.insert("BLUE".into(), blue);
     vars.insert("MAGENTA".into(), magenta);
     vars.insert("PRIMARY".into(), primary);
+    vars.insert("MENU_HOVER".into(), menu_hover);
     vars.insert("URL_COLOR".into(), url_color);
     vars.insert("IDENTITY_PINK".into(), identity_pink);
     vars

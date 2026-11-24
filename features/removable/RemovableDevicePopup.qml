@@ -94,7 +94,7 @@ PanelWindow {
                     height: parent.height - header.height - 12 - (popup.hasError ? 26 : 0)
 
                     Text {
-                        anchors.centerIn: parent
+                        anchors.verticalCenter: parent.verticalCenter
                         visible: popup.devices.length === 0
                         text: "No removable drives connected."
                         color: popup.mutedFg
@@ -130,9 +130,9 @@ PanelWindow {
                                     glyph: modelData.transport === "usb" ? "󰕓" : "󰋊"
                                     title: modelData.name
                                     // Csatolva a csatolasi pont a fontos, kulonben a fajlrendszer.
-                                    subtitle: modelData.size + "  ·  " + (modelData.mounted
+                                    subtitle: modelData.size + ", " + (modelData.mounted
                                         ? modelData.mountpoint
-                                        : modelData.filesystem.toUpperCase() + "  ·  Not mounted")
+                                        : modelData.filesystem.toUpperCase() + ", not mounted")
                                     subtitleElide: Text.ElideMiddle
 
                                     SharedUi.HeaderChip {

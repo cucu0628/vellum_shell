@@ -92,7 +92,7 @@ PanelWindow {
                     Rectangle {
                         id: tabTrack
 
-                        width: Math.min(232, parent.width - wifiChip.width - 12)
+                        width: Math.min(208, parent.width - headerActions.width - 12)
                         height: parent.height
                         radius: 8
                         color: inkBg
@@ -184,19 +184,51 @@ PanelWindow {
 
                     }
 
-                    SharedUi.HeaderChip {
-                        id: wifiChip
+                    // A lathato ful sajat muveletei: halozatnal a Wi-Fi kapcsolo
+                    // (csak Wi-Fi kartyaval) es a beallitasok, VPN-nel a frissites
+                    // es a Proton alkalmazas.
+                    Row {
+                        id: headerActions
 
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: !connectivityWindow.vpnTab
-                        enabled: !networkPanel.radioBusy
-                        theme: connectivityWindow.theme
-                        label: "Wi-Fi"
-                        checkable: true
-                        checked: networkPanel.wifiEnabled
-                        accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
-                        onClicked: networkPanel.toggleWifi()
+                        spacing: 2
+
+                        SharedUi.HeaderChip {
+                            visible: !connectivityWindow.vpnTab && networkPanel.wifiAvailable
+                            enabled: !networkPanel.radioBusy
+                            theme: connectivityWindow.theme
+                            label: "Wi-Fi"
+                            checkable: true
+                            checked: networkPanel.wifiEnabled
+                            accessibleName: networkPanel.wifiEnabled ? qsTr("Turn Wi-Fi off") : qsTr("Turn Wi-Fi on")
+                            onClicked: networkPanel.toggleWifi()
+                        }
+
+                        SharedUi.HeaderChip {
+                            visible: !connectivityWindow.vpnTab
+                            theme: connectivityWindow.theme
+                            label: "Settings"
+                            accessibleName: qsTr("Open network settings")
+                            onClicked: networkPanel.openAdvancedSettings()
+                        }
+
+                        SharedUi.HeaderChip {
+                            visible: connectivityWindow.vpnTab && vpnPanel.cliAvailable
+                            theme: connectivityWindow.theme
+                            label: "Refresh"
+                            accessibleName: qsTr("Refresh VPN status")
+                            onClicked: vpnPanel.refresh()
+                        }
+
+                        SharedUi.HeaderChip {
+                            visible: connectivityWindow.vpnTab
+                            theme: connectivityWindow.theme
+                            label: "Open app"
+                            accessibleName: qsTr("Open the Proton VPN app")
+                            onClicked: vpnPanel.openProtonApp()
+                        }
+
                     }
 
                 }

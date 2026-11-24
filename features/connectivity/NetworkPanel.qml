@@ -1,4 +1,5 @@
 import QtQuick
+import "." as ConnectivityUi
 import "../../ui" as SharedUi
 
 // Wi-Fi half of the connectivity panel. It only asks the backend to scan while
@@ -19,10 +20,14 @@ Item {
     property string selectedSsid: ""
     property alias errorMessage: controller.errorMessage
     readonly property alias networks: controller.networks
-    // Allapotkartya (72) + szakaszcim (28) + ket koz; alatta legfeljebb ot sor,
-    // a kivalasztott halozatnal pedig a sora ala nyilo jelszolap.
+    readonly property alias wifiAvailable: controller.wifiAvailable
     readonly property int passwordDrawerHeight: 84
-    readonly property int preferredHeight: 124 + Math.max(112, Math.min(networks.length, 5) * 56) + (selectedSsid !== "" ? passwordDrawerHeight : 0)
+    // Az allapotsor (44) es alatta a forgalomsav (8 + 40); Wi-Fi kartyaval az
+    // elvalaszto (25), a csoportcim (28 + 8) es legfeljebb ot sor, a
+    // kivalasztott halozatnal pedig a sora ala nyilo jelszolap.
+    readonly property bool showTrace: connected && statusController && statusController.device !== ""
+    readonly property int listHeight: Math.max(64, Math.min(networks.length, 5) * 56) + (selectedSsid !== "" ? passwordDrawerHeight : 0)
+    readonly property int preferredHeight: 44 + (showTrace ? 48 : 0) + (wifiAvailable ? 61 + listHeight : 0)
     // A kivalasztott halozat jelszava; a mezo a halozat sora alatt van.
     property string password: ""
     readonly property string panelBg: theme ? theme.background : "#15110f"
@@ -89,70 +94,53 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: 12
 
-        SharedUi.StatusCard {
+        SharedUi.StatusRow {
             width: parent.width
             theme: networkPanel.theme
             active: networkPanel.connected
             glyph: networkPanel.ethernet ? "󰈀" : (networkPanel.connected ? "󰤨" : "󰤭")
             title: networkPanel.connected
                 ? (networkPanel.ethernet ? "Ethernet" : statusController.connectionName)
-                : "No connection"
-            subtitle: (statusController && statusController.device !== "" ? statusController.device + "  ·  " : "")
-                + (statusController && statusController.lanIp !== "" ? statusController.lanIp : "No address")
-            trailingWidth: 84
+                : "Not connected"
+            subtitle: {
+                var parts = [];
+                if (statusController && statusController.device !== "")
+                    parts.push(statusController.device);
 
-            // Live throughput of the interface the connection runs on.
-            Column {
-                anchors.fill: parent
-                spacing: 4
+                if (statusController && statusController.lanIp !== "")
+                    parts.push(statusController.lanIp);
 
-                Repeater {
-                    model: [{
-                        "arrow": "↓",
-                        "down": true
-                    }, {
-                        "arrow": "↑",
-                        "down": false
-                    }]
-
-                    Item {
-                        required property var modelData
-
-                        width: parent.width
-                        height: (parent.height - 4) / 2
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: parent.modelData.arrow
-                            color: mutedFg
-                            font.pixelSize: 11
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: throughput.format(parent.modelData.down ? throughput.downRate : throughput.upRate)
-                            color: parent.modelData.down ? panelFg : mutedFg
-                            font.family: "monospace"
-                            font.pixelSize: 11
-                        }
-
-                    }
-
-                }
-
+                return parts.length > 0 ? parts.join(", ") : (networkPanel.connected ? "No address yet" : "");
             }
+        }
 
+        Item {
+            width: 1
+            height: 8
+            visible: networkPanel.showTrace
+        }
+
+        ConnectivityUi.ThroughputTrace {
+            width: parent.width
+            visible: networkPanel.showTrace
+            theme: networkPanel.theme
+            throughput: throughput
+        }
+
+        SharedUi.GroupDivider {
+            width: parent.width
+            visible: networkPanel.wifiAvailable
+            theme: networkPanel.theme
         }
 
         SharedUi.SectionBar {
             width: parent.width
+            visible: networkPanel.wifiAvailable
             theme: networkPanel.theme
-            title: "NETWORKS"
-            detail: !wifiEnabled ? "" : (scanning ? "Scanning…" : String(networks.length))
+            sentenceCase: true
+            title: "Wi-Fi networks"
+            detail: !wifiEnabled ? "" : (scanning ? "Scanning…" : (networks.length > 0 ? String(networks.length) : ""))
 
             SharedUi.HeaderChip {
                 theme: networkPanel.theme
@@ -162,24 +150,24 @@ Item {
                 onClicked: controller.refresh()
             }
 
-            SharedUi.HeaderChip {
-                theme: networkPanel.theme
-                label: "Settings"
-                accessibleName: qsTr("Open network settings")
-                onClicked: openAdvancedSettings()
-            }
+        }
 
+        Item {
+            width: 1
+            height: 8
+            visible: networkPanel.wifiAvailable
         }
 
         Item {
             width: parent.width
-            height: parent.height - 124
+            height: networkPanel.listHeight
+            visible: networkPanel.wifiAvailable
 
             Text {
                 anchors.centerIn: parent
                 width: parent.width - 32
                 visible: !wifiEnabled || (!scanning && networks.length === 0)
-                text: wifiEnabled ? "No networks found. Try refreshing." : "Turn on Wi-Fi to see networks."
+                text: wifiEnabled ? "No networks in range. Refresh to scan again." : "Turn on Wi-Fi to see networks."
                 color: mutedFg
                 font.pixelSize: 12
                 horizontalAlignment: Text.AlignHCenter
@@ -244,8 +232,8 @@ Item {
                                 glyph: networkPanel.signalIcon(networkEntry.modelData.signal)
                                 title: networkEntry.modelData.ssid
                                 subtitle: networkEntry.modelData.active
-                                    ? "Connected  ·  " + networkEntry.modelData.signal + "%"
-                                    : networkEntry.modelData.signal + "%  ·  " + (networkEntry.modelData.secure ? networkEntry.modelData.security : "Open network")
+                                    ? "Connected, " + networkEntry.modelData.signal + "% signal"
+                                    : (networkEntry.modelData.secure ? networkEntry.modelData.security : "Open network") + ", " + networkEntry.modelData.signal + "% signal"
                                 trailing: networkEntry.modelData.active
                                     ? (networkPanel.busySsid === networkEntry.modelData.ssid ? "Wait…" : "Disconnect")
                                     : (networkEntry.modelData.enterprise ? "802.1X settings" : (networkEntry.chosen ? (networkPanel.connecting ? "Connecting…" : "Cancel") : "Connect"))

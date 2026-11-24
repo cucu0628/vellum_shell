@@ -40,7 +40,12 @@ Item {
         acceptedButtons: pressable.acceptedButtons
         cursorShape: Qt.PointingHandCursor
         onClicked: event => pressable.clicked(event)
-        onWheel: event => pressable.wheel(event)
+        // A gorgetes alapbol tovabbmegy a szulonek (pl. a lista gorgetesehez);
+        // csak az nyeli el, aki a `wheel` jelre figyelve `accepted = true`-t ad.
+        onWheel: event => {
+            event.accepted = false;
+            pressable.wheel(event);
+        }
     }
 
     FocusRing {

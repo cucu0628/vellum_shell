@@ -44,7 +44,7 @@ PanelWindow {
     readonly property var searchResults: buildResults(query)
     readonly property var visibleItems: projectMode ? projectItems() : searchResults
     readonly property bool listVisible: hasQuery || visibleItems.length > 0
-    readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 46 - 2 : 44
+    readonly property real resultsHeight: visibleItems.length > 0 ? visibleItems.length * 50 - 2 : 44
 
     function refreshApplications() {
         applications = DesktopEntries.applications.values.slice();
@@ -710,8 +710,9 @@ PanelWindow {
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         opened: launcherWindow.opened
-                        indicator: projectMode ? ">" : "⌕"
-                        placeholder: projectMode ? "Search projects in ~/Projects..." : "Search apps, actions and emoji..."
+                        prominent: true
+                        indicator: projectMode ? "󰉋" : "󰍉"
+                        placeholder: projectMode ? "Search projects in ~/Projects" : "Search apps, actions and emoji"
                         surface: inkBg
                         foreground: panelFg
                         accent: panelAccent
@@ -761,8 +762,8 @@ PanelWindow {
                     visible: listVisible
                     width: parent.width
                     height: 1
-                    color: mutedFg
-                    opacity: 0.14
+                    color: panelFg
+                    opacity: 0.08
                 }
 
                 // A lista kitolti, ami a fejresz es a labsor kozott marad.
@@ -794,6 +795,7 @@ PanelWindow {
 
                         delegate: LauncherUi.LauncherResultRow {
                             width: ListView.view.width - (resultsList.interactive ? 8 : 0)
+                            theme: launcherWindow.theme
                             result: modelData
                             resultIndex: index
                             selected: index === selectedIndex
@@ -801,13 +803,8 @@ PanelWindow {
                             hoverSelectionEnabled: !suppressHoverSelection
                             title: itemTitle(modelData)
                             subtitle: itemSubtitle(modelData)
-                            glyph: itemIcon(modelData)
-                            appIconSource: modelData.type === "app" ? iconResolver.resolve(modelData.app) : ""
-                            appFallbackIcon: iconResolver.fallbackIcon(modelData.app)
-                            foregroundColor: panelFg
-                            accentColor: panelAccent
-                            mutedColor: mutedFg
-                            selectionColor: inkBg
+                            glyph: modelData.type === "app" ? iconResolver.fallbackIcon(modelData.app) : itemIcon(modelData)
+                            iconSource: modelData.type === "app" ? iconResolver.resolve(modelData.app) : ""
                             onHoverRequested: (rowIndex) => {
                                 selectedIndex = rowIndex;
                             }

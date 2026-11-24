@@ -9,9 +9,13 @@ Item {
     property var theme: null
     property string title: ""
     property string detail: ""
+    // true: mondatszeru cim (pl. "Wi-Fi networks") nagybetus koz nelkul, az
+    // eloter szinevel -- a kartya nelkuli panelek csoportcime.
+    property bool sentenceCase: false
     default property alias actions: actionRow.data
 
     readonly property string muted: theme && theme.muted ? theme.muted : "#958b7a"
+    readonly property string foreground: theme ? theme.foreground : "#e8ddc7"
 
     implicitHeight: 28
 
@@ -26,10 +30,10 @@ Item {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: bar.title
-            color: bar.muted
-            font.pixelSize: 10
-            font.letterSpacing: 1
-            font.weight: Font.DemiBold
+            color: bar.sentenceCase ? bar.foreground : bar.muted
+            font.pixelSize: bar.sentenceCase ? 13 : 10
+            font.letterSpacing: bar.sentenceCase ? 0 : 1
+            font.weight: bar.sentenceCase ? Font.Medium : Font.DemiBold
         }
 
         Text {

@@ -47,12 +47,18 @@ pub enum WatchEvent {
         mime: String,
         data: Vec<u8>,
     },
-    /// A forras alkalmazas kilepett, a vagolap kiurult.
-    Cleared,
+    /// A forras alkalmazas kilepett, a vagolap kiurult. A `generation` az a
+    /// kivalasztas-szamlalo, amelynel ez tortent (lasd [`Command`]).
+    Cleared {
+        generation: u64,
+    },
 }
 
 pub enum Command {
-    SetSelection { mimes: Vec<String>, data: Arc<Vec<u8>> },
+    /// Legyen ez a vagolap tartalma. Ha `only_if_generation` meg van adva, csak
+    /// akkor, ha azota nem erkezett uj kivalasztas: a kiurult vagolap
+    /// visszaallitasa igy nem irhatja felul azt, amit kozben valaki masolt.
+    SetSelection { mimes: Vec<String>, data: Arc<Vec<u8>>, only_if_generation: Option<u64> },
 }
 
 /// A futo figyelo vezerloje: ezen at kerheto a visszamasolas.
@@ -97,6 +103,7 @@ pub fn spawn(
         offers: HashMap::new(),
         source: None,
         had_selection: false,
+        generation: 0,
         finished: false,
     };
     // Az elso korben a compositor elkuldi a mostani vagolapot is.
@@ -171,9 +178,21 @@ fn event_loop(
 
         if fds[1].revents & libc::POLLIN != 0 {
             drain(wake);
+            // A most beolvasott esemenyeket elobb feldolgozzuk: igy a
+            // `generation` mar tudja, ha kozben uj masolas tortent.
+            queue.dispatch_pending(state)?;
             while let Ok(command) = commands.try_recv() {
                 match command {
-                    Command::SetSelection { mimes, data } => {
+                    Command::SetSelection { only_if_generation: Some(expected), .. }
+                        if expected != state.generation =>
+                    {
+                        tracing::debug!(
+                            expected,
+                            current = state.generation,
+                            "a vagolap kozben megvaltozott, nem allitjuk vissza"
+                        );
+                    }
+                    Command::SetSelection { mimes, data, .. } => {
                         let source = manager.create_data_source(qh, ());
                         for mime in &mimes {
                             source.offer(mime.clone());
@@ -196,15 +215,18 @@ struct State {
     source: Option<(ObjectId, Arc<Vec<u8>>)>,
     /// Lattunk-e mar tartalmat ebben a munkamenetben (kiurulas felismeresehez).
     had_selection: bool,
+    /// Minden `selection` esemeny (uj tartalom vagy kiurulas) noveli.
+    generation: u64,
     /// A compositor visszavonta az eszkozt (pl. a seat megszunt).
     finished: bool,
 }
 
 impl State {
     fn on_selection(&mut self, offer: Option<ZwlrDataControlOfferV1>) {
+        self.generation += 1;
         let Some(offer) = offer else {
             if self.had_selection {
-                let _ = self.events.send(WatchEvent::Cleared);
+                let _ = self.events.send(WatchEvent::Cleared { generation: self.generation });
             }
             return;
         };

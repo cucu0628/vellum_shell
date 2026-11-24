@@ -27,7 +27,8 @@ SharedUi.DashPanel {
     readonly property color hoverBg: Qt.rgba(1, 1, 1, 0.075)
     readonly property color lineBg: Qt.rgba(1, 1, 1, 0.055)
 
-    title: "CALENDAR"
+    // Kulon cim nincs: a honap neve maga a szekcio cime, mellette a lapozas.
+    title: ""
     contentSpacing: 10
 
     Item {
@@ -38,9 +39,22 @@ SharedUi.DashPanel {
         anchors.top: parent.top
         height: 28
 
+        Text {
+            anchors.left: parent.left
+            anchors.right: prevButton.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
+            text: (card.monthNames.length > 0 ? card.monthNames[card.now.getMonth()] : "") + " " + card.now.getFullYear()
+            color: card.foreground
+            font.family: "serif"
+            font.pixelSize: 15
+            font.weight: Font.Medium
+            elide: Text.ElideRight
+        }
+
         Rectangle {
             id: prevButton
-            anchors.left: parent.left
+            anchors.right: nextButton.left
             anchors.verticalCenter: parent.verticalCenter
             width: 28
             height: 28
@@ -54,30 +68,20 @@ SharedUi.DashPanel {
                 font.pixelSize: 18
             }
 
-            MouseArea {
+            SharedUi.Pressable {
                 id: prevMouse
                 anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                theme: card.theme
+                focusRadius: 6
+                accessibleName: qsTr("Previous month")
                 onClicked: card.monthChangeRequested(-1)
             }
-        }
-
-        Text {
-            anchors.left: prevButton.right
-            anchors.right: nextButton.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: (card.monthNames.length > 0 ? card.monthNames[card.now.getMonth()] : "") + " " + card.now.getFullYear()
-            color: card.foreground
-            font.pixelSize: 13
-            font.weight: Font.Medium
-            horizontalAlignment: Text.AlignHCenter
-            elide: Text.ElideRight
         }
 
         Rectangle {
             id: nextButton
             anchors.right: parent.right
+            anchors.rightMargin: -6
             anchors.verticalCenter: parent.verticalCenter
             width: 28
             height: 28
@@ -91,11 +95,12 @@ SharedUi.DashPanel {
                 font.pixelSize: 18
             }
 
-            MouseArea {
+            SharedUi.Pressable {
                 id: nextMouse
                 anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                theme: card.theme
+                focusRadius: 6
+                accessibleName: qsTr("Next month")
                 onClicked: card.monthChangeRequested(1)
             }
         }

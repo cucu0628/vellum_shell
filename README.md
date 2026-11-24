@@ -449,6 +449,28 @@ line by line and drops anything that does not match the expected pattern, so a
 user-writable file cannot run code in the greeter. Outputs that are unplugged
 when the layout is captured keep their previous line.
 
+After a successful sign-in the greeter fades to black instead of thawing, and
+the console between the two compositors stays black. Hyprland prints a large
+ASCII banner to its stdout, which for the greeter compositor is the VT, so
+`greeter/hyprland.lua` clears the VT and hides its cursor when the greeter
+starts and again just before it exits. The session command is wrapped the same
+way, and its output goes to the journal (`journalctl -t vellum-session`)
+instead of the TTY; without journald the session starts exactly as before.
+
+On the desktop side `scripts/shell-start` launches `SplashShell.qml`, a small
+separate Quickshell instance, as soon as Hyprland's outputs have settled
+(surfaces created while the outputs are still being configured get closed). Paper spreads over the black like a drop
+of ink (`features/splash/shaders/splash-ink.frag`, the same noisy edge as the
+wallpaper transition), the logo is written in its two strokes inside a
+brush-stroke ensō, and the name and a greeting fade in below. The main shell
+calls `quickshell ipc --path <shell>/SplashShell.qml call splash dismiss` as
+soon as the wallpaper is up on every output (or after 6 s); the mark lifts and
+the paper tears open from the centre onto the finished desktop. The finished
+mark always stays up for at least 0.7 s, and every phase is timestamped in the
+instance's log (`quickshell log`, lines starting with `splash +`). It never takes
+input and quits on its own after 12 s; `VELLUM_SPLASH=0` disables it. With
+`effects.shaders: false` the paper fades in and out without the ink shader.
+
 PAM uses greetd's own `/etc/pam.d/greetd`. Signing in, the power actions and
 the multi-monitor layout need a real greetd boot to test; the preview never
 authenticates or powers anything off.
@@ -493,8 +515,9 @@ rim, and the incoming image settles from a slight zoom over 1.1 s
 together, so the bar recolours while the picture is still spreading. The
 wallpaper effect is `core/shaders/wallpaper-ink.frag`, built by
 `scripts/build-shaders` like the screensaver scenes; if it cannot load, the
-wallpaper falls back to a plain crossfade. External applications (GTK, kitty,
-Zen) still switch when their own palette files are rewritten.
+wallpaper falls back to a plain crossfade, which `effects.shaders: false` in
+`settings.json` also selects. External applications (GTK, kitty, Zen) still
+switch when their own palette files are rewritten.
 
 ### State files
 
@@ -509,6 +532,7 @@ preference below.
   "weather": { "location": "Budapest" },
   "lockScreen": { "monitor": "HDMI-A-1", "idleMinutes": 0 },
   "screensaver": { "idleMinutes": 5, "theme": "shapes" },
+  "effects": { "shaders": true },
   "media": { "ignoredPlayers": ["Mozilla zen"] },
   "bar": { "left": [], "center": [], "right": [], "hidden": [] }
 }
@@ -521,6 +545,7 @@ preference below.
 | `lockScreen.idleMinutes` | Minutes of inactivity before the screen locks; `0` or missing means never |
 | `screensaver.idleMinutes` | Minutes of inactivity before the ASCII screensaver starts; `0` or missing means never |
 | `screensaver.theme` | Screensaver scene: `shapes` (default when missing), `auto`, or a theme name from `ScreensaverThemes.js` |
+| `effects.shaders` | Ink shaders for wallpaper changes and the startup splash; `false` replaces both with a plain fade for slower GPUs (Settings > System > Shader effects). The screensaver always uses its shaders |
 | `media.ignoredPlayers` | Media players hidden everywhere in the shell, matched by name or bus name |
 | `bar` | Top-bar module order per zone |
 
@@ -615,7 +640,7 @@ MUTED="#727169"
 
 Included palettes are Catppuccin Mocha, Dynamic Matugen, Gruvbox Material,
 Japanese Ink, Kanagawa Wave, Monochrome, Rose Pine, Sakura Blossom, Tokyo Night,
-and Varnished Horizon.
+Varnished Horizon, and Vice Sunset.
 
 Dynamic mode derives a Material You palette from the wallpaper inside the
 backend, so no external tool is involved. A wallpaper with no usable hue keeps a
@@ -625,12 +650,27 @@ The backend generates:
 
 - `kitty-theme.conf` for Kitty.
 - `gtk-theme.css` for GTK 3 and GTK 4.
-- `~/.config/qt6ct/colors/vellum.conf` for Qt 6 applications and the Hyprland
-  screen-sharing picker (through a service-specific portal environment).
+- `~/.config/qt6ct/colors/vellum.conf` for Qt 6 applications (and the older,
+  Qt-based Hyprland screen-sharing picker, through a service-specific portal
+  environment).
 - `~/.config/hypr/colors.lua` for Hyprland's native Lua configuration.
+- `~/.config/hypr/hyprtoolkit.conf` for hyprtoolkit apps: the current Hyprland
+  screen-sharing picker (xdg-desktop-portal-hyprland 1.5+) and `hyprland-dialog`.
 - `vellum-theme.css` in the active Zen Browser profile, imported by `userChrome.css`.
 - A `btop` theme in the user's btop configuration.
+- Folder icons drawn from the accent in `~/.local/share/icons/vellum-a` (or
+  `vellum-b`), set as the GTK, KDE and qt6ct icon theme. It is a thin layer over
+  the Yaru variant picked for the accent (or the theme's `ICON_THEME`), so every
+  other icon still comes from that theme, and application icons are left alone.
+  The name alternates between the two directories on every colour change,
+  because running GTK and KDE apps only reload icons when the theme name
+  changes. `FOLDER_ICONS=off` in a `theme.conf` keeps the plain Yaru variant.
 - `~/.local/share/nvim/site/colors/vellum.lua`, a full Neovim colorscheme.
+- `~/.t3/userdata/themes/vellum.json` (or under `$T3CODE_HOME`) for T3 Code,
+  when it is installed. T3 Code watches that directory, so a theme change
+  recolours the running app. The first run also makes `vellum` the T3
+  environment theme in its `settings.json`, but only when no environment theme
+  is set, so a theme picked later inside T3 Code is never overridden.
 - A matching Vellum logo and Fastfetch configuration. A local
   `~/.config/fastfetch/config.template.jsonc` overrides the bundled layout. This
   is what the `about` target shows: `about toggle` floats a kitty window running
@@ -679,6 +719,7 @@ vellum_shell/
 ├── shell.qml              Main shell entry point and composition
 ├── LockShell.qml          Standalone lock-screen compatibility entry point
 ├── GreeterShell.qml       greetd login screen entry point (installed as shell.qml)
+├── SplashShell.qml        Session start splash (started by scripts/shell-start)
 ├── app/                   Popup lifecycle, coordination, and public IPC
 ├── core/                  Platform and shared state controllers
 ├── features/              Self-contained shell features and surfaces
@@ -807,7 +848,7 @@ The same gates run in CI (`.github/workflows/checks.yml`). To run a single piece
 cargo fmt --manifest-path backend/Cargo.toml --check
 cargo clippy --manifest-path backend/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path backend/Cargo.toml
-qmllint shell.qml LockShell.qml GreeterShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
+qmllint shell.qml LockShell.qml GreeterShell.qml SplashShell.qml app/*.qml core/*.qml ui/*.qml features/*/*.qml
 shellcheck setup.sh install.sh scripts/*
 python3 -B -m unittest discover -s tests -p 'test_*.py'
 node tests/notifications.js

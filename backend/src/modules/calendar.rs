@@ -1170,7 +1170,7 @@ fn format_date(days: i64) -> String {
     format!("{year:04}-{month:02}-{day:02}")
 }
 
-fn format_rfc3339_utc(epoch_seconds: i64) -> String {
+pub(crate) fn format_rfc3339_utc(epoch_seconds: i64) -> String {
     let days = epoch_seconds.div_euclid(86_400);
     let seconds = epoch_seconds.rem_euclid(86_400);
     format!(
